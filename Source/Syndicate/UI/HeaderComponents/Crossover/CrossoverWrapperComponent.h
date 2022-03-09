@@ -1,0 +1,25 @@
+#pragma once
+
+#include "../JuceLibraryCode/JuceHeader.h"
+
+#include <memory>
+
+#include "CrossoverImagerComponent.h"
+#include "CrossoverMouseListener.h"
+#include "CrossoverParameterComponent.h"
+
+class CrossoverWrapperComponent : public juce::Component {
+public:
+
+    CrossoverWrapperComponent(SyndicateAudioProcessor& processor);
+    virtual ~CrossoverWrapperComponent() = default;
+
+    void resized() override;
+
+    void onParameterUpdate();
+
+private:
+    std::unique_ptr<CrossoverImagerComponent> _imagerComponent;
+    std::unique_ptr<CrossoverParameterComponent> _parameterComponent;
+    std::unique_ptr<CrossoverMouseListener> _mouseListener;
+};
