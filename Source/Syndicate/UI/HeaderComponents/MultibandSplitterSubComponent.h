@@ -7,7 +7,7 @@
 class MultibandSplitterSubComponent : public SplitterHeaderComponent,
                                       public juce::Button::Listener {
 public:
-    MultibandSplitterSubComponent(SyndicateAudioProcessor& processor);
+    MultibandSplitterSubComponent(SyndicateAudioProcessor& processor, juce::Component* extensionComponent);
     ~MultibandSplitterSubComponent() override;
 
     void onParameterUpdate() override;
@@ -17,6 +17,7 @@ public:
 
 private:
     SyndicateAudioProcessor& _processor;
+    UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
 
     std::unique_ptr<juce::TextButton> addBandBtn;
     std::unique_ptr<juce::TextButton> removeBandBtn;

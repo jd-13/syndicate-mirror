@@ -1,6 +1,37 @@
 #include "PluginModulationInterface.h"
 #include "GraphViewComponent.h"
 
+namespace {
+    juce::Array<juce::AudioProcessorParameter*> getParamsExcludingSelected(
+            const juce::Array<juce::AudioProcessorParameter*>& pluginParameters,
+            PluginModulationConfig config) {
+        // Get the list of all parameters, and create a subset that includes only ones that haven't
+        // been selected yet
+        // TODO this might break if the plugin changes its list of parameters after this list has
+        // been created
+        juce::Array<juce::AudioProcessorParameter*> availableParameters;
+
+        for (juce::AudioProcessorParameter* thisParam : pluginParameters) {
+            bool shouldCopy {true};
+
+            // If this parameter name is already in the config, don't add it to the list
+            for (const PluginParameterModulationConfig& paramConfig : config.parameterConfigs) {
+                const juce::String thisParamName = thisParam->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
+                if (thisParamName == paramConfig.targetParameterName) {
+                    shouldCopy = false;
+                    break;
+                }
+            }
+
+            if (shouldCopy) {
+                availableParameters.add(thisParam);
+            }
+        }
+
+        return availableParameters;
+    }
+}
+
 PluginModulationInterface::PluginModulationInterface(SyndicateAudioProcessor& processor, GraphViewComponent* graphView)
     : _processor(processor),
       _graphView(graphView) {
@@ -50,12 +81,10 @@ void PluginModulationInterface::selectModulationTarget(int chainNumber, int plug
         std::shared_ptr<juce::AudioPluginInstance> plugin =
             _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
 
-        const juce::Array<juce::AudioProcessorParameter*>& pluginParameters = plugin->getParameters();
-
         // Create the selector
         PluginParameterSelectorListParameters parameters {
             _processor.pluginParameterSelectorState,
-            pluginParameters,
+            getParamsExcludingSelected(plugin->getParameters(), _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber)),
             [&, chainNumber, pluginNumber, targetNumber](juce::AudioProcessorParameter* parameter) { _onPluginParameterSelected(parameter, chainNumber, pluginNumber, targetNumber); }
         };
 

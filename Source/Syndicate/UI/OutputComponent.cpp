@@ -109,15 +109,15 @@ OutputComponent::~OutputComponent() {
 
 void OutputComponent::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
-    availableArea.removeFromTop(64);
+    availableArea.removeFromTop(10);
     availableArea.removeFromLeft(8);
     availableArea.removeFromRight(8);
 
     panSlider->setBounds(availableArea.removeFromTop(availableArea.getWidth()));
     panLabel->setBounds(availableArea.removeFromTop(24));
-    availableArea.removeFromTop(50);
+    availableArea.removeFromTop(20);
 
-    juce::Rectangle<int> meterGainArea = availableArea.removeFromTop(270);
+    juce::Rectangle<int> meterGainArea = availableArea.removeFromTop(280);
     outputMeter->setBounds(meterGainArea.removeFromLeft(meterGainArea.getWidth() / 2));
     outputGainSlider->setBounds(meterGainArea);
     outputGainLabel->setBounds(availableArea.removeFromTop(24));

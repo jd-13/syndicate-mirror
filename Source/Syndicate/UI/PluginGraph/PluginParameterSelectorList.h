@@ -18,7 +18,8 @@ public:
     int compareElements(juce::AudioProcessorParameter* first, juce::AudioProcessorParameter* second) const;
 
 private:
-    const juce::Array<juce::AudioProcessorParameter*>& _fullParameterList;
+    // We need to take ownership of this array here
+    const juce::Array<juce::AudioProcessorParameter*> _fullParameterList;
 
     bool _isFilterNeeded() const;
     bool _passesFilter(const juce::AudioProcessorParameter* parameter) const;

@@ -91,12 +91,16 @@ bool PluginListSorter::_passesFilter(const juce::PluginDescription& plugin) cons
     return passesTextFilter && passesFormatFilter;
 }
 
-PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(PluginSelectorListParameters selectorListParameters)
+PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(
+        PluginSelectorListParameters selectorListParameters,
+        const SelectorComponentStyle& style)
         : _scanner(selectorListParameters.scanner),
           _pluginListSorter(selectorListParameters.state),
           _pluginCreationCallback(selectorListParameters.pluginCreationCallback),
           _getSampleRateCallback(selectorListParameters.getSampleRate),
-          _getBlockSizeCallback(selectorListParameters.getBlockSize) {
+          _getBlockSizeCallback(selectorListParameters.getBlockSize),
+          _rowBackgroundColour(style.backgroundColour),
+          _rowTextColour(style.neutralColour) {
     // Start listening for scan messages and update the plugin list
     _scanner.addListener(this);
 
@@ -122,7 +126,7 @@ int PluginSelectorTableListBoxModel::getNumRows() {
 }
 
 void PluginSelectorTableListBoxModel::paintRowBackground(juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected) {
-    g.fillAll(juce::Colour(0, 0, 0));
+    g.fillAll(_rowBackgroundColour);
 }
 
 void PluginSelectorTableListBoxModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) {
@@ -148,7 +152,7 @@ void PluginSelectorTableListBoxModel::paintCell(juce::Graphics& g, int rowNumber
                 break;
         }
 
-        g.setColour(juce::Colour(200, 200, 200));
+        g.setColour(_rowTextColour);
         g.drawText(text, 2, 0, width - 4, height, juce::Justification::centredLeft, true);
     }
 }
@@ -183,8 +187,9 @@ void PluginSelectorTableListBoxModel::handleMessage(const juce::Message& message
     }
 }
 
-PluginSelectorTableListBox::PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters)
-        : _pluginTableListBoxModel(selectorListParameters) {
+PluginSelectorTableListBox::PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters,
+                                                       const SelectorComponentStyle& style)
+        : _pluginTableListBoxModel(selectorListParameters, style) {
 
     constexpr int flags {juce::TableHeaderComponent::visible | juce::TableHeaderComponent::sortable};
 

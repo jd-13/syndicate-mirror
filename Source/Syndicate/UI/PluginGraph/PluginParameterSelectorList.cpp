@@ -66,7 +66,7 @@ void PluginParameterSelectorTableListBoxModel::paintRowBackground(juce::Graphics
                                                                   int /*width*/,
                                                                   int /*height*/,
                                                                   bool /*rowIsSelected*/) {
-    g.fillAll(juce::Colour(0, 0, 0));
+    g.fillAll(UIUtils::backgroundColour);
 }
 
 void PluginParameterSelectorTableListBoxModel::paintCell(juce::Graphics& g,
@@ -78,7 +78,7 @@ void PluginParameterSelectorTableListBoxModel::paintCell(juce::Graphics& g,
     if (rowNumber < _parameterList.size()) {
         const juce::String text = _parameterList[rowNumber]->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
 
-        g.setColour(juce::Colour(200, 200, 200));
+        g.setColour(UIUtils::neutralHighlightColour);
         g.drawText(text, 2, 0, width - 4, height, juce::Justification::centredLeft, true);
     }
 }

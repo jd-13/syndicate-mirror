@@ -14,6 +14,7 @@
 #include "PluginScanClient.h"
 #include "PluginSelectorListParameters.h"
 #include "PluginSelectorState.h"
+#include "SelectorComponentStyle.h"
 
 class PluginListSorter {
 public:
@@ -40,7 +41,8 @@ private:
 class PluginSelectorTableListBoxModel : public juce::TableListBoxModel,
                                         public juce::MessageListener {
 public:
-    PluginSelectorTableListBoxModel(PluginSelectorListParameters selectorListParameters);
+    PluginSelectorTableListBoxModel(PluginSelectorListParameters selectorListParameters,
+                                    const SelectorComponentStyle& style);
     virtual ~PluginSelectorTableListBoxModel();
 
     void onFiltersOrSortUpdate();
@@ -65,11 +67,14 @@ private:
     std::function<double()> _getSampleRateCallback;
     std::function<int()> _getBlockSizeCallback;
     juce::AudioPluginFormatManager _formatManager;
+    juce::Colour _rowBackgroundColour;
+    juce::Colour _rowTextColour;
 };
 
 class PluginSelectorTableListBox : public juce::TableListBox {
 public:
-    PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters);
+    PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters,
+                               const SelectorComponentStyle& style);
     virtual ~PluginSelectorTableListBox() = default;
 
     void onFiltersOrSortUpdate();

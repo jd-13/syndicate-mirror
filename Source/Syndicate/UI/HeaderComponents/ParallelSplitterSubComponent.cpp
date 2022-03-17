@@ -2,20 +2,30 @@
 
 #include "ParallelSplitterSubComponent.h"
 
-ParallelSplitterSubComponent::ParallelSplitterSubComponent(SyndicateAudioProcessor& processor)
+ParallelSplitterSubComponent::ParallelSplitterSubComponent(SyndicateAudioProcessor& processor, juce::Component* extensionComponent)
     : _processor(processor) {
     addChainBtn.reset(new juce::TextButton("Add Chain Button"));
-    addAndMakeVisible(addChainBtn.get());
-    addChainBtn->setButtonText(TRANS("Add Chain"));
+    extensionComponent->addAndMakeVisible(addChainBtn.get());
+    addChainBtn->setButtonText(TRANS("+ Chain"));
+    addChainBtn->setTooltip("Adds another parallel chain");
+    addChainBtn->setLookAndFeel(&_buttonLookAndFeel);
+    addChainBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    addChainBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
+    addChainBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     addChainBtn->addListener(this);
 }
 
 ParallelSplitterSubComponent::~ParallelSplitterSubComponent() {
+    addChainBtn->setLookAndFeel(nullptr);
+
     addChainBtn = nullptr;
 }
 
 void ParallelSplitterSubComponent::resized() {
-    addChainBtn->setBounds(448, 8, 112, 24);
+    juce::Rectangle<int> extensionArea = addChainBtn->getParentComponent()->getLocalBounds();
+    constexpr int BUTTON_HEIGHT {24};
+    extensionArea.reduce(4, (extensionArea.getHeight() - BUTTON_HEIGHT) / 2);
+    addChainBtn->setBounds(extensionArea);
 }
 
 void ParallelSplitterSubComponent::buttonClicked(juce::Button* buttonThatWasClicked) {

@@ -21,9 +21,17 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
     statusBar->setName("Plugin Scan Status Bar");
 
     // Position the table to use the remaining space
-    pluginTableListBox.reset(new PluginSelectorTableListBox(selectorListParameters));
+    pluginTableListBox.reset(new PluginSelectorTableListBox(selectorListParameters, style));
     addAndMakeVisible(pluginTableListBox.get());
     pluginTableListBox->setName("Plugin Table List Box");
+    pluginTableListBox->getHeader().setLookAndFeel(style.tableHeaderLookAndFeel.get());
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, style.controlColour);
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, style.controlColour);
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::backgroundColourId, style.backgroundColour);
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::highlightColourId, style.neutralColour);
+    pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
+    pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, style.neutralColour.withAlpha(0.5f));
+    pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
 
     // Recall UI from state
     searchEdt->setText(_state.filterString, false);
@@ -37,6 +45,7 @@ PluginSelectorComponent::~PluginSelectorComponent() {
     vstBtn->setLookAndFeel(nullptr);
     vst3Btn->setLookAndFeel(nullptr);
     auBtn->setLookAndFeel(nullptr);
+    pluginTableListBox->getHeader().setLookAndFeel(nullptr);
 
     searchEdt = nullptr;
     vstBtn = nullptr;

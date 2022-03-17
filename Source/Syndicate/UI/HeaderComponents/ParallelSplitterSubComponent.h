@@ -7,7 +7,7 @@
 class ParallelSplitterSubComponent : public SplitterHeaderComponent,
                                      public juce::Button::Listener {
 public:
-    ParallelSplitterSubComponent(SyndicateAudioProcessor& processor);
+    ParallelSplitterSubComponent(SyndicateAudioProcessor& processor, juce::Component* extensionComponent);
     ~ParallelSplitterSubComponent() override;
 
     void onParameterUpdate() override;
@@ -18,6 +18,7 @@ public:
 private:
     std::vector<std::unique_ptr<ChainButtonsComponent>> _chainButtons;
     SyndicateAudioProcessor& _processor;
+    UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
 
     void _rebuildHeader();
 

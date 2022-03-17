@@ -70,10 +70,13 @@ namespace UIUtils {
                                           bool isMouseOverButton,
                                           bool isButtonDown) override;
 
-        void drawButtonText(juce::Graphics& g,
-                            juce::TextButton& textButton,
-                            bool isMouseOverButton,
-                            bool isButtonDown) override;
+        virtual void drawButtonText(juce::Graphics& g,
+                                    juce::TextButton& textButton,
+                                    bool isMouseOverButton,
+                                    bool isButtonDown) override;
+
+    private:
+        int _getCornerSize(int width, int height) const;
     };
 
     class TextOnlyButtonLookAndFeel : public StaticButtonLookAndFeel {
@@ -108,6 +111,22 @@ namespace UIUtils {
                                const juce::String& shortcutKeyText,
                                const juce::Drawable* /*icon*/,
                                const juce::Colour* /*textColour*/) override;
+    };
+
+    class TableHeaderLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
+    public:
+        virtual void drawTableHeaderBackground(juce::Graphics& g,
+                                               juce::TableHeaderComponent& header) override;
+
+        virtual void drawTableHeaderColumn(juce::Graphics& g,
+                                           juce::TableHeaderComponent& header,
+                                           const juce::String& columnName,
+                                           int columnId,
+                                           int width,
+                                           int height,
+                                           bool isMouseOver,
+                                           bool isMouseDown,
+                                           int columnFlags) override;
     };
 
     class PopoverComponent : public juce::Component, public juce::Button::Listener {

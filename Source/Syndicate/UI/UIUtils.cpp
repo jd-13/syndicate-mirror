@@ -78,8 +78,7 @@ namespace UIUtils {
         const int height {button.getHeight()};
 
         constexpr float indent {2.0f};
-        const int cornerSize {juce::jmin(juce::roundToInt(width * 0.4f),
-                                        juce::roundToInt(height * 0.4f))};
+        const int cornerSize {_getCornerSize(width, height)};
 
         juce::Path p;
         juce::PathStrokeType pStroke(1);
@@ -103,7 +102,8 @@ namespace UIUtils {
                                                  juce::TextButton& textButton,
                                                  bool isMouseOverButton,
                                                  bool isButtonDown) {
-        constexpr int MARGIN {0};
+
+        const int cornerSize {_getCornerSize(textButton.getWidth(), textButton.getHeight())};
 
         juce::Font font;
         font.setTypefaceName(WECore::JUCEPlugin::CoreLookAndFeel::getTypefaceForFont(font)->getName());
@@ -116,13 +116,16 @@ namespace UIUtils {
         }
 
         g.drawFittedText(textButton.getButtonText(),
-                         MARGIN,
+                         cornerSize,
                          0,
-                         textButton.getWidth() - 2 * MARGIN,
+                         textButton.getWidth() - 2 * cornerSize,
                          textButton.getHeight(),
                          juce::Justification::centred,
                          0);
+    }
 
+    int StaticButtonLookAndFeel::_getCornerSize(int width, int height) const {
+        return juce::jmin(juce::roundToInt(width * 0.4f), juce::roundToInt(height * 0.4f));
     }
 
     void SearchBarLookAndFeel::drawTextEditorOutline(juce::Graphics& g,
@@ -205,6 +208,54 @@ namespace UIUtils {
 
         g.setFont(font);
         g.drawFittedText(text, availableArea, juce::Justification::centredLeft, 1);
+    }
+
+    void TableHeaderLookAndFeel::drawTableHeaderBackground(juce::Graphics& g,
+                                                           juce::TableHeaderComponent& header) {
+        // Main fill
+        g.fillAll(header.findColour(juce::TableHeaderComponent::backgroundColourId));
+
+        // Bottom line
+        g.setColour(header.findColour(juce::TableHeaderComponent::outlineColourId));
+        g.fillRect(header.getLocalBounds().removeFromBottom(1));
+    }
+
+    void TableHeaderLookAndFeel::drawTableHeaderColumn(juce::Graphics& g,
+                                                       juce::TableHeaderComponent& header,
+                                                       const juce::String& columnName,
+                                                       int columnId,
+                                                       int width,
+                                                       int height,
+                                                       bool isMouseOver,
+                                                       bool isMouseDown,
+                                                       int columnFlags) {
+        // Hover/click highlight
+        const juce::Colour highlightColour = header.findColour(juce::TableHeaderComponent::highlightColourId);
+
+        if (isMouseOver) {
+            g.fillAll(highlightColour.withMultipliedAlpha(0.1f));
+        }
+
+        // Sort arrow
+        g.setColour(header.findColour(juce::TableHeaderComponent::textColourId));
+        juce::Rectangle<int> area(width, height);
+        area.reduce(4, 0);
+
+        if ((columnFlags & (juce::TableHeaderComponent::sortedForwards | juce::TableHeaderComponent::sortedBackwards)) != 0) {
+            juce::Path sortArrow;
+            sortArrow.addTriangle(0.0f,
+                                  0.0f,
+                                  0.5f,
+                                  (columnFlags & juce::TableHeaderComponent::sortedForwards) != 0 ? -0.8f : 0.8f,
+                                  1.0f,
+                                  0.0f);
+
+            g.fillPath(sortArrow, sortArrow.getTransformToScaleToFit(area.removeFromRight(height / 2).reduced(2).toFloat(), true));
+        }
+
+        // Header title
+        g.setFont(juce::Font(height * 0.5f, juce::Font::bold));
+        g.drawFittedText(columnName, area, juce::Justification::centredLeft, 1);
     }
 
     PopoverComponent::PopoverComponent(juce::String title,

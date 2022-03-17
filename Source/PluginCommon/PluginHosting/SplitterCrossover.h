@@ -31,7 +31,7 @@ public:
     void reset();
 
 private:
-    static constexpr unsigned int INTERNAL_BUFFER_SIZE = 512;
+    static constexpr int INTERNAL_BUFFER_SIZE = 512;
     static constexpr int INTERNAL_BUFFER_CHANNELS = 4;
 
     class BandWrapper {

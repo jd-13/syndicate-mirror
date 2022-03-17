@@ -9,7 +9,7 @@ class PluginParameterSelectorComponent : public juce::Component,
                                          public juce::TextEditor::Listener {
 public:
     PluginParameterSelectorComponent(PluginParameterSelectorListParameters selectorListParameters, std::function<void()> onCloseCallback);
-    ~PluginParameterSelectorComponent() = default;
+    ~PluginParameterSelectorComponent();
 
     void textEditorTextChanged(juce::TextEditor& textEditor) override;
 
@@ -22,6 +22,7 @@ private:
     std::function<void()> _onCloseCallback;
 
     UIUtils::SearchBarLookAndFeel _searchBarLookAndFeel;
+    UIUtils::TableHeaderLookAndFeel _tableHeaderLookAndFeel;
 
     std::unique_ptr<juce::TextEditor> _searchTextEditor;
     std::unique_ptr<PluginParameterSelectorTableListBox> _parameterTableListBox;

@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 6.1.4
+  Created with Projucer version: 6.1.6
 
   ------------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     addAndMakeVisible (outputSidebar.get());
     outputSidebar->setName ("Output");
 
-    outputSidebar->setBounds (636, 0, 64, 526);
+    outputSidebar->setBounds (636, 120, 64, 406);
 
     modulationBar.reset (new ModulationBar (_processor, this));
     addAndMakeVisible (modulationBar.get());
@@ -81,6 +81,12 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     tooltipLbl->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0x00000000));
 
     tooltipLbl->setBounds (8, 525, 684, 24);
+
+    headerExtensionComponent.reset (new juce::Component());
+    addAndMakeVisible (headerExtensionComponent.get());
+    headerExtensionComponent->setName ("Header Extension Component");
+
+    headerExtensionComponent->setBounds (636, 40, 64, 80);
 
 
     //[UserPreSize]
@@ -120,6 +126,7 @@ SyndicateAudioProcessorEditor::~SyndicateAudioProcessorEditor()
     modulationBar = nullptr;
     graphView = nullptr;
     tooltipLbl = nullptr;
+    headerExtensionComponent = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -194,10 +201,10 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
                 splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
                 break;
             case SPLIT_TYPE::PARALLEL:
-                splitterHeader.reset(new ParallelSplitterSubComponent(_processor));
+                splitterHeader.reset(new ParallelSplitterSubComponent(_processor, headerExtensionComponent.get()));
                 break;
             case SPLIT_TYPE::MULTIBAND:
-                splitterHeader.reset(new MultibandSplitterSubComponent(_processor));
+                splitterHeader.reset(new MultibandSplitterSubComponent(_processor, headerExtensionComponent.get()));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
                 splitterHeader.reset(new LeftrightSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
@@ -259,7 +266,7 @@ BEGIN_JUCER_METADATA
                     virtualName="SplitterButtonsComponent" explicitFocusOrder="0"
                     pos="64 0 572 40" class="juce::Component" params="_processor"/>
   <GENERICCOMPONENT name="Output" id="5e939e07c46125f3" memberName="outputSidebar"
-                    virtualName="OutputComponent" explicitFocusOrder="0" pos="636 0 64 526"
+                    virtualName="OutputComponent" explicitFocusOrder="0" pos="636 120 64 406"
                     class="juce::Component" params="_processor"/>
   <GENERICCOMPONENT name="Modulation" id="de122523938b745c" memberName="modulationBar"
                     virtualName="ModulationBar" explicitFocusOrder="0" pos="64 396 572 130"
@@ -272,6 +279,9 @@ BEGIN_JUCER_METADATA
          edTextCol="ff000000" edBkgCol="0" labelText="" editableSingleClick="0"
          editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
          fontsize="15.0" kerning="0.0" bold="0" italic="0" justification="36"/>
+  <GENERICCOMPONENT name="Header Extension Component" id="d0575d325a1b0f48" memberName="headerExtensionComponent"
+                    virtualName="" explicitFocusOrder="0" pos="636 40 64 80" class="juce::Component"
+                    params=""/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA

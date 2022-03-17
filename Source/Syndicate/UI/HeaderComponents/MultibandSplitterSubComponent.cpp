@@ -1,35 +1,57 @@
 #include "MultibandSplitterSubComponent.h"
 
-MultibandSplitterSubComponent::MultibandSplitterSubComponent(SyndicateAudioProcessor& processor)
+MultibandSplitterSubComponent::MultibandSplitterSubComponent(SyndicateAudioProcessor& processor, juce::Component* extensionComponent)
         : _processor(processor) {
 
     addBandBtn.reset(new juce::TextButton("Add Band Button"));
-    addAndMakeVisible(addBandBtn.get());
-    addBandBtn->setButtonText(TRANS("Add Band"));
+    extensionComponent->addAndMakeVisible(addBandBtn.get());
+    addBandBtn->setButtonText(TRANS("+ Band"));
+    addBandBtn->setTooltip("Adds another band");
+    addBandBtn->setLookAndFeel(&_buttonLookAndFeel);
+    addBandBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    addBandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
+    addBandBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     addBandBtn->addListener(this);
 
     removeBandBtn.reset(new juce::TextButton("Remove Band Button"));
-    addAndMakeVisible(removeBandBtn.get());
-    removeBandBtn->setButtonText(TRANS("Remove Band"));
+    extensionComponent->addAndMakeVisible(removeBandBtn.get());
+    removeBandBtn->setButtonText(TRANS("- Band"));
+    removeBandBtn->setTooltip("Removes the last band");
+    removeBandBtn->setLookAndFeel(&_buttonLookAndFeel);
+    removeBandBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    removeBandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
+    removeBandBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     removeBandBtn->addListener(this);
 
     crossoverComponent.reset(new CrossoverWrapperComponent (processor));
     addAndMakeVisible(crossoverComponent.get());
     crossoverComponent->setName("Crossover Component");
-
 }
 
 MultibandSplitterSubComponent::~MultibandSplitterSubComponent() {
+    addBandBtn->setLookAndFeel(nullptr);
+    removeBandBtn->setLookAndFeel(nullptr);
+
     addBandBtn = nullptr;
     removeBandBtn = nullptr;
     crossoverComponent = nullptr;
 }
 
 void MultibandSplitterSubComponent::resized() {
-    addBandBtn->setBounds(456, 8, 103, 24);
-    removeBandBtn->setBounds(456, 48, 103, 24);
-    crossoverComponent->setBounds(8, 8, 432, 64);
-}
+    juce::Rectangle<int> headerArea = getLocalBounds();
+    headerArea.reduce(8, 8);
+    crossoverComponent->setBounds(headerArea);
+
+    juce::Rectangle<int> extensionArea = addBandBtn->getParentComponent()->getLocalBounds();
+    constexpr int BUTTON_HEIGHT {24};
+    const int margin {(extensionArea.getHeight() - BUTTON_HEIGHT * 2) / 3};
+    extensionArea.reduce(4, 0);
+
+    extensionArea.removeFromTop(margin);
+    addBandBtn->setBounds(extensionArea.removeFromTop(BUTTON_HEIGHT));
+    extensionArea.removeFromTop(margin);
+    removeBandBtn->setBounds(extensionArea.removeFromTop(BUTTON_HEIGHT));
+    extensionArea.removeFromBottom(margin);}
 
 void MultibandSplitterSubComponent::buttonClicked(juce::Button* buttonThatWasClicked){
     if (buttonThatWasClicked == addBandBtn.get()) {

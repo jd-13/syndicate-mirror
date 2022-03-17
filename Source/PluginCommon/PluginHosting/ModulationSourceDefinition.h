@@ -31,7 +31,7 @@ public:
         if (variant.isArray() && variant.size() == 2 && variant[0].isInt() && variant[1].isString()) {
             const int newId = variant[0];
 
-            const juce::String typeString(static_cast<int>(variant[1]));
+            const juce::String typeString(variant[1]);
             const MODULATION_TYPE newType = _stringToModulationType(typeString);
 
             retVal.emplace(newId, newType);

@@ -29,6 +29,21 @@ PluginParameterSelectorComponent::PluginParameterSelectorComponent(
     _parameterTableListBox.reset(new PluginParameterSelectorTableListBox(selectorListParameters));
     addAndMakeVisible(_parameterTableListBox.get());
     _parameterTableListBox->setName("Plugin Parameter Table List Box");
+    _parameterTableListBox->getHeader().setLookAndFeel(&_tableHeaderLookAndFeel);
+    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, UIUtils::neutralControlColour);
+    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, UIUtils::neutralControlColour);
+    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::backgroundColourId, UIUtils::backgroundColour);
+    _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
+    _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
+}
+
+PluginParameterSelectorComponent::~PluginParameterSelectorComponent() {
+    _searchTextEditor->setLookAndFeel(nullptr);
+    _parameterTableListBox->getHeader().setLookAndFeel(nullptr);
+
+    _searchTextEditor = nullptr;
+    _parameterTableListBox = nullptr;
 }
 
 void PluginParameterSelectorComponent::resized() {

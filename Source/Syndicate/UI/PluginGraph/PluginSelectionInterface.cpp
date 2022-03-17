@@ -25,7 +25,8 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
         UIUtils::neutralControlColour,
         std::make_unique<UIUtils::SearchBarLookAndFeel>(),
         std::make_unique<UIUtils::ToggleButtonLookAndFeel>(),
-        std::make_unique<UIUtils::StaticButtonLookAndFeel>()
+        std::make_unique<UIUtils::StaticButtonLookAndFeel>(),
+        std::make_unique<UIUtils::TableHeaderLookAndFeel>()
     );
 
     _pluginSelectorWindow = std::make_unique<PluginSelectorWindow>(
