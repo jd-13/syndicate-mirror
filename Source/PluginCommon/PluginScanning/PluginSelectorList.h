@@ -38,12 +38,11 @@ private:
     bool _passesFilter(const juce::PluginDescription& plugin) const;
 };
 
-class PluginSelectorTableListBoxModel : public juce::TableListBoxModel,
-                                        public juce::MessageListener {
+class PluginSelectorTableListBoxModel : public juce::TableListBoxModel {
 public:
     PluginSelectorTableListBoxModel(PluginSelectorListParameters selectorListParameters,
                                     const SelectorComponentStyle& style);
-    virtual ~PluginSelectorTableListBoxModel();
+    virtual ~PluginSelectorTableListBoxModel() = default;
 
     void onFiltersOrSortUpdate();
 
@@ -57,7 +56,7 @@ public:
 
     void sortOrderChanged(int newSortColumnId, bool isForwards) override;
 
-    void handleMessage(const juce::Message& message) override;
+    void onPluginScanUpdate();
 
 private:
     PluginScanClient& _scanner;
@@ -71,15 +70,19 @@ private:
     juce::Colour _rowTextColour;
 };
 
-class PluginSelectorTableListBox : public juce::TableListBox {
+class PluginSelectorTableListBox : public juce::TableListBox,
+                                   public juce::MessageListener {
 public:
     PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters,
                                const SelectorComponentStyle& style);
-    virtual ~PluginSelectorTableListBox() = default;
+    virtual ~PluginSelectorTableListBox();
 
     void onFiltersOrSortUpdate();
 
+    void handleMessage(const juce::Message& message) override;
+
 private:
     PluginSelectorTableListBoxModel _pluginTableListBoxModel;
+    PluginScanClient& _scanner;
 };
 

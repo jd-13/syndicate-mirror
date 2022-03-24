@@ -101,9 +101,6 @@ PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(
           _getBlockSizeCallback(selectorListParameters.getBlockSize),
           _rowBackgroundColour(style.backgroundColour),
           _rowTextColour(style.neutralColour) {
-    // Start listening for scan messages and update the plugin list
-    _scanner.addListener(this);
-
     _pluginListSorter.setPluginList(_scanner.getPluginTypes());
     _pluginList = _pluginListSorter.getFilteredPluginList();
 
@@ -111,10 +108,6 @@ PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(
     _formatManager.addDefaultFormats();
 
     juce::Logger::writeToLog("Created PluginSelectorTableListBoxModel, found " + juce::String(_pluginList.size()) + " plugins");
-}
-
-PluginSelectorTableListBoxModel::~PluginSelectorTableListBoxModel() {
-    _scanner.removeListener(this);
 }
 
 void PluginSelectorTableListBoxModel::onFiltersOrSortUpdate() {
@@ -175,21 +168,18 @@ void PluginSelectorTableListBoxModel::sortOrderChanged(int newSortColumnId, bool
     _pluginList = _pluginListSorter.getFilteredPluginList();
 }
 
-void PluginSelectorTableListBoxModel::handleMessage(const juce::Message& message) {
-    const PluginScanStatusMessage* statusMessage {
-            dynamic_cast<const PluginScanStatusMessage*>(&message)
-    };
-
-    if (statusMessage != nullptr) {
-        _pluginListSorter.setPluginList(_scanner.getPluginTypes());
-        _pluginList = _pluginListSorter.getFilteredPluginList();
-        juce::Logger::writeToLog("PluginSelectorTableListBoxModel: received PluginScanStatusMessage, now " + juce::String(_pluginList.size()) + " plugins");
-    }
+void PluginSelectorTableListBoxModel::onPluginScanUpdate() {
+    _pluginListSorter.setPluginList(_scanner.getPluginTypes());
+    _pluginList = _pluginListSorter.getFilteredPluginList();
+    juce::Logger::writeToLog("PluginSelectorTableListBoxModel: now listing " + juce::String(_pluginList.size()) + " plugins");
 }
 
 PluginSelectorTableListBox::PluginSelectorTableListBox(PluginSelectorListParameters selectorListParameters,
                                                        const SelectorComponentStyle& style)
-        : _pluginTableListBoxModel(selectorListParameters, style) {
+        : _pluginTableListBoxModel(selectorListParameters, style), _scanner(selectorListParameters.scanner) {
+
+    // Start listening for scan messages and update the plugin list
+    _scanner.addListener(this);
 
     constexpr int flags {juce::TableHeaderComponent::visible | juce::TableHeaderComponent::sortable};
 
@@ -206,7 +196,23 @@ PluginSelectorTableListBox::PluginSelectorTableListBox(PluginSelectorListParamet
                                 selectorListParameters.state.sortForwards);
 }
 
+PluginSelectorTableListBox::~PluginSelectorTableListBox() {
+    _scanner.removeListener(this);
+}
+
 void PluginSelectorTableListBox::onFiltersOrSortUpdate() {
     _pluginTableListBoxModel.onFiltersOrSortUpdate();
     updateContent();
+}
+
+void PluginSelectorTableListBox::handleMessage(const juce::Message& message) {
+    const PluginScanStatusMessage* statusMessage {
+            dynamic_cast<const PluginScanStatusMessage*>(&message)
+    };
+
+    if (statusMessage != nullptr) {
+        _pluginTableListBoxModel.onPluginScanUpdate();
+        updateContent();
+        juce::Logger::writeToLog("PluginSelectorTableListBox: received PluginScanStatusMessage");
+    }
 }
