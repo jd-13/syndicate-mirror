@@ -6,7 +6,7 @@
 #include "SelectorComponentStyle.h"
 
 constexpr int PLUGIN_SELECTOR_WINDOW_WIDTH {800};
-constexpr int PLUGIN_SELECTOR_WINDOW_HEIGHT {500};
+constexpr int PLUGIN_SELECTOR_WINDOW_HEIGHT {550};
 
 class PluginSelectorComponent  : public juce::Component,
                                  public juce::TextEditor::Listener,

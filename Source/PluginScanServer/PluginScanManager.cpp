@@ -91,9 +91,6 @@ void PluginScanManager::stopScan() {
 
         stopTimer();
 
-        // Delete the file so that plugins can see the scan finished
-        _isAliveFile.deleteFile();
-
         juce::Logger::writeToLog("Stopped plugin scan");
     }
 }
@@ -133,6 +130,10 @@ void PluginScanManager::run() {
             if (isFinished) {
                 juce::Logger::writeToLog("All plugin scan jobs finished");
                 stopScan();
+
+                // Delete the file so that plugins can see the scan finished
+                _isAliveFile.deleteFile();
+
                 juce::JUCEApplicationBase::quit();
             }
         }

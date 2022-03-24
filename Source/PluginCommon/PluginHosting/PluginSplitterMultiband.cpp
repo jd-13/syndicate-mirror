@@ -8,8 +8,8 @@ FFTProvider::FFTProvider() : _buffer(nullptr), _outputs(nullptr), _fft(FFT_ORDER
     juce::FloatVectorOperations::fill(_outputs, 0, NUM_OUTPUTS);
 
     for (auto& env : _envs) {
-        env.setAttackTimeMs(0.5);
-        env.setReleaseTimeMs(10);
+        env.setAttackTimeMs(0.1);
+        env.setReleaseTimeMs(2);
         env.setFilterEnabled(false);
     }
 }

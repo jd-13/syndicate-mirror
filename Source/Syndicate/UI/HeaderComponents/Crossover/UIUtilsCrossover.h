@@ -1,20 +1,13 @@
 #pragma once
 
 #include "MONSTRFilters/MONSTRParameters.h"
+#include "UIUtils.h"
 
 namespace UIUtils::Crossover {
     constexpr int SLIDER_THUMB_RADIUS {6};
     constexpr int SLIDER_THUMB_TARGET_WIDTH {SLIDER_THUMB_RADIUS * 2};
 
-    constexpr int BAND_BUTTON_WIDTH {20};
     constexpr int BAND_BUTTON_PADDING {4};
-
-    const juce::Colour lightGrey(200, 200, 200);
-    const juce::Colour darkGrey(107, 107, 107);
-    const juce::Colour lightGreyTrans(static_cast<uint8_t>(200), 200, 200, 0.5f);
-    const juce::Colour mainHighlight(135, 252, 2);
-    const juce::Colour transHighlight(static_cast<uint8_t>(135), 252, 2, 0.5f);
-    const juce::Colour imagerColour(static_cast<uint8_t>(255), 255, 255, 0.2f);
 
     // These are tuned experimentally to get the desired log curve and crossings close to 0,0 and 1,1.
     constexpr double LOG_SCALE {3.00043};
@@ -62,9 +55,9 @@ namespace UIUtils::Crossover {
      * and index.
      */
     inline juce::Rectangle<float> getButtonBounds(double crossoverXPos, int index) {
-        return juce::Rectangle<float>(crossoverXPos - BAND_BUTTON_WIDTH - SLIDER_THUMB_RADIUS,
-                                BAND_BUTTON_PADDING + index * (BAND_BUTTON_PADDING + BAND_BUTTON_WIDTH),
-                                BAND_BUTTON_WIDTH,
-                                BAND_BUTTON_WIDTH);
+        return juce::Rectangle<float>(crossoverXPos - UIUtils::BAND_BUTTON_WIDTH - SLIDER_THUMB_RADIUS,
+                                BAND_BUTTON_PADDING + index * (BAND_BUTTON_PADDING + UIUtils::BAND_BUTTON_WIDTH),
+                                UIUtils::BAND_BUTTON_WIDTH,
+                                UIUtils::BAND_BUTTON_WIDTH);
     }
 }

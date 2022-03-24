@@ -12,7 +12,7 @@
  */
 class FFTProvider {
 public:
-    static constexpr int FFT_ORDER {6};
+    static constexpr int FFT_ORDER {7};
     static constexpr int FFT_SIZE {(1 << FFT_ORDER) * 2};
     static constexpr int NUM_OUTPUTS { FFT_SIZE / 4 };
 

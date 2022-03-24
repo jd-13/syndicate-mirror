@@ -44,12 +44,11 @@ void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
 
 
         juce::Path p;
-        constexpr float LINE_WIDTH {1.0f};
+        p.startNewSubPath(crossoverXPos, 0);
+        p.lineTo(crossoverXPos, getHeight());
 
-        g.setColour(UIUtils::Crossover::darkGrey);
-        p.addLineSegment(juce::Line<float>(crossoverXPos, 0, crossoverXPos, getHeight()),
-                         1);
-        g.strokePath(p, juce::PathStrokeType(LINE_WIDTH));
+        g.setColour(UIUtils::neutralControlColour);
+        g.strokePath(p, juce::PathStrokeType(0.5f));
     }
 }
 
@@ -59,7 +58,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
 
     const size_t numCrossovers {_processor.pluginSplitter->getNumChains() - 1};
     for (int bandIndex {0}; bandIndex < numCrossovers; bandIndex++) {
-        g.setColour(UIUtils::Crossover::mainHighlight);
+        g.setColour(UIUtils::neutralControlColour);
 
         const float crossoverValue {_processor.getCrossoverFrequency(bandIndex)};
 
@@ -102,19 +101,19 @@ void CrossoverParameterComponent::_drawBandButtons(juce::Graphics &g) {
         };
 
         drawBandButton("B",
-                       _processor.chainParameters[bandIndex].getBypass() ? bypassColour : UIUtils::Crossover::lightGrey,
+                       _processor.chainParameters[bandIndex].getBypass() ? bypassColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        0);
 
         drawBandButton("M",
-                       _processor.chainParameters[bandIndex].getMute() ? muteColour : UIUtils::Crossover::lightGrey,
+                       _processor.chainParameters[bandIndex].getMute() ? muteColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        1);
 
         drawBandButton("S",
-                       _processor.chainParameters[bandIndex].getSolo() ? soloColour : UIUtils::Crossover::lightGrey,
+                       _processor.chainParameters[bandIndex].getSolo() ? soloColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        2);

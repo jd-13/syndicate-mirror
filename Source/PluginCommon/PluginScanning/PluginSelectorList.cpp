@@ -199,6 +199,7 @@ PluginSelectorTableListBox::PluginSelectorTableListBox(PluginSelectorListParamet
     getHeader().addColumn("Format", FORMAT, 64, 64, 64, flags);
 
     setModel(&_pluginTableListBoxModel);
+    setColour(juce::ListBox::backgroundColourId, style.backgroundColour);
 
     // Restore the previous sort state
     getHeader().setSortColumnId(selectorListParameters.state.sortColumnId,

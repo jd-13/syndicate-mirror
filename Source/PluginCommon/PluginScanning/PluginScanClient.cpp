@@ -98,6 +98,9 @@ void PluginScanClient::stopScan() {
                 juce::Logger::writeToLog("Stopping plugin scan server");
                 _shouldRestart = false;
                 _processClient->killSlaveProcess();
+
+                // Since we requested the stop, we need to delete the keep alive
+                _isAliveFile.deleteFile();
             }
         });
 

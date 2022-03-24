@@ -19,7 +19,6 @@ PluginParameterSelectorWindow::PluginParameterSelectorWindow(
                              true),
             _onCloseCallback(onCloseCallback),
             _content(nullptr) {
-    setUsingNativeTitleBar(true);
     centreWithSize(UIUtils::PLUGIN_MOD_TARGET_SELECTOR_WIDTH, UIUtils::PLUGIN_MOD_TARGET_SELECTOR_HEIGHT);
     setVisible(true);
     setResizable(false, false);

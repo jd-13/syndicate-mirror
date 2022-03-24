@@ -16,7 +16,7 @@ CrossoverMouseListener::CrossoverMouseListener(SyndicateAudioProcessor& processo
             [bandIndex, this](const juce::MouseEvent& event) {
 
                 constexpr double MIN_SPACING {
-                    2 * UIUtils::Crossover::SLIDER_THUMB_RADIUS + UIUtils::Crossover::BAND_BUTTON_WIDTH
+                    2 * UIUtils::Crossover::SLIDER_THUMB_RADIUS + UIUtils::BAND_BUTTON_WIDTH
                 };
 
                 const int currentXPos {event.getPosition().getX()};

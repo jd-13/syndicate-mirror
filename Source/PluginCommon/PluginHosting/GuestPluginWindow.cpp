@@ -28,11 +28,13 @@ GuestPluginWindow::GuestPluginWindow(std::function<void()> onCloseCallback,
 
     if (editor != nullptr) {
         setContentOwned(editor, true);
+        setResizable(editor->isResizable(), false);
     }
 
-    setUsingNativeTitleBar(true);
+    // Can't use setUsingNativeTitleBar(true) as it prevents some plugin (ie. NI) UIs from loading
+    // for some reason
+
     setVisible(true);
-    setResizable(false, false);
     setAlwaysOnTop(true);
 
     juce::Logger::writeToLog("Created GuestPluginWindow");

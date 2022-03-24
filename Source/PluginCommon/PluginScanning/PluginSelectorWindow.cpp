@@ -21,21 +21,17 @@ namespace {
 PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback,
                                            PluginSelectorListParameters selectorListParameters,
                                            std::unique_ptr<SelectorComponentStyle> style) :
-        juce::DocumentWindow("Plugin Selector",
-                             BACKGROUND_COLOUR,
-                             TITLE_BAR_BUTTONS,
-                             true),
+        juce::DocumentWindow("Plugin Selector", BACKGROUND_COLOUR, TITLE_BAR_BUTTONS),
         _onCloseCallback(onCloseCallback),
         _content(nullptr),
         _style(std::move(style)) {
-    setUsingNativeTitleBar(true);
     centreWithSize(PLUGIN_SELECTOR_WINDOW_WIDTH, PLUGIN_SELECTOR_WINDOW_HEIGHT);
     setVisible(true);
     setResizable(false, false);
     setAlwaysOnTop(true);
     _content = new PluginSelectorComponent(selectorListParameters, onCloseCallback, *(_style.get()));
     setContentOwned(_content, false);
-    _content->setBounds(0, 0, PLUGIN_SELECTOR_WINDOW_WIDTH, PLUGIN_SELECTOR_WINDOW_HEIGHT);
+    _content->setBounds(0, getTitleBarHeight(), PLUGIN_SELECTOR_WINDOW_WIDTH, PLUGIN_SELECTOR_WINDOW_HEIGHT - getTitleBarHeight());
 
     juce::Logger::writeToLog("Created PluginSelectorWindow");
 }

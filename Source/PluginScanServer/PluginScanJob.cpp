@@ -22,9 +22,9 @@ PluginScanJob::JobStatus PluginScanJob::runJob() {
 
     juce::Logger::writeToLog("Starting thread " + getJobName());
 
-    bool shouldContinue {true};
+    bool isFinished {false};
 
-    while (shouldContinue) {
+    while (!isFinished && !shouldExit()) {
         // Prevent the plugin scanning itself
         if (scanner.getNextPluginFileThatWillBeScanned() == "Syndicate") {
             scanner.skipNextFile();
@@ -33,13 +33,13 @@ PluginScanJob::JobStatus PluginScanJob::runJob() {
         // Scan the plugin
         juce::Logger::writeToLog("[" + getJobName() + "] plugin #" + juce::String(_pluginList.getNumTypes()) + ": " + scanner.getNextPluginFileThatWillBeScanned());
         juce::String currentPluginName;
-        shouldContinue = scanner.scanNextFile(true, currentPluginName) && !shouldExit();
+        isFinished = !scanner.scanNextFile(true, currentPluginName);
 
         // Notify that a plugin has been scanned
-        _onPluginScannedCallback(!shouldContinue);
+        _onPluginScannedCallback(isFinished);
     }
 
-    juce::Logger::writeToLog("Finished thread " + getJobName());
+    juce::Logger::writeToLog("Thread " + getJobName() + (isFinished ? " finished" : " exiting early"));
 
     return jobHasFinished;
 }
