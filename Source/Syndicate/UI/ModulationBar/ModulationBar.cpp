@@ -53,8 +53,10 @@ void ModulationBar::resized() {
             availableArea.removeFromLeft(UIUtils::MODULATION_LIST_COLUMN_WIDTH);
         buttonsView->setBounds(visibleButtonsArea);
 
+        const int scrollPosition {buttonsView->getViewPositionY()};
         juce::Rectangle<int> scrollablebuttonsArea = visibleButtonsArea.withHeight(columnHeight);
         buttonsView->getViewedComponent()->setBounds(scrollablebuttonsArea);
+        buttonsView->setViewPosition(0, scrollPosition);
 
         // Set the origin to 0 since we're now using it to position buttons relative to the inner
         // component

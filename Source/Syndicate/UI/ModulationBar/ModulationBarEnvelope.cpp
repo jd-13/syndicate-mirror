@@ -54,7 +54,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(EnvelopeFollowerWrapper& envelope) 
     attackSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     attackSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     attackSlider->addListener(this);
-    attackSlider->setSkewFactor(0.6);
+    attackSlider->setSkewFactor(0.4);
     attackSlider->setLookAndFeel(&_sliderLookAndFeel);
     attackSlider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
 
@@ -66,7 +66,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(EnvelopeFollowerWrapper& envelope) 
     releaseSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     releaseSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     releaseSlider->addListener(this);
-    releaseSlider->setSkewFactor(0.6);
+    releaseSlider->setSkewFactor(0.4);
     releaseSlider->setLookAndFeel(&_sliderLookAndFeel);
     releaseSlider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
 
@@ -109,7 +109,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(EnvelopeFollowerWrapper& envelope) 
     filterSlider->setTooltip(TRANS("Low/high pass filter cutoff on the envelope follower input"));
     filterSlider->setSliderStyle(juce::Slider::TwoValueVertical);
     filterSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
-    filterSlider->setSkewFactor(0.6);
+    filterSlider->setSkewFactor(0.4);
     filterSlider->addListener(this);
     filterSlider->setLookAndFeel(&_filterSliderLookAndFeel);
     filterSlider->setColour(juce::Slider::thumbColourId, baseColour);

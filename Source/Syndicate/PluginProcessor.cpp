@@ -536,9 +536,6 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
         // Make sure prepareToPlay has been called on the splitter as we don't actually know if the host
         // will call it via the PluginProcessor
         if (pluginSplitter != nullptr) {
-            // Need to unlock the mutex first since prepareToPlay will need to lock it
-            lock.unlock();
-
             pluginSplitter->prepareToPlay(getSampleRate(), getBlockSize());
         }
 
@@ -547,6 +544,9 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
         // For graph state changes we need to make sure the processor has updated its state first,
         // then the UI can rebuild based on the processor state
         if (_editor != nullptr) {
+            // Need to unlock the mutex first since methods called from needsGraphRebuild() will
+            // need to lock it
+            lock.unlock();
             _editor->needsGraphRebuild();
         }
     }

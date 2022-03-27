@@ -269,12 +269,26 @@ namespace UIUtils {
         _titleLabel->setEditable(false, false, false);
         _titleLabel->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
 
+        const juce::Font contentFont = juce::Font(15.0f, juce::Font::plain).withTypefaceStyle("Regular");
         _contentLabel.reset(new juce::Label("Content Label", content));
         addAndMakeVisible(_contentLabel.get());
-        _contentLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+        _contentLabel->setFont(contentFont);
         _contentLabel->setJustificationType(juce::Justification::centred);
         _contentLabel->setEditable(false, false, false);
         _contentLabel->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
+
+        _contentSize = _getBoundsForText(content, contentFont);
+
+        _contentView.reset(new juce::Viewport());
+        _contentView->setViewedComponent(_contentLabel.get(), false);
+        _contentView->setScrollBarsShown(true, true);
+        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
+        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
+        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
+        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
+        addAndMakeVisible(_contentView.get());
 
         _button.reset(new juce::TextButton("OK button"));
         addAndMakeVisible(_button.get());
@@ -294,7 +308,11 @@ namespace UIUtils {
 
         juce::Rectangle<int> buttonArea = availableArea.removeFromBottom(availableArea.getHeight() / 4);
         _button->setBounds(buttonArea.withSizeKeepingCentre(60, 40));
-        _contentLabel->setBounds(availableArea);
+        _contentView->setBounds(availableArea);
+
+        const int scrollBarWidth {10};
+        const int contentWidth {std::max(_contentSize.getWidth(), availableArea.getWidth() - scrollBarWidth)};
+        _contentLabel->setBounds(_contentSize.withWidth(contentWidth));
     }
 
     void PopoverComponent::paint(juce::Graphics& g) {
@@ -305,6 +323,21 @@ namespace UIUtils {
         if (buttonThatWasClicked == _button.get()) {
             _onCloseCallback();
         }
+    }
+
+    juce::Rectangle<int> PopoverComponent::_getBoundsForText(const juce::String& content, const juce::Font& font) const {
+        const juce::StringArray lines = juce::StringArray::fromLines(content);
+
+        int maxWidth {0};
+        for (const juce::String& line : lines) {
+            const int thisWidth {font.getStringWidth(line)};
+            if (thisWidth > maxWidth) {
+                maxWidth = thisWidth;
+            }
+        }
+
+        constexpr int MARGIN {5};
+        return juce::Rectangle<int>(maxWidth + MARGIN, lines.size() * font.getHeight());
     }
 
     SafeAnimatedComponent::SafeAnimatedComponent() : _stopEvent(true) {
@@ -461,5 +494,22 @@ namespace UIUtils {
 
         g.setColour(findColour(ColourIds::handleColourId));
         g.strokePath(p, juce::PathStrokeType(1));
+    }
+
+    LinkedScrollView::LinkedScrollView() : _otherView(nullptr) {
+    }
+
+    void LinkedScrollView::setOtherView(juce::Viewport* otherView) {
+        _otherView = otherView;
+    }
+
+    void LinkedScrollView::scrollBarMoved(juce::ScrollBar* scrollBar, double newRangeStart) {
+        juce::Viewport::scrollBarMoved(scrollBar, newRangeStart);
+
+        const int newRangeStartInt {juce::roundToInt(newRangeStart)};
+        if (_otherView != nullptr) {
+            // Only linked horizontally
+            _otherView->setViewPosition(newRangeStartInt, 0);
+        }
     }
 }

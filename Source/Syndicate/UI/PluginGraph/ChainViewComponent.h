@@ -14,9 +14,11 @@ public:
     ChainViewComponent(int chainNumber,
                        PluginSelectionInterface& pluginSelectionInterface,
                        PluginModulationInterface& pluginModulationInterface);
-    ~ChainViewComponent() = default;
+    ~ChainViewComponent();
 
     void setPlugins(PluginChain* newChain);
+
+    void resized() override;
 
     void paint(juce::Graphics& g) override;
 
@@ -31,6 +33,7 @@ private:
     PluginSelectionInterface& _pluginSelectionInterface;
     PluginModulationInterface& _pluginModulationInterface;
     std::vector<std::unique_ptr<BaseSlotComponent>> _pluginSlots;
+    std::unique_ptr<juce::Viewport> _viewPort;
     bool _shouldDrawDragHint;
     int _dragHintSlotNumber;
 

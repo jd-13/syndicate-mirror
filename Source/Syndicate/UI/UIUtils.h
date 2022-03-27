@@ -146,7 +146,12 @@ namespace UIUtils {
 
         std::unique_ptr<juce::Label> _titleLabel;
         std::unique_ptr<juce::Label> _contentLabel;
+        std::unique_ptr<juce::Viewport> _contentView;
         std::unique_ptr<juce::TextButton> _button;
+
+        juce::Rectangle<int> _contentSize;
+
+        juce::Rectangle<int> _getBoundsForText(const juce::String& content, const juce::Font& font) const;
     };
 
     const juce::Colour& getColourForModulationType(MODULATION_TYPE type);
@@ -246,5 +251,18 @@ namespace UIUtils {
         {
             handleColourId = 0x1201202
         };
+    };
+
+    class LinkedScrollView : public juce::Viewport {
+    public:
+        LinkedScrollView();
+        virtual ~LinkedScrollView() = default;
+
+        void setOtherView(juce::Viewport* otherView);
+
+        void scrollBarMoved(juce::ScrollBar* scrollBar, double newRangeStart) override;
+
+    private:
+        juce::Viewport* _otherView;
     };
 }

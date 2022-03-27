@@ -1,5 +1,5 @@
 #include "PluginSelectorComponent.h"
-
+#include "PluginUtils.h"
 namespace {
     constexpr int MARGIN_SIZE {10};
     constexpr int ROW_HEIGHT {24};
@@ -11,6 +11,8 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
         : _state(selectorListParameters.state),
           _onCloseCallback(onCloseCallback),
           _backgroundColour(style.backgroundColour) {
+
+    setComponentID(Utils::pluginSelectorComponentID);
 
     // Position the header row
     _setupHeaderRow(style);

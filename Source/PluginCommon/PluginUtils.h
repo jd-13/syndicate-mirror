@@ -13,6 +13,8 @@
 #include <JuceHeader.h>
 
 namespace Utils {
+    const juce::String pluginSelectorComponentID("PluginSelectorComponent");
+
     inline juce::String busesLayoutToString(juce::AudioProcessor::BusesLayout layout) {
         juce::String retVal;
 

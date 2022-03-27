@@ -94,7 +94,9 @@ PluginParameterSelectorTableListBox::PluginParameterSelectorTableListBox(
             : _parameterTableListBoxModel(selectorListParameters) {
     constexpr int flags {juce::TableHeaderComponent::visible};
 
-    const int columnWidth {UIUtils::PLUGIN_MOD_TARGET_SELECTOR_WIDTH - 8 - 10 * 2};
+    constexpr int scrollBarWidth {10};
+    constexpr int margin {2 * 10};
+    const int columnWidth {UIUtils::PLUGIN_MOD_TARGET_SELECTOR_WIDTH - scrollBarWidth - margin};
     getHeader().addColumn("Name",
                           1,
                           columnWidth,

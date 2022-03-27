@@ -1,5 +1,6 @@
 #include "PluginSelectionInterface.h"
 #include "UIUtils.h"
+#include "PluginUtils.h"
 
 PluginSelectionInterface::PluginSelectionInterface(SyndicateAudioProcessor& processor)
     : _processor(processor),
@@ -112,7 +113,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
             _errorPopover.reset(new UIUtils::PopoverComponent(
                 "Failed to load plugin", errorText, [&]() {_errorPopover.reset(); }));
 
-            juce::Component* targetComponent = _pluginSelectorWindow->getChildComponent(0);
+            juce::Component* targetComponent = _pluginSelectorWindow->findChildWithID(Utils::pluginSelectorComponentID);
             if (targetComponent != nullptr) {
                 targetComponent->addAndMakeVisible(_errorPopover.get());
                 _errorPopover->setBounds(targetComponent->getLocalBounds());
@@ -153,7 +154,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
             juce::Logger::writeToLog("PluginSelectionInterface::_onPluginSelected: Failed to load " + sharedPlugin->getPluginDescription().name);
 
             // Failed to load plugin, show error in selector window
-            createErrorPopover(sharedPlugin->getPluginDescription().name + " doesn't support the required inputs/outputs\nThis may be a mono only plugin being loaded into a stereo instance of Syndicate or vice versa");
+            createErrorPopover(sharedPlugin->getPluginDescription().name + " doesn't support the required inputs/outputs\nThis may be synth, or a mono only plugin being loaded into a stereo instance of Syndicate or vice versa");
         }
     } else {
         // Plugin failed to load

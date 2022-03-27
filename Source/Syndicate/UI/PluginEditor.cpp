@@ -201,7 +201,7 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
                 splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
                 break;
             case SPLIT_TYPE::PARALLEL:
-                splitterHeader.reset(new ParallelSplitterSubComponent(_processor, headerExtensionComponent.get()));
+                splitterHeader.reset(new ParallelSplitterSubComponent(_processor, headerExtensionComponent.get(), graphView->getViewport()));
                 break;
             case SPLIT_TYPE::MULTIBAND:
                 splitterHeader.reset(new MultibandSplitterSubComponent(_processor, headerExtensionComponent.get()));
