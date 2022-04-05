@@ -26,6 +26,11 @@ namespace Utils {
     const juce::File DataDirectory(ApplicationDirectory.getChildFile("Data"));
     const juce::File PluginLogDirectory(ApplicationDirectory.getChildFile("Logs/Syndicate"));
     const juce::File PluginScanServerLogDirectory(ApplicationDirectory.getChildFile("Logs/PluginScanServer"));
+#elif __linux__
+    const juce::File ApplicationDirectory(juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("WhiteElephantAudio/Syndicate"));
+    const juce::File DataDirectory(ApplicationDirectory.getChildFile("Data"));
+    const juce::File PluginLogDirectory(ApplicationDirectory.getChildFile("Logs/Syndicate"));
+    const juce::File PluginScanServerLogDirectory(ApplicationDirectory.getChildFile("Logs/PluginScanServer"));
 #else
     #error Unsupported OS
 #endif
