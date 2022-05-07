@@ -69,11 +69,11 @@ void PluginScanClient::startScan() {
 
             // Start process
             _shouldRestart = true;
+            juce::Logger::writeToLog("Starting plugin scan server from location: " + Utils::PluginScanServerBinary.getFullPathName());
             const bool started {
-                _processClient->launchSlaveProcess(Utils::getPluginScanServerBinaryLocation(),
+                _processClient->launchSlaveProcess(Utils::PluginScanServerBinary,
                                                    Utils::PLUGIN_SCAN_SERVER_UID,
-                                                   8000,
-                                                   0)
+                                                   8000)
             };
 
             if (started) {
