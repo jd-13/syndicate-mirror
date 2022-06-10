@@ -1,5 +1,15 @@
 #include "PluginSplitterMultiband.h"
 
+namespace {
+    const char* XML_CROSSOVERS_STR {"Crossovers"};
+
+    juce::String _getCrossoverXMLName(int crossoverNumber) {
+        juce::String retVal("Crossover_");
+        retVal += juce::String(crossoverNumber);
+        return retVal;
+    }
+}
+
 FFTProvider::FFTProvider() : _buffer(nullptr), _outputs(nullptr), _fft(FFT_ORDER) {
     _buffer = new float[FFT_SIZE];
     _outputs = new float[NUM_OUTPUTS];
@@ -146,10 +156,104 @@ double PluginSplitterMultiband::getCrossoverFrequency(size_t index) {
 void PluginSplitterMultiband::setChainSolo(int chainNumber, bool val) {
     // The crossover can handle soloed bands, so let it do that
     _crossover.setIsSoloed(chainNumber, val);
+
+    // Maintain the solo state - this is what will be copied to another splitter if another one
+    // is selected
+    PluginSplitter::setChainSolo(chainNumber, val);
 }
 
 bool PluginSplitterMultiband::getChainSolo(int chainNumber) {
     return _crossover.getIsSoloed(chainNumber);
+}
+
+void PluginSplitterMultiband::restoreFromXml(juce::XmlElement* element,
+                                             HostConfiguration configuration,
+                                             const PluginConfigurator& pluginConfigurator,
+                                             std::function<void(juce::String)> onErrorCallback) {
+    // Reset state
+    _numChainsSoloed = 0;
+    while (!_chains.empty()) {
+        _chains.erase(_chains.begin());
+    }
+
+    // Restore each chain
+    juce::XmlElement* chainsElement = element->getChildByName(XML_CHAINS_STR);
+    const int numChains {chainsElement->getNumChildElements()};
+
+    for (int chainNumber {0}; chainNumber < numChains; chainNumber++) {
+        juce::Logger::writeToLog("Restoring chain " + juce::String(chainNumber));
+
+        const juce::String chainElementName = _getChainXMLName(chainNumber);
+        juce::XmlElement* thisChainElement = chainsElement->getChildByName(chainElementName);
+
+        if (thisChainElement == nullptr) {
+            juce::Logger::writeToLog("Failed to get element " + chainElementName);
+        } else {
+            bool isSoloed {false};
+            if (thisChainElement->hasAttribute(XML_ISSOLOED_STR)) {
+                isSoloed = thisChainElement->getBoolAttribute(XML_ISSOLOED_STR);
+            } else {
+                juce::Logger::writeToLog("Missing attribute " + juce::String(XML_ISSOLOED_STR));
+            }
+
+            // Now add the chain to the vector
+            _chains.emplace_back(std::make_unique<PluginChain>(_getModulationValueCallback), false);
+            PluginChainWrapper& newChain = _chains[_chains.size() - 1];
+
+            // Since we deleted all chains at the start to make sure we have a
+            // clean starting point, that can mean the first few crossover bands could still exist
+            // and be pointing at chains that have been deleted. We handle this here.
+            if (_chains.size() > _crossover.getNumBands()) {
+                // Need to add a new band and chain
+                _crossover.addBand();
+            } else {
+                // We already have the bands in the crossover
+            }
+
+            // Now assign the chain to the band
+            _crossover.setPluginChain(_chains.size() - 1, newChain.chain.get());
+
+            newChain.chain->prepareToPlay(configuration.sampleRate, configuration.blockSize);
+            newChain.chain->addListener(this);
+            setChainSolo(chainNumber, isSoloed);
+            newChain.chain->restoreFromXml(thisChainElement, configuration, pluginConfigurator, onErrorCallback);
+        }
+    }
+
+    // Restore the crossover frequencies
+    juce::XmlElement* crossoversElement = element->getChildByName(XML_CROSSOVERS_STR);
+    for (int crossoverNumber {0}; crossoverNumber < _chains.size() - 1; crossoverNumber++) {
+        const juce::String frequencyAttribute(_getCrossoverXMLName(crossoverNumber));
+        if (crossoversElement->hasAttribute(frequencyAttribute)) {
+            setCrossoverFrequency(crossoverNumber, crossoversElement->getDoubleAttribute(frequencyAttribute));
+        } else {
+            juce::Logger::writeToLog("Missing attribute " + juce::String(frequencyAttribute));
+        }
+    }
+
+    _onLatencyChange();
+}
+
+void PluginSplitterMultiband::writeToXml(juce::XmlElement* element) {
+    juce::Logger::writeToLog("Storing multiband splitter state");
+
+    juce::XmlElement* chainsElement = element->createNewChildElement(XML_CHAINS_STR);
+
+    for (int chainNumber {0}; chainNumber < _chains.size(); chainNumber++) {
+        juce::Logger::writeToLog("Storing chain " + juce::String(chainNumber));
+
+        juce::XmlElement* thisChainElement = chainsElement->createNewChildElement(_getChainXMLName(chainNumber));
+        PluginChainWrapper& thisChain = _chains[chainNumber];
+
+        thisChainElement->setAttribute(XML_ISSOLOED_STR, getChainSolo(chainNumber));
+        thisChain.chain->writeToXml(thisChainElement);
+    }
+
+    // Store the crossover frequencies
+    juce::XmlElement* crossoversElement = element->createNewChildElement(XML_CROSSOVERS_STR);
+    for (int crossoverNumber {0}; crossoverNumber < _chains.size() - 1; crossoverNumber++) {
+        crossoversElement->setAttribute(_getCrossoverXMLName(crossoverNumber), getCrossoverFrequency(crossoverNumber));
+    }
 }
 
 void PluginSplitterMultiband::prepareToPlay(double sampleRate, int samplesPerBlock) {
@@ -163,23 +267,4 @@ void PluginSplitterMultiband::prepareToPlay(double sampleRate, int samplesPerBlo
 void PluginSplitterMultiband::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
     _fftProvider.processBlock(buffer);
     _crossover.processBlock(buffer);
-}
-
-void PluginSplitterMultiband::_onChainRestored() {
-    // Since PluginSplitter::restoreFromXml() deletes all chains at the start to make sure it has a
-    // clean starting point, that can mean the first few crossover bands could still exist and
-    // be pointing at chains that have been deleted. We handle this here.
-
-    if (_chains.size() >= _crossover.getNumBands()) {
-        // Need to add a new band and chain, can do this in the standard way
-        addBand();
-    } else {
-        // We already have the bands in the crossover but the chain will have been deleted at the
-        // start of PluginSplitter::restoreFromXml(), so we just need to create a new chain and
-        // point the existing band to it
-        _chains.emplace_back(std::make_unique<PluginChain>(_getModulationValueCallback), false);
-        PluginChain* newChain {_chains[_chains.size() - 1].chain.get()};
-        _crossover.setPluginChain(_chains.size() - 1, newChain);
-    }
-
 }

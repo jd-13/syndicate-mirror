@@ -54,8 +54,8 @@ void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumbe
     std::shared_ptr<juce::AudioPluginInstance> plugin =
         _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
 
-    // Check if a window is already open for this plugin
     if (plugin != nullptr) {
+        // Check if a window is already open for this plugin
         for (const std::unique_ptr<GuestPluginWindow>& window : _guestPluginWindows) {
             if (window->plugin == plugin) {
                 // Don't open another window for this plugin
@@ -63,7 +63,9 @@ void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumbe
             }
         }
 
-        _guestPluginWindows.emplace_back(new GuestPluginWindow([&, plugin]() { _onPluginWindowClose(plugin); }, plugin));
+        std::shared_ptr<PluginEditorBounds> editorBounds =
+            _processor.pluginSplitter->getPluginEditorBounds(chainNumber, pluginNumber);
+        _guestPluginWindows.emplace_back(new GuestPluginWindow([&, plugin]() { _onPluginWindowClose(plugin); }, plugin, editorBounds));
     }
 }
 
@@ -146,7 +148,11 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
             juce::Logger::writeToLog("PluginSelectionInterface::_onPluginSelected: Loaded successfully");
 
             // Create the new plugin window
-            _guestPluginWindows.emplace_back(new GuestPluginWindow([&, sharedPlugin]() { _onPluginWindowClose(sharedPlugin); }, sharedPlugin));
+            std::shared_ptr<PluginEditorBounds> editorBounds =
+                _processor.pluginSplitter->getPluginEditorBounds(_chainNumber, _pluginNumber);
+            _guestPluginWindows.emplace_back(new GuestPluginWindow([&, sharedPlugin]() { _onPluginWindowClose(sharedPlugin); },
+                                                                   sharedPlugin,
+                                                                   editorBounds));
 
             // Close the selector window
             _pluginSelectorWindow.reset();

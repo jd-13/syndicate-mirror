@@ -22,8 +22,6 @@ namespace UIUtils {
 
     // Modulation tray
     constexpr int PLUGIN_SLOT_MOD_TRAY_HEIGHT {PLUGIN_SLOT_HEIGHT * 3};
-    constexpr int PLUGIN_MOD_TARGET_SELECTOR_WIDTH {250};
-    constexpr int PLUGIN_MOD_TARGET_SELECTOR_HEIGHT {500};
     constexpr int PLUGIN_MOD_TARGET_SLIDER_HEIGHT {static_cast<int>(UIUtils::PLUGIN_SLOT_MOD_TRAY_HEIGHT * 0.25)};
     constexpr int PLUGIN_MOD_TARGET_SLIDER_WIDTH {PLUGIN_MOD_TARGET_SLIDER_HEIGHT};
 

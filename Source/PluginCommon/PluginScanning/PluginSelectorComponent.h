@@ -5,9 +5,6 @@
 #include "PluginScanStatusBar.h"
 #include "SelectorComponentStyle.h"
 
-constexpr int PLUGIN_SELECTOR_WINDOW_WIDTH {800};
-constexpr int PLUGIN_SELECTOR_WINDOW_HEIGHT {550};
-
 class PluginSelectorComponent  : public juce::Component,
                                  public juce::TextEditor::Listener,
                                  public juce::Button::Listener {
@@ -23,6 +20,12 @@ public:
     void paint(juce::Graphics& g) override;
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
     bool keyPressed(const juce::KeyPress& key) override;
+
+    /**
+     * Restores the scroll position from the stored state. This must be done only after the
+     * component bounds have been restored, otherwise it'll scroll to the wrong place.
+     */
+    void restoreScrollPosition();
 
 private:
     PluginSelectorState& _state;

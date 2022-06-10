@@ -58,12 +58,15 @@ public:
     int getFFTOutputsSize() { return FFTProvider::NUM_OUTPUTS; }
     const float* getFFTOutputs() { return _fftProvider.getOutputs(); }
 
+    void restoreFromXml(juce::XmlElement* element,
+                        HostConfiguration configuration,
+                        const PluginConfigurator& pluginConfigurator,
+                        std::function<void(juce::String)> onErrorCallback) override;
+    void writeToXml(juce::XmlElement* element) override;
+
     // AudioProcessor methods
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
-
-protected:
-    virtual void _onChainRestored() override;
 
 private:
     static constexpr int DEFAULT_NUM_CHAINS {2};

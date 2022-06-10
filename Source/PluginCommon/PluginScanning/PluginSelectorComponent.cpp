@@ -34,6 +34,9 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
     pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
     pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, style.neutralColour.withAlpha(0.5f));
     pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
+    pluginTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
+    pluginTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, style.neutralColour.withAlpha(0.5f));
+    pluginTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
 
     // Recall UI from state
     searchEdt->setText(_state.filterString, false);
@@ -43,6 +46,9 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
 }
 
 PluginSelectorComponent::~PluginSelectorComponent() {
+    // Save the scroll position
+    _state.scrollPosition = pluginTableListBox->getVerticalPosition();
+
     searchEdt->setLookAndFeel(nullptr);
     vstBtn->setLookAndFeel(nullptr);
     vst3Btn->setLookAndFeel(nullptr);
@@ -62,14 +68,30 @@ void PluginSelectorComponent::resized() {
 
     // Header
     juce::Rectangle<int> headerArea = availableArea.removeFromTop(ROW_HEIGHT);
+
+    juce::FlexBox flexBox;
+    flexBox.flexDirection = juce::FlexBox::Direction::row;
+    flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
+    flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
+    flexBox.alignContent = juce::FlexBox::AlignContent::center;
+
+    constexpr int MAX_BUTTONS_WIDTH {220};
+    const int buttonsTotalWidth {
+        getWidth() < MAX_BUTTONS_WIDTH * 2 ? getWidth() / 2 : MAX_BUTTONS_WIDTH
+    };
+
     constexpr int buttonWidth {56};
-    searchEdt->setBounds(headerArea.removeFromLeft(560));
-    headerArea.removeFromLeft(MARGIN_SIZE);
-    vstBtn->setBounds(headerArea.removeFromLeft(buttonWidth));
-    headerArea.removeFromLeft(MARGIN_SIZE);
-    vst3Btn->setBounds(headerArea.removeFromLeft(buttonWidth));
-    headerArea.removeFromLeft(MARGIN_SIZE);
-    auBtn->setBounds(headerArea.removeFromLeft(buttonWidth));
+    flexBox.items.add(juce::FlexItem(*vstBtn.get()).withMinWidth(buttonWidth).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*vst3Btn.get()).withMinWidth(buttonWidth).withMinHeight(ROW_HEIGHT));
+#ifdef __APPLE__
+    flexBox.items.add(juce::FlexItem(*auBtn.get()).withMinWidth(buttonWidth).withMinHeight(ROW_HEIGHT));
+#endif
+    flexBox.performLayout(headerArea.removeFromRight(buttonsTotalWidth).toFloat());
+
+    headerArea.removeFromRight(MARGIN_SIZE);
+
+    searchEdt->setBounds(headerArea);
+
     availableArea.removeFromTop(MARGIN_SIZE);
 
     // Status bar
@@ -163,4 +185,8 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     auBtn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
     auBtn->setColour(juce::TextButton::textColourOnId, style.neutralColour);
     auBtn->setColour(juce::TextButton::textColourOffId, style.controlColour);
+}
+
+void PluginSelectorComponent::restoreScrollPosition() {
+    pluginTableListBox->setVerticalPosition(_state.scrollPosition);
 }

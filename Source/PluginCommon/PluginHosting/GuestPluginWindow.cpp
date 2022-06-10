@@ -19,16 +19,22 @@ namespace {
 }
 
 GuestPluginWindow::GuestPluginWindow(std::function<void()> onCloseCallback,
-                                     std::shared_ptr<juce::AudioPluginInstance> newPlugin)
+                                     std::shared_ptr<juce::AudioPluginInstance> newPlugin,
+                                     std::shared_ptr<PluginEditorBounds> editorBounds)
        : DocumentWindow(newPlugin->getPluginDescription().name, BACKGROUND_COLOUR, TITLE_BAR_BUTTONS),
          plugin(newPlugin),
-         _onCloseCallback(onCloseCallback) {
+         _onCloseCallback(onCloseCallback),
+         _editorBounds(editorBounds) {
 
     juce::AudioProcessorEditor* editor = plugin->createEditorIfNeeded();
 
     if (editor != nullptr) {
         setContentOwned(editor, true);
-        setResizable(editor->isResizable(), false);
+        setResizable(editor->isResizable(), true);
+    }
+
+    if (_editorBounds != nullptr && _editorBounds->has_value()) {
+        setBounds(_editorBounds->value());
     }
 
     // Can't use setUsingNativeTitleBar(true) as it prevents some plugin (ie. NI) UIs from loading
@@ -46,5 +52,6 @@ GuestPluginWindow::~GuestPluginWindow() {
 }
 
 void GuestPluginWindow::closeButtonPressed() {
+    *_editorBounds.get() = getBounds();
     _onCloseCallback();
 }

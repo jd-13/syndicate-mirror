@@ -39,9 +39,15 @@ PluginParameterSelectorComponent::PluginParameterSelectorComponent(
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
+
+    // Recall UI from state
+    _searchTextEditor->setText(_state.filterString, false);
 }
 
 PluginParameterSelectorComponent::~PluginParameterSelectorComponent() {
+    // Save the scroll position
+    _state.scrollPosition = _parameterTableListBox->getVerticalPosition();
+
     _searchTextEditor->setLookAndFeel(nullptr);
     _parameterTableListBox->getHeader().setLookAndFeel(nullptr);
 
@@ -68,8 +74,7 @@ void PluginParameterSelectorComponent::paint(juce::Graphics& g) {
     g.fillAll(UIUtils::backgroundColour);
 }
 
-bool PluginParameterSelectorComponent::keyPressed(const juce::KeyPress& key)
-{
+bool PluginParameterSelectorComponent::keyPressed(const juce::KeyPress& key) {
     if (key.isKeyCode(juce::KeyPress::escapeKey)) {
         // Close the window
         _onCloseCallback();
@@ -77,4 +82,8 @@ bool PluginParameterSelectorComponent::keyPressed(const juce::KeyPress& key)
     }
 
     return false;
+}
+
+void PluginParameterSelectorComponent::restoreScrollPosition() {
+    _parameterTableListBox->setVerticalPosition(_state.scrollPosition);
 }

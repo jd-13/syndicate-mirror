@@ -10,17 +10,6 @@
 
 #include "PluginSplitter.h"
 
-namespace {
-    const char* XML_CHAINS_STR {"Chains"};
-    const char* XML_ISSOLOED_STR {"isSoloed"};
-
-    std::string getChainXMLName(int chainNumber) {
-        std::string retVal("Chain_");
-        retVal += std::to_string(chainNumber);
-        return retVal;
-    }
-}
-
 PluginSplitter::PluginSplitter(int defaultNumChains,
                                std::function<float(int, MODULATION_TYPE)> getModulationValueCallback) :
         AudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
@@ -242,6 +231,16 @@ float PluginSplitter::getPan(int chainNumber, int positionInChain) {
     return retVal;
 }
 
+std::shared_ptr<PluginEditorBounds> PluginSplitter::getPluginEditorBounds(int chainNumber, int positionInChain) const {
+    std::shared_ptr<PluginEditorBounds> retVal(new PluginEditorBounds());
+
+    if (chainNumber < _chains.size()) {
+        retVal = _chains[chainNumber].chain->getPluginEditorBounds(positionInChain);
+    }
+
+    return retVal;
+}
+
 void PluginSplitter::restoreFromXml(juce::XmlElement* element,
                                     HostConfiguration configuration,
                                     const PluginConfigurator& pluginConfigurator,
@@ -259,7 +258,7 @@ void PluginSplitter::restoreFromXml(juce::XmlElement* element,
     for (int chainNumber {0}; chainNumber < numChains; chainNumber++) {
         juce::Logger::writeToLog("Restoring chain " + juce::String(chainNumber));
 
-        const juce::String chainElementName = getChainXMLName(chainNumber);
+        const juce::String chainElementName = _getChainXMLName(chainNumber);
         juce::XmlElement* thisChainElement = chainsElement->getChildByName(chainElementName);
 
         if (thisChainElement == nullptr) {
@@ -273,8 +272,9 @@ void PluginSplitter::restoreFromXml(juce::XmlElement* element,
             }
 
             // Add the chain to the vector
-            _onChainRestored();
+            _chains.emplace_back(std::make_unique<PluginChain>(_getModulationValueCallback), false);
             PluginChainWrapper& thisChain = _chains[_chains.size() - 1];
+            thisChain.chain->prepareToPlay(configuration.sampleRate, configuration.blockSize);
             thisChain.chain->addListener(this);
             thisChain.isSoloed = isSoloed;
             thisChain.chain->restoreFromXml(thisChainElement, configuration, pluginConfigurator, onErrorCallback);
@@ -292,7 +292,7 @@ void PluginSplitter::writeToXml(juce::XmlElement* element) {
     for (int chainNumber {0}; chainNumber < _chains.size(); chainNumber++) {
         juce::Logger::writeToLog("Storing chain " + juce::String(chainNumber));
 
-        juce::XmlElement* thisChainElement = chainsElement->createNewChildElement(getChainXMLName(chainNumber));
+        juce::XmlElement* thisChainElement = chainsElement->createNewChildElement(_getChainXMLName(chainNumber));
         PluginChainWrapper& thisChain = _chains[chainNumber];
 
         thisChainElement->setAttribute(XML_ISSOLOED_STR, thisChain.isSoloed);

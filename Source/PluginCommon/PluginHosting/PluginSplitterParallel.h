@@ -22,9 +22,6 @@ public:
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
 
-protected:
-    virtual void _onChainRestored() override { addChain(); }
-
 private:
     static constexpr int DEFAULT_NUM_CHAINS {1};
 

@@ -7,8 +7,8 @@ namespace {
     const char* XML_MODULATION_IS_ACTIVE_STR {"ModulationIsActive"};
     const char* XML_MODULATION_TARGET_PARAMETER_NAME_STR {"TargetParameterName"};
     const char* XML_MODULATION_REST_VALUE_STR {"RestValue"};
-    const char* XML_MODULATION_SOURCE {"Source"};
     const char* XML_MODULATION_SOURCE_AMOUNT {"SourceAmount"};
+    const char* XML_PLUGIN_EDITOR_BOUNDS_STR {"PluginEditorBounds"};
 
     std::string getParameterModulationConfigXmlName(int configNumber) {
         std::string retVal("ParamConfig_");
@@ -175,6 +175,14 @@ std::unique_ptr<ChainSlotPlugin> ChainSlotPlugin::restoreFromXml(
                 if (pluginConfigurator.configure(sharedPlugin, configuration)) {
                     retVal.reset(new ChainSlotPlugin(sharedPlugin, isPluginBypassed, getModulationValueCallback));
 
+                    // Restore the editor bounds
+                    if (element->hasAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) {
+                        juce::String boundsString = element->getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR);
+                        retVal->editorBounds.reset(new PluginEditorBounds(juce::Rectangle<int>::fromString(boundsString)));
+                    } else {
+                        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_EDITOR_BOUNDS_STR));
+                    }
+
                     // Restore the plugin's internal state
                     if (element->hasAttribute(XML_PLUGIN_DATA_STR)) {
                         const juce::String pluginDataString = element->getStringAttribute(XML_PLUGIN_DATA_STR);
@@ -225,6 +233,11 @@ void ChainSlotPlugin::writeToXml(juce::XmlElement* element) {
     // Store the modulation config
     juce::XmlElement* modulationConfigElement = element->createNewChildElement(XML_MODULATION_CONFIG_STR);
     modulationConfig.writeToXml(modulationConfigElement);
+
+    // Store the editor bounds
+    if (editorBounds->has_value()) {
+        element->setAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR, editorBounds->value().toString());
+    }
 }
 
 void ChainSlotPlugin::_applyModulationForParamter(juce::AudioProcessorParameter* targetParameter,

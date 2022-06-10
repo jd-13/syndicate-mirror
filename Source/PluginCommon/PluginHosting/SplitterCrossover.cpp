@@ -82,7 +82,7 @@ void SplitterCrossover::setPluginChain(size_t index, PluginChain* chain) {
 }
 
 void SplitterCrossover::setSampleRate(double newSampleRate) {
-    for (BandWrapper band : _bands) {
+    for (BandWrapper& band : _bands) {
         band.band.setSampleRate(newSampleRate);
     }
 }

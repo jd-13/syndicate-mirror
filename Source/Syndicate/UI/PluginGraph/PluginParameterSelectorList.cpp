@@ -94,18 +94,23 @@ PluginParameterSelectorTableListBox::PluginParameterSelectorTableListBox(
             : _parameterTableListBoxModel(selectorListParameters) {
     constexpr int flags {juce::TableHeaderComponent::visible};
 
-    constexpr int scrollBarWidth {10};
-    constexpr int margin {2 * 10};
-    const int columnWidth {UIUtils::PLUGIN_MOD_TARGET_SELECTOR_WIDTH - scrollBarWidth - margin};
     getHeader().addColumn("Name",
-                          1,
-                          columnWidth,
-                          columnWidth,
-                          columnWidth,
+                          1, // ID
+                          0, // Width - will be set by resized()
+                          -1, // Min width
+                          -1, // Max width
                           flags);
 
     setModel(&_parameterTableListBoxModel);
     setColour(juce::ListBox::backgroundColourId, juce::Colour(0x00000000));
+}
+
+void PluginParameterSelectorTableListBox::resized() {
+    constexpr int scrollBarWidth {10};
+    getHeader().setColumnWidth(1, getWidth() - scrollBarWidth);
+
+    // Need to call this otherwise rows won't draw properly
+    juce::TableListBox::resized();
 }
 
 void PluginParameterSelectorTableListBox::onFilterUpdate() {

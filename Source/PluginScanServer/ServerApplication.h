@@ -10,7 +10,7 @@
 
 class ServerApplication : public juce::JUCEApplicationBase {
 public:
-    ServerApplication() : _logger("Syndicate Plugin Scan Server", "0.0.1", Utils::PluginScanServerLogDirectory) {
+    ServerApplication() : _logger("Syndicate Plugin Scan Server", ProjectInfo::versionString, Utils::PluginScanServerLogDirectory) {
         juce::Logger::setCurrentLogger(&_logger);
     }
 

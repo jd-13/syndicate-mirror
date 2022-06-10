@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    PluginSelectorWindow.cpp
-    Created: 17 May 2021 10:23:02pm
-    Author:  Jack Devlin
-
-  ==============================================================================
-*/
-
 #include "PluginSelectorWindow.h"
 
 namespace {
@@ -24,23 +14,36 @@ PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback
         juce::DocumentWindow("Plugin Selector", BACKGROUND_COLOUR, TITLE_BAR_BUTTONS),
         _onCloseCallback(onCloseCallback),
         _content(nullptr),
-        _style(std::move(style)) {
-    centreWithSize(PLUGIN_SELECTOR_WINDOW_WIDTH, PLUGIN_SELECTOR_WINDOW_HEIGHT);
+        _style(std::move(style)),
+        _state(selectorListParameters.state) {
+
+    if (_state.bounds.has_value()) {
+        // Use the previous bounds if we have them
+        setBounds(_state.bounds.value());
+    } else {
+        // Default to the centre
+        constexpr int DEFAULT_WIDTH {800};
+        constexpr int DEFAULT_HEIGHT {550};
+        centreWithSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
     setVisible(true);
-    setResizable(false, false);
+    setResizable(true, true);
     setAlwaysOnTop(true);
     _content = new PluginSelectorComponent(selectorListParameters, onCloseCallback, *(_style.get()));
     setContentOwned(_content, false);
-    _content->setBounds(0, getTitleBarHeight(), PLUGIN_SELECTOR_WINDOW_WIDTH, PLUGIN_SELECTOR_WINDOW_HEIGHT - getTitleBarHeight());
+    _content->setBounds(0, getTitleBarHeight(), getWidth(), getHeight() - getTitleBarHeight());
+
+    _content->restoreScrollPosition();
 
     juce::Logger::writeToLog("Created PluginSelectorWindow");
 }
 
 PluginSelectorWindow::~PluginSelectorWindow() {
     juce::Logger::writeToLog("Closing PluginSelectorWindow");
+    _state.bounds = getBounds();
     clearContentComponent();
 }
-
 
 void PluginSelectorWindow::closeButtonPressed() {
     _onCloseCallback();

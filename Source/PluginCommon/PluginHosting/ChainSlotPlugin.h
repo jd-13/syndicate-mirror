@@ -58,6 +58,8 @@ struct PluginModulationConfig {
     void writeToXml(juce::XmlElement* element);
 };
 
+typedef std::optional<juce::Rectangle<int>> PluginEditorBounds;
+
 /**
  * Represents a plugin in a slot in a processing chain.
  */
@@ -65,12 +67,14 @@ class ChainSlotPlugin : public ChainSlotBase {
 public:
     std::shared_ptr<juce::AudioPluginInstance> plugin;
     PluginModulationConfig modulationConfig;
+    std::shared_ptr<PluginEditorBounds> editorBounds;
 
     ChainSlotPlugin(std::shared_ptr<juce::AudioPluginInstance> newPlugin,
                     bool newIsBypassed,
                     std::function<float(int, MODULATION_TYPE)> getModulationValueCallback)
         : ChainSlotBase(newIsBypassed), plugin(newPlugin),
-          _getModulationValueCallback(getModulationValueCallback) {}
+          _getModulationValueCallback(getModulationValueCallback),
+          editorBounds(new PluginEditorBounds()) {}
 
     virtual ~ChainSlotPlugin() = default;
 

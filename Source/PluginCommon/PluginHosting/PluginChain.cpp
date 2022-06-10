@@ -257,6 +257,20 @@ void PluginChain::setRequiredLatency(int numSamples) {
     _latencyCompLine->setDelay(compensation);
 }
 
+std::shared_ptr<PluginEditorBounds> PluginChain::getPluginEditorBounds(int position) const {
+    std::shared_ptr<PluginEditorBounds> retVal(new PluginEditorBounds());
+
+    if (_chain.size() > position) {
+        const ChainSlotPlugin* pluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
+
+        if (pluginSlot != nullptr) {
+            retVal = pluginSlot->editorBounds;
+        }
+    }
+
+    return retVal;
+}
+
 void PluginChain::restoreFromXml(juce::XmlElement* element,
                                  HostConfiguration configuration,
                                  const PluginConfigurator& pluginConfigurator,

@@ -103,6 +103,10 @@ namespace {
         retVal += juce::String(macroNumber);
         return retVal;
     }
+
+    // Window states
+    const char* XML_PLUGIN_SELECTOR_STATE_STR {"pluginSelectorState"};
+    const char* XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR {"pluginParameterSelectorState"};
 }
 
 //==============================================================================
@@ -838,6 +842,22 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
         } else {
             juce::Logger::writeToLog("Missing element " + juce::String(XML_MACRO_NAMES_STR));
         }
+
+        juce::XmlElement* pluginSelectorElement = element->getChildByName(XML_PLUGIN_SELECTOR_STATE_STR);
+        if (pluginSelectorElement != nullptr) {
+            // Restore the plugin selector window state
+            _processor->pluginSelectorState.restoreFromXml(pluginSelectorElement);
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_PLUGIN_SELECTOR_STATE_STR));
+        }
+
+        juce::XmlElement* pluginParameterSelectorElement = element->getChildByName(XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR);
+        if (pluginParameterSelectorElement != nullptr) {
+            // Restore the plugin parameter selector window state
+            _processor->pluginParameterSelectorState.restoreFromXml(pluginParameterSelectorElement);
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR));
+        }
     } else {
         juce::Logger::writeToLog("Restore failed - no processor");
     }
@@ -862,6 +882,14 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
         // Store the macro names
         juce::XmlElement* macroNamesElement = element->createNewChildElement(XML_MACRO_NAMES_STR);
         _writeMacroNamesToXml(macroNamesElement);
+
+        // Store window states
+        juce::XmlElement* pluginSelectorElement = element->createNewChildElement(XML_PLUGIN_SELECTOR_STATE_STR);
+        _processor->pluginSelectorState.writeToXml(pluginSelectorElement);
+
+        juce::XmlElement* pluginParameterSelectorElement = element->createNewChildElement(XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR);
+        _processor->pluginParameterSelectorState.writeToXml(pluginParameterSelectorElement);
+
     } else {
         juce::Logger::writeToLog("Writing failed - no processor");
     }

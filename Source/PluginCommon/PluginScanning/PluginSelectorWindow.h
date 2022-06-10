@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    PluginSelectorWindow.h
-    Created: 17 May 2021 10:23:02pm
-    Author:  Jack Devlin
-
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -29,4 +19,7 @@ private:
     std::function<void()> _onCloseCallback;
     PluginSelectorComponent* _content;
     std::unique_ptr<SelectorComponentStyle> _style;
+
+    // We need to keep a reference to state to update the bounds on resize
+    PluginSelectorState& _state;
 };

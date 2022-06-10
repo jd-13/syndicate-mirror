@@ -51,6 +51,8 @@ public:
     PluginParameterSelectorTableListBox(PluginParameterSelectorListParameters selectorListParameters);
     ~PluginParameterSelectorTableListBox() = default;
 
+    virtual void resized() override;
+
     void onFilterUpdate();
 
 private:

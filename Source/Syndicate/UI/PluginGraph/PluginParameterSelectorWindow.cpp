@@ -18,22 +18,34 @@ PluginParameterSelectorWindow::PluginParameterSelectorWindow(
                              TITLE_BAR_BUTTONS,
                              true),
             _onCloseCallback(onCloseCallback),
-            _content(nullptr) {
-    centreWithSize(UIUtils::PLUGIN_MOD_TARGET_SELECTOR_WIDTH, UIUtils::PLUGIN_MOD_TARGET_SELECTOR_HEIGHT);
+            _content(nullptr),
+            _state(selectorListParameters.state) {
+
+    if (_state.bounds.has_value()) {
+        // Use the previous bounds if we have them
+        setBounds(_state.bounds.value());
+    } else {
+        // Default to the centre
+        constexpr int DEFAULT_WIDTH {250};
+        constexpr int DEFAULT_HEIGHT {500};
+        centreWithSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
     setVisible(true);
-    setResizable(false, false);
+    setResizable(true, true);
     setAlwaysOnTop(true);
     _content = new PluginParameterSelectorComponent(selectorListParameters, onCloseCallback);
     setContentOwned(_content, false);
+    _content->restoreScrollPosition();
 
     juce::Logger::writeToLog("Created PluginParameterSelectorWindow");
 }
 
 PluginParameterSelectorWindow::~PluginParameterSelectorWindow() {
     juce::Logger::writeToLog("Closing PluginParameterSelectorWindow");
+    _state.bounds = getBounds();
     clearContentComponent();
 }
-
 
 void PluginParameterSelectorWindow::closeButtonPressed() {
     _onCloseCallback();

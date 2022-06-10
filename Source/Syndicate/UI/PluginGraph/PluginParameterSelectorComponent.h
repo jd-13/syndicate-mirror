@@ -17,6 +17,12 @@ public:
     void paint(juce::Graphics& g) override;
     bool keyPressed(const juce::KeyPress& key) override;
 
+    /**
+     * Restores the scroll position from the stored state. This must be done only after the
+     * component bounds have been restored, otherwise it'll scroll to the wrong place.
+     */
+    void restoreScrollPosition();
+
 private:
     PluginParameterSelectorState& _state;
     std::function<void()> _onCloseCallback;

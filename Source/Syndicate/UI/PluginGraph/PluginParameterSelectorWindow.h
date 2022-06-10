@@ -18,4 +18,7 @@ public:
 private:
     std::function<void()> _onCloseCallback;
     PluginParameterSelectorComponent* _content;
+
+    // We need to keep a reference to state to update the bounds on resize
+    PluginParameterSelectorState& _state;
 };

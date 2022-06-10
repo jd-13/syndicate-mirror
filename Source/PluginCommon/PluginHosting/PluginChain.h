@@ -126,6 +126,12 @@ public:
      */
     void setRequiredLatency(int numSamples);
 
+    /**
+     * Returns a pointer to the bounds for this plugin's editor. Will pointer to an empty optional
+     * if there isn't a plugin at the given position.
+     */
+    std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(int position) const;
+
     void restoreFromXml(juce::XmlElement* element,
                         HostConfiguration configuration,
                         const PluginConfigurator& pluginConfigurator,

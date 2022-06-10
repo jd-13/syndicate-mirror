@@ -78,13 +78,15 @@ public:
     bool setPan(int chainNumber, int positionInChain, float pan);
     float getPan(int chainNumber, int positionInChain);
 
+    std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(int chainNumber, int positionInChain) const;
+
     virtual SPLIT_TYPE getSplitType() = 0;
 
-    void restoreFromXml(juce::XmlElement* element,
-                        HostConfiguration configuration,
-                        const PluginConfigurator& pluginConfigurator,
-                        std::function<void(juce::String)> onErrorCallback);
-    void writeToXml(juce::XmlElement* element);
+    virtual void restoreFromXml(juce::XmlElement* element,
+                                HostConfiguration configuration,
+                                const PluginConfigurator& pluginConfigurator,
+                                std::function<void(juce::String)> onErrorCallback);
+    virtual void writeToXml(juce::XmlElement* element);
 
     // AudioProcessor methods
     virtual const juce::String getName() const override;
@@ -109,15 +111,18 @@ protected:
     size_t _numChainsSoloed;
     std::function<float(int, MODULATION_TYPE)> _getModulationValueCallback;
 
-    /**
-     * Called when restoring from XML and a chain needs to be added
-     * Inheriting classes can override it if they need to setup other things for each chain
-     */
-    virtual void _onChainRestored() { _chains.emplace_back(std::make_unique<PluginChain>(_getModulationValueCallback), false); }
-
     // Helper methods for subclasses that need to use multiple buffers
     void _copyBuffer(juce::AudioBuffer<float>& source, juce::AudioBuffer<float>& destination);
     void _addBuffers(juce::AudioBuffer<float>& source, juce::AudioBuffer<float>& destination);
 
     void _onLatencyChange() override;
+
+    inline static const char* XML_CHAINS_STR {"Chains"};
+    inline static const char* XML_ISSOLOED_STR {"isSoloed"};
+
+    static std::string _getChainXMLName(int chainNumber) {
+        std::string retVal("Chain_");
+        retVal += std::to_string(chainNumber);
+        return retVal;
+    }
 };

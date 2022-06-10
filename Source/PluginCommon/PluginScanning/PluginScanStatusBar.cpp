@@ -11,8 +11,7 @@ PluginScanStatusBar::PluginScanStatusBar(PluginScanClient& pluginScanClient,
     statusLbl->setFont(juce::Font (15.00f, juce::Font::plain).withTypefaceStyle ("Regular"));
     statusLbl->setJustificationType(juce::Justification::centredLeft);
     statusLbl->setEditable(false, false, false);
-    statusLbl->setColour(juce::Label::backgroundColourId, style.controlColour);
-    statusLbl->setColour(juce::Label::textColourId, style.neutralColour);
+    statusLbl->setColour(juce::Label::textColourId, style.controlColour);
 
     auto styleButton = [&style](std::unique_ptr<juce::TextButton>& button) {
         button->setLookAndFeel(style.scanButtonLookAndFeel.get());
@@ -69,28 +68,38 @@ PluginScanStatusBar::~PluginScanStatusBar() {
 }
 
 void PluginScanStatusBar::resized() {
-    constexpr int STATUS_WIDTH {200};
     constexpr int SPACER_WIDTH {10};
     constexpr int NARROW_BUTTON_WIDTH {80};
     constexpr int WIDE_BUTTON_WIDTH {130};
+    constexpr int ROW_HEIGHT {24};
+
+    constexpr int MAX_BUTTONS_WIDTH {590};
+    const int buttonsTotalWidth {
+        getWidth() < MAX_BUTTONS_WIDTH + 120 ? getWidth() - 120 : MAX_BUTTONS_WIDTH
+    };
 
     if (crashedPluginsPopover != nullptr) {
-        crashedPluginsPopover->setBounds(getLocalBounds());
+        crashedPluginsPopover->setBounds(getParentComponent()->getLocalBounds());
     }
 
     juce::Rectangle<int> availableArea = getLocalBounds();
 
-    statusLbl->setBounds(availableArea.removeFromLeft(STATUS_WIDTH));
-    availableArea.removeFromLeft(SPACER_WIDTH);
-    startScanBtn->setBounds(availableArea.removeFromLeft(NARROW_BUTTON_WIDTH));
-    availableArea.removeFromLeft(SPACER_WIDTH);
-    stopScanBtn->setBounds(availableArea.removeFromLeft(NARROW_BUTTON_WIDTH));
-    availableArea.removeFromLeft(SPACER_WIDTH);
-    rescanAllBtn->setBounds(availableArea.removeFromLeft(WIDE_BUTTON_WIDTH));
-    availableArea.removeFromLeft(SPACER_WIDTH);
-    rescanCrashedBtn->setBounds(availableArea.removeFromLeft(WIDE_BUTTON_WIDTH));
-    availableArea.removeFromLeft(SPACER_WIDTH);
-    viewCrashedBtn->setBounds(availableArea.removeFromLeft(WIDE_BUTTON_WIDTH));
+    juce::FlexBox flexBox;
+    flexBox.flexDirection = juce::FlexBox::Direction::row;
+    flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
+    flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
+    flexBox.alignContent = juce::FlexBox::AlignContent::center;
+
+    flexBox.items.add(juce::FlexItem(*startScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*stopScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*rescanAllBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*rescanCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*viewCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+
+    flexBox.performLayout(availableArea.removeFromRight(buttonsTotalWidth).toFloat());
+
+    availableArea.removeFromRight(SPACER_WIDTH);
+    statusLbl->setBounds(availableArea);
 }
 
 void PluginScanStatusBar::buttonClicked(juce::Button* buttonThatWasClicked) {
