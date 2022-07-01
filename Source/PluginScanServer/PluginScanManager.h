@@ -1,7 +1,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginScanJob.h"
 
 /**
  * Manages multithreaded scanning of plugins and notifies listeners of progress.
@@ -22,12 +21,13 @@ public:
     void timerCallback() override;
 
 private:
-    juce::ThreadPool _threadPool;
     juce::KnownPluginList _pluginList;
     juce::File _deadMansPedalFile;
     juce::File _scannedPluginsFile;
     juce::File _scannedPluginsBackupFile;
     juce::File _isAliveFile;
+    juce::File _stallingPluginsFile;
+    juce::File _stallingPluginsBackupFile;
 
     // True if currently scanning
     std::atomic<bool> _isScanning;
@@ -38,7 +38,6 @@ private:
     // True if an attempt has been made to restore from previous scan (whether successful or not)
     bool _hasAttemptedRestore;
 
-    std::atomic<int> _numJobsToFinish;
     int _pluginsScannedSinceBackup;
 
 #ifdef __APPLE__
@@ -47,8 +46,9 @@ private:
     juce::VSTPluginFormat _vstFormat;
     juce::VST3PluginFormat _vst3Format;
 
-    juce::WaitableEvent _pluginScannedEvent;
     mutable juce::Random _randomGenerator;
+
+    juce::StringArray _stallingPluginsNames;
 
     bool _shouldUpdateBackup(int pluginsScannedSinceBackup) const;
 

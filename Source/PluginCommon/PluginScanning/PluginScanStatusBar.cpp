@@ -167,16 +167,27 @@ void PluginScanStatusBar::_createCrashedPluginsDialogue() {
     juce::String bodyText;
 
     juce::File crashedPluginsFile = Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME);
+    juce::String crashedPluginsStr;
     if (crashedPluginsFile.existsAsFile()) {
-        const juce::String crashedPluginsStr = crashedPluginsFile.loadFileAsString();
-
-        if (!crashedPluginsStr.isEmpty()) {
-            bodyText += "The following plugins crashed during validation:\n\n";
-            bodyText += crashedPluginsStr;
-        }
+        crashedPluginsStr = crashedPluginsFile.loadFileAsString();
     }
 
-    if (bodyText.isEmpty()) {
+    juce::File stalledPluginsFile = Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_FILE_NAME);
+    juce::String stalledPluginsStr;
+    if (stalledPluginsFile.existsAsFile()) {
+        stalledPluginsStr = stalledPluginsFile.loadFileAsString();
+    }
+
+    if (!crashedPluginsStr.isEmpty() || !stalledPluginsStr.isEmpty()) {
+        bodyText += "The following plugins crashed during validation:\n\n";
+
+        if (!crashedPluginsStr.isEmpty()) {
+            bodyText += crashedPluginsStr;
+        }
+        if (!stalledPluginsStr.isEmpty()){
+            bodyText += stalledPluginsStr;
+        }
+    } else {
         bodyText += "No plugins failed validation";
     }
 
