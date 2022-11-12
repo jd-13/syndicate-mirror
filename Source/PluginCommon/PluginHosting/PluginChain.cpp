@@ -9,6 +9,8 @@
 */
 
 #include "PluginChain.h"
+#include "ChainSlotProcessors.hpp"
+#include "Xml.hpp"
 
 namespace {
     const char* XML_IS_CHAIN_BYPASSED_STR {"isChainBypassed"};
@@ -51,8 +53,7 @@ void PluginChain::replacePlugin(std::shared_ptr<juce::AudioPluginInstance> plugi
 
         // If it's a plugin remove the listener so we don't continue getting updates if it's kept
         // alive somewhere else
-        const ChainSlotPlugin* oldPluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
-        if (oldPluginSlot != nullptr) {
+        if (const auto oldPluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
             oldPluginSlot->plugin->removeListener(this);
         }
 
@@ -73,8 +74,7 @@ bool PluginChain::removeSlot(int position) {
 
         // If it's a plugin remove the listener so we don't continue getting updates if it's kept
         // alive somewhere else
-        const ChainSlotPlugin* oldPluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
-        if (oldPluginSlot != nullptr) {
+        if (const auto oldPluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
             oldPluginSlot->plugin->removeListener(this);
         }
 
@@ -87,8 +87,9 @@ bool PluginChain::removeSlot(int position) {
 }
 
 void PluginChain::insertGainStage(int position, const juce::AudioProcessor::BusesLayout& busesLayout) {
-    std::unique_ptr<ChainSlotGainStage> gainStage = std::make_unique<ChainSlotGainStage>(1, 0, false, busesLayout);
-    gainStage->prepareToPlay(getSampleRate(), getBlockSize());
+    auto gainStage = std::make_shared<ChainSlotGainStage>(1, 0, false, busesLayout);
+
+    ChainProcessor::prepareToPlay(*gainStage.get(), getSampleRate());
 
     if (_chain.size() > position) {
         _chain.insert(_chain.begin() + position, std::move(gainStage));
@@ -102,9 +103,7 @@ std::shared_ptr<juce::AudioPluginInstance> PluginChain::getPlugin(int position) 
     std::shared_ptr<juce::AudioPluginInstance> retVal;
 
     if (_chain.size() > position) {
-        const ChainSlotPlugin* pluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
-
-        if (pluginSlot != nullptr) {
+        if (const auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
             retVal = pluginSlot->plugin;
         }
     }
@@ -113,28 +112,22 @@ std::shared_ptr<juce::AudioPluginInstance> PluginChain::getPlugin(int position) 
 }
 
 bool PluginChain::setPluginModulationConfig(PluginModulationConfig config, int position) {
-    bool retVal {false};
-
     if (_chain.size() > position) {
-        ChainSlotPlugin* pluginSlot = dynamic_cast<ChainSlotPlugin*>(_chain[position].get());
-
-        if (pluginSlot != nullptr) {
-            pluginSlot->modulationConfig = config;
-            retVal = true;
+        if (const auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
+            pluginSlot->modulationConfig = std::make_shared<PluginModulationConfig>(config);
+            return true;
         }
     }
 
-    return retVal;
+    return false;
 }
 
 PluginModulationConfig PluginChain::getPluginModulationConfig(int position) const {
     PluginModulationConfig retVal;
 
     if (_chain.size() > position) {
-        const ChainSlotPlugin* pluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
-
-        if (pluginSlot != nullptr) {
-            retVal = pluginSlot->modulationConfig;
+        if (const auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
+            retVal = *pluginSlot->modulationConfig.get();
         }
     }
 
@@ -175,9 +168,7 @@ bool PluginChain::setGainLinear(int position, float gain) {
     bool retVal {false};
 
     if (_chain.size() > position) {
-        ChainSlotGainStage* gainStage = dynamic_cast<ChainSlotGainStage*>(_chain[position].get());
-
-        if (gainStage != nullptr) {
+        if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[position])) {
             // TODO bounds check
             gainStage->gain = gain;
             retVal = true;
@@ -191,9 +182,7 @@ float PluginChain::getGainLinear(int position) {
     float retVal {0.0f};
 
     if (_chain.size() > position) {
-        ChainSlotGainStage* gainStage = dynamic_cast<ChainSlotGainStage*>(_chain[position].get());
-
-        if (gainStage != nullptr) {
+        if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[position])) {
             retVal = gainStage->gain;
         }
     }
@@ -201,14 +190,12 @@ float PluginChain::getGainLinear(int position) {
     return retVal;
 }
 
-std::optional<GainStageLevelsProvider> PluginChain::getGainStageLevelsProvider(int position) {
-    std::optional<GainStageLevelsProvider> retVal;
+std::optional<GainStageLevelsInterface> PluginChain::getGainStageLevelsInterface(int position) {
+    std::optional<GainStageLevelsInterface> retVal;
 
     if (_chain.size() > position) {
-        const ChainSlotGainStage* gainStage = dynamic_cast<ChainSlotGainStage*>(_chain[position].get());
-
-        if (gainStage != nullptr) {
-            retVal.emplace(*gainStage);
+        if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[position])) {
+            retVal.emplace(gainStage);
         }
     }
 
@@ -219,9 +206,7 @@ bool PluginChain::setPan(int position, float pan) {
     bool retVal {false};
 
     if (_chain.size() > position) {
-        ChainSlotGainStage* gainStage = dynamic_cast<ChainSlotGainStage*>(_chain[position].get());
-
-        if (gainStage != nullptr) {
+        if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[position])) {
             // TODO bounds check
             gainStage->pan = pan;
             retVal = true;
@@ -235,9 +220,7 @@ float PluginChain::getPan(int position) {
     float retVal {0.0f};
 
     if (_chain.size() > position) {
-        ChainSlotGainStage* gainStage = dynamic_cast<ChainSlotGainStage*>(_chain[position].get());
-
-        if (gainStage != nullptr) {
+        if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[position])) {
             retVal = gainStage->pan;
         }
     }
@@ -261,9 +244,7 @@ std::shared_ptr<PluginEditorBounds> PluginChain::getPluginEditorBounds(int posit
     std::shared_ptr<PluginEditorBounds> retVal(new PluginEditorBounds());
 
     if (_chain.size() > position) {
-        const ChainSlotPlugin* pluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[position].get());
-
-        if (pluginSlot != nullptr) {
+        if (const auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[position])) {
             retVal = pluginSlot->editorBounds;
         }
     }
@@ -303,19 +284,33 @@ void PluginChain::restoreFromXml(juce::XmlElement* element,
             continue;
         }
 
-        if (ChainSlotBase::XmlElementIsPlugin(thisPluginElement)) {
-            std::unique_ptr<ChainSlotPlugin> newPlugin = ChainSlotPlugin::restoreFromXml(thisPluginElement, _getModulationValueCallback, configuration, pluginConfigurator, onErrorCallback);
+        if (XmlReader::XmlElementIsPlugin(thisPluginElement)) {
+            auto loadPlugin = [](const juce::PluginDescription& description, const HostConfiguration& config) {
+                juce::AudioPluginFormatManager formatManager;
+                formatManager.addDefaultFormats();
+
+                juce::String errorMessage;
+                std::unique_ptr<juce::AudioPluginInstance> thisPlugin =
+                    formatManager.createPluginInstance(
+                        description, config.sampleRate, config.blockSize, errorMessage);
+
+                return std::make_tuple<std::unique_ptr<juce::AudioPluginInstance>, juce::String>(
+                    std::move(thisPlugin), juce::String(errorMessage));
+            };
+
+            auto newPlugin = XmlReader::restoreChainSlotPlugin(
+                thisPluginElement, _getModulationValueCallback, configuration, pluginConfigurator, loadPlugin, onErrorCallback);
 
             if (newPlugin != nullptr) {
                 newPlugin->plugin->addListener(this);
                 _chain.push_back(std::move(newPlugin));
             }
-        } else if (ChainSlotBase::XmlElementIsGainStage(thisPluginElement)) {
-            std::unique_ptr<ChainSlotGainStage> newGainStage = ChainSlotGainStage::restoreFromXml(thisPluginElement, configuration.layout);
+        } else if (XmlReader::XmlElementIsGainStage(thisPluginElement)) {
+            auto newGainStage = XmlReader::restoreChainSlotGainStage(thisPluginElement, configuration.layout);
 
             if (newGainStage != nullptr) {
                 // Call prepareToPlay since some hosts won't call it after restoring
-                newGainStage->prepareToPlay(configuration.sampleRate, configuration.blockSize);
+                ChainProcessor::prepareToPlay(*newGainStage.get(), configuration.sampleRate);
                 _chain.push_back(std::move(newGainStage));
             }
         } else {
@@ -337,7 +332,12 @@ void PluginChain::writeToXml(juce::XmlElement* element) {
         juce::Logger::writeToLog("Storing plugin " + juce::String(pluginNumber));
 
         juce::XmlElement* thisPluginElement = pluginsElement->createNewChildElement(getSlotXMLName(pluginNumber));
-        _chain[pluginNumber]->writeToXml(thisPluginElement);
+
+        if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(_chain[pluginNumber])) {
+            XmlWriter::write(gainStage, thisPluginElement);
+        } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[pluginNumber])) {
+            XmlWriter::write(pluginSlot, thisPluginElement);
+        }
     }
 }
 
@@ -351,20 +351,32 @@ void PluginChain::prepareToPlay(double sampleRate, int samplesPerBlock) {
 
     _latencyCompLine->prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), 4});
 
-    for (std::unique_ptr<ChainSlotBase>& slot : _chain) {
-        slot->prepareToPlay(sampleRate, samplesPerBlock);
+    for (std::shared_ptr<ChainSlotBase> slot : _chain) {
+        if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
+            ChainProcessor::prepareToPlay(*gainStage.get(), sampleRate);
+        } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
+            ChainProcessor::prepareToPlay(*pluginSlot.get(), sampleRate, samplesPerBlock);
+        }
     }
 }
 
 void PluginChain::releaseResources() {
-    for (std::unique_ptr<ChainSlotBase>& slot : _chain) {
-        slot->releaseResources();
+    for (std::shared_ptr<ChainSlotBase> slot : _chain) {
+        if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
+            ChainProcessor::releaseResources(*gainStage.get());
+        } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
+            ChainProcessor::releaseResources(*pluginSlot.get());
+        }
     }
 }
 
 void PluginChain::reset() {
-    for (std::unique_ptr<ChainSlotBase>& slot : _chain) {
-        slot->reset();
+    for (std::shared_ptr<ChainSlotBase> slot : _chain) {
+        if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
+            ChainProcessor::reset(*gainStage.get());
+        } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
+            ChainProcessor::reset(*pluginSlot.get());
+        }
     }
 }
 
@@ -388,8 +400,12 @@ void PluginChain::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffe
         juce::FloatVectorOperations::fill(buffer.getWritePointer(1), 0, buffer.getNumSamples());
     } else {
         // Chain is active - process as normal
-        for (std::unique_ptr<ChainSlotBase>& slot : _chain) {
-            slot->processBlock(buffer, midiMessages);
+        for (std::shared_ptr<ChainSlotBase> slot : _chain) {
+            if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
+                ChainProcessor::processBlock(*gainStage.get(), buffer);
+            } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
+                ChainProcessor::processBlock(*pluginSlot.get(), buffer, midiMessages);
+            }
         }
     }
 }
@@ -455,7 +471,7 @@ void PluginChain::_onLatencyChange() {
     // If the chain is bypassed the reported latency should be 0
     if (!_isChainBypassed) {
         for (int index {0}; index < _chain.size(); index++) {
-            const ChainSlotPlugin* pluginSlot = dynamic_cast<const ChainSlotPlugin*>(_chain[index].get());
+            const auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(_chain[index]);
 
             // If this slot is a plugin and it's not bypassed, add it to the total
             if (pluginSlot != nullptr && !pluginSlot->isBypassed) {

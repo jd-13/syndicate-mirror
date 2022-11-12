@@ -73,7 +73,7 @@ public:
 
     bool setGainLinear(int chainNumber, int positionInChain, float gain);
     float getGainLinear(int chainNumber, int positionInChain);
-    std::optional<GainStageLevelsProvider> getGainStageLevelsProvider(int chainNumber, int positionInChain);
+    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(int chainNumber, int positionInChain);
 
     bool setPan(int chainNumber, int positionInChain, float pan);
     float getPan(int chainNumber, int positionInChain);

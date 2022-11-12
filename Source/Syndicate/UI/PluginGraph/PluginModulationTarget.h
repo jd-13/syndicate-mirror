@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 #include "PluginModulationInterface.h"
-#include "ModulationSourceDefinition.h"
+#include "ModulationSourceDefinition.hpp"
 #include "UIUtils.h"
 #include "General/CoreMath.h"
 

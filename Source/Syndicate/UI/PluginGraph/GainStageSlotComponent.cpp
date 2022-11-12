@@ -12,7 +12,7 @@ namespace {
     }
 }
 
-GainStageMeter::GainStageMeter(const GainStageLevelsProvider levelsProvider) :
+GainStageMeter::GainStageMeter(const GainStageLevelsInterface levelsProvider) :
             _levelsProvider(levelsProvider) {
     start();
 }
@@ -63,13 +63,13 @@ GainStageSlotComponent::GainStageSlotComponent(
 
     _buttonLookAndFeel.reset(new UIUtils::TextOnlyButtonLookAndFeel());
 
-    std::optional<GainStageLevelsProvider> levelsProvider =
-        pluginSelectionInterface.getGainStageLevelsProvider(_chainNumber, _slotNumber);
+    std::optional<GainStageLevelsInterface> levelsInterface =
+        pluginSelectionInterface.getGainStageLevelsInterface(_chainNumber, _slotNumber);
 
     const juce::String meterTooltip("Output of this gain stage");
 
-    if (levelsProvider.has_value()) {
-        levelMeter.reset(new GainStageMeter(levelsProvider.value()));
+    if (levelsInterface.has_value()) {
+        levelMeter.reset(new GainStageMeter(levelsInterface.value()));
         addAndMakeVisible(levelMeter.get());
         levelMeter->setTooltip(meterTooltip);
     } else {
@@ -122,8 +122,8 @@ GainStageSlotComponent::GainStageSlotComponent(
 
     panSld->setValue(_pluginSelectionInterface.getGainStagePan(_chainNumber, _slotNumber), juce::dontSendNotification);
 
-    if (levelsProvider.has_value()) {
-        panSld->setEnabled(levelsProvider.value().getNumChannels() == 2);
+    if (levelsInterface.has_value()) {
+        panSld->setEnabled(levelsInterface.value().getNumChannels() == 2);
     }
 
     gainSld->setValueToString([](double value) { return juce::String(value, 1) + " dB";});

@@ -1,4 +1,4 @@
-#include "PluginConfigurator.h"
+#include "PluginConfigurator.hpp"
 
 PluginConfigurator::PluginConfigurator() {
     monoInMonoOut.inputBuses.add(juce::AudioChannelSet::mono());

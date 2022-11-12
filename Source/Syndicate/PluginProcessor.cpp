@@ -445,34 +445,34 @@ void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition 
         }
     }
 
-    // Iterate through each plugin, remove the source if it has been assigned an renumber ones that
+    // Iterate through each plugin, remove the source if it has been assigned and renumber ones that
     // are numbered higher
     for (PluginChainWrapper& chain : pluginSplitter->getChains()) {
         for (int slotIndex {0}; slotIndex < chain.chain->getNumSlots(); slotIndex++) {
             PluginModulationConfig thisPluginConfig = chain.chain->getPluginModulationConfig(slotIndex);
 
             // Iterate through each configured parameter
-            for (PluginParameterModulationConfig& parameterConfig : thisPluginConfig.parameterConfigs) {
+            for (std::shared_ptr<PluginParameterModulationConfig> parameterConfig : thisPluginConfig.parameterConfigs) {
                 bool needsToDelete {false};
                 int indexToDelete {0};
 
                 // Iterate through each configured source
-                for (int sourceIndex {0}; sourceIndex < parameterConfig.sources.size(); sourceIndex++) {
-                    PluginParameterModulationSource& thisSource = parameterConfig.sources[sourceIndex];
+                for (int sourceIndex {0}; sourceIndex < parameterConfig->sources.size(); sourceIndex++) {
+                    std::shared_ptr<PluginParameterModulationSource> thisSource = parameterConfig->sources[sourceIndex];
 
-                    if (thisSource.definition == definition) {
+                    if (thisSource->definition == definition) {
                         // We need to come back and delete this one
                         needsToDelete = true;
                         indexToDelete = sourceIndex;
-                    } else if (thisSource.definition.type == definition.type &&
-                                thisSource.definition.id > definition.id) {
+                    } else if (thisSource->definition.type == definition.type &&
+                               thisSource->definition.id > definition.id) {
                         // We need to renumber this one
-                        thisSource.definition.id--;
+                        thisSource->definition.id--;
                     }
                 }
 
                 if (needsToDelete) {
-                    parameterConfig.sources.erase(parameterConfig.sources.begin() + indexToDelete);
+                    parameterConfig->sources.erase(parameterConfig->sources.begin() + indexToDelete);
                 }
             }
 

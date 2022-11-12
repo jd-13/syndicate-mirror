@@ -15,9 +15,9 @@ namespace {
             bool shouldCopy {true};
 
             // If this parameter name is already in the config, don't add it to the list
-            for (const PluginParameterModulationConfig& paramConfig : config.parameterConfigs) {
+            for (const std::shared_ptr<PluginParameterModulationConfig> paramConfig : config.parameterConfigs) {
                 const juce::String thisParamName = thisParam->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
-                if (thisParamName == paramConfig.targetParameterName) {
+                if (thisParamName == paramConfig->targetParameterName) {
                     shouldCopy = false;
                     break;
                 }
@@ -123,7 +123,7 @@ juce::AudioProcessorParameter* PluginModulationInterface::getPluginParameterForT
             std::shared_ptr<juce::AudioPluginInstance> plugin = _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
 
             if (plugin != nullptr) {
-                const juce::String paramName(config.parameterConfigs[targetNumber].targetParameterName);
+                const juce::String paramName(config.parameterConfigs[targetNumber]->targetParameterName);
 
                 const juce::Array<juce::AudioProcessorParameter*>& parameters = plugin->getParameters();
                 for (juce::AudioProcessorParameter* thisParam : parameters) {
@@ -145,10 +145,10 @@ void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorP
 
         // Increase the number of configs if needed
         while (config.parameterConfigs.size() <= targetNumber) {
-            config.parameterConfigs.emplace_back();
+            config.parameterConfigs.push_back(std::make_shared<PluginParameterModulationConfig>());
         }
 
-        config.parameterConfigs[targetNumber].targetParameterName = parameter->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
+        config.parameterConfigs[targetNumber]->targetParameterName = parameter->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
 
         _processor.pluginSplitter->setPluginModulationConfig(config, chainNumber, pluginNumber);
 

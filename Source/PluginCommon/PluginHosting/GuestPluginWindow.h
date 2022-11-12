@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ChainSlotPlugin.h"
+#include "ChainSlots.hpp"
 
 class GuestPluginWindow  : public juce::DocumentWindow
 {

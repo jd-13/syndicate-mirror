@@ -62,12 +62,14 @@ void ModulationBar::resized() {
         // component
         scrollablebuttonsArea.setPosition(0, 0);
 
+        const int scrollbarWidth {buttonsView->getScrollBarThickness()};
+
         for (std::unique_ptr<ModulationButton>& button : buttons) {
-            button->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT));
+            button->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
         }
 
         if (addButton != nullptr) {
-            addButton->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT));
+            addButton->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
         }
     };
 

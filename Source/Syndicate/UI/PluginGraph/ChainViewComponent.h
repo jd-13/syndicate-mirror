@@ -28,6 +28,9 @@ public:
     void itemDragExit(const SourceDetails& dragSourceDetails) override;
     void itemDropped(const SourceDetails& dragSourceDetails) override;
 
+    void setScrollPosition(int val) { _viewPort->setViewPosition(0, val); }
+    int getScrollPosition() const { return _viewPort->getViewPositionY(); }
+
 private:
     int _chainNumber;
     PluginSelectionInterface& _pluginSelectionInterface;

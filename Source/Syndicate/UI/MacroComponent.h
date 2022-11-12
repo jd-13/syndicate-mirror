@@ -1,7 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ModulationSourceDefinition.h"
+#include "ModulationSourceDefinition.hpp"
 #include "UIUtils.h"
 
 class MacroComponent  : public juce::Component,

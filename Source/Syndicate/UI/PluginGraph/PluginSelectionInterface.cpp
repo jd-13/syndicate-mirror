@@ -194,21 +194,19 @@ void PluginSelectionInterface::setGainStageGain(int chainNumber, int slotNumber,
 }
 
 float PluginSelectionInterface::getGainStageGain(int chainNumber, int slotNumber) {
-    float retVal {0.0f};
-
     if (_processor.pluginSplitter != nullptr) {
-        retVal = _processor.pluginSplitter->getGainLinear(chainNumber, slotNumber);
+        return _processor.pluginSplitter->getGainLinear(chainNumber, slotNumber);
     }
 
-    return retVal;
+    return 0.0f;
 }
 
-std::optional<GainStageLevelsProvider> PluginSelectionInterface::getGainStageLevelsProvider(int chainNumber, int slotNumber) {
+std::optional<GainStageLevelsInterface> PluginSelectionInterface::getGainStageLevelsInterface(int chainNumber, int slotNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        return _processor.pluginSplitter->getGainStageLevelsProvider(chainNumber, slotNumber);
+        return _processor.pluginSplitter->getGainStageLevelsInterface(chainNumber, slotNumber);
     }
 
-    return std::optional<GainStageLevelsProvider>();
+    return std::optional<GainStageLevelsInterface>();
 }
 
 void PluginSelectionInterface::setGainStagePan(int chainNumber, int slotNumber, float pan) {
@@ -218,11 +216,9 @@ void PluginSelectionInterface::setGainStagePan(int chainNumber, int slotNumber, 
 }
 
 float PluginSelectionInterface::getGainStagePan(int chainNumber, int slotNumber) {
-    float retVal {0.0f};
-
     if (_processor.pluginSplitter != nullptr) {
-        retVal = _processor.pluginSplitter->getPan(chainNumber, slotNumber);
+        return _processor.pluginSplitter->getPan(chainNumber, slotNumber);
     }
 
-    return retVal;
+    return 0.0f;
 }

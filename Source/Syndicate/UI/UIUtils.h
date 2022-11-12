@@ -7,7 +7,7 @@
 #include "CoreJUCEPlugin/LookAndFeelMixins/LinearSliderV2.h"
 #include "CoreJUCEPlugin/LookAndFeelMixins/MidAnchoredRotarySlider.h"
 #include "CoreJUCEPlugin/LookAndFeelMixins/RotarySliderV2.h"
-#include "ModulationSourceDefinition.h"
+#include "ModulationSourceDefinition.hpp"
 
 namespace UIUtils {
     // Chains/plugin slots

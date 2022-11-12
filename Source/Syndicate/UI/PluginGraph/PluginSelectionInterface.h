@@ -29,7 +29,7 @@ public:
 
     void setGainStageGain(int chainNumber, int slotNumber, float gain);
     float getGainStageGain(int chainNumber, int slotNumber);
-    std::optional<GainStageLevelsProvider> getGainStageLevelsProvider(int chainNumber, int slotNumber);
+    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(int chainNumber, int slotNumber);
 
     void setGainStagePan(int chainNumber, int slotNumber, float pan);
     float getGainStagePan(int chainNumber, int slotNumber);

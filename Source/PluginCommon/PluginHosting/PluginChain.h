@@ -11,8 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ChainSlotPlugin.h"
-#include "ChainSlotGainStage.h"
+#include "ChainSlots.hpp"
 #include "LatencyListener.h"
 #include "General/AudioSpinMutex.h"
 
@@ -95,7 +94,7 @@ public:
      * If this position refers to a gain stage returns a levels provider for it, otherwise an empty
      * optional.
      */
-    std::optional<GainStageLevelsProvider> getGainStageLevelsProvider(int position);
+    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(int position);
 
     /**
      * Sets the pan/balance for the gain stage at the given position.
@@ -158,10 +157,7 @@ public:
     virtual void setStateInformation(const void* data, int sizeInBytes) override;
 
 private:
-    // Use vector rather than linked list
-    // (contiguous memory should be faster to iterate through in the processing loop)
-    // (insertion may be slower this way but that'll be on a less important thread)
-    std::vector<std::unique_ptr<ChainSlotBase>> _chain;
+    std::vector<std::shared_ptr<ChainSlotBase>> _chain;
 
     bool _isChainBypassed;
     bool _isChainMuted;

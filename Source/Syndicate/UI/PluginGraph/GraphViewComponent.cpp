@@ -26,6 +26,13 @@ void GraphViewComponent::onParameterUpdate() {
     // Lock here because we're in onParameterUpdate, so the UI thread could change something while
     // we're here
     WECore::AudioSpinLock lock(_processor.pluginSplitterMutex);
+
+    // Store the scroll positions of each chain
+    std::vector<int> chainScrollPositions;
+    for (std::unique_ptr<ChainViewComponent>& chainView : _chainViews) {
+        chainScrollPositions.push_back(chainView->getScrollPosition());
+    }
+
     _chainViews.clear();
 
     switch (_processor.getSplitType()) {
@@ -85,4 +92,10 @@ void GraphViewComponent::onParameterUpdate() {
 
     // Maintain the previous scroll position
     _viewPort->setViewPosition(scrollPosition, 0);
+
+    for (int chainIndex {0}; chainIndex < _chainViews.size(); chainIndex++) {
+        if (chainScrollPositions.size() > chainIndex) {
+            _chainViews[chainIndex]->setScrollPosition(chainScrollPositions[chainIndex]);
+        }
+    }
 }

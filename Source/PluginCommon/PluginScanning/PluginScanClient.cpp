@@ -118,6 +118,8 @@ void PluginScanClient::rescanAllPlugins() {
         Utils::DataDirectory.getChildFile(Utils::SCANNED_PLUGINS_FILE_NAME).deleteFile();
         Utils::DataDirectory.getChildFile(Utils::SCANNED_PLUGINS_BACKUP_FILE_NAME).deleteFile();
         Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME).deleteFile();
+        Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_FILE_NAME).deleteFile();
+        Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_BACKUP_FILE_NAME).deleteFile();
 
         startScan();
     } else {
@@ -131,6 +133,8 @@ void PluginScanClient::rescanCrashedPlugins() {
     if (_processClient == nullptr && !_scanStartedByAnotherInstance) {
         juce::Logger::writeToLog("Deleting crashed plugins file");
         Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME).deleteFile();
+        Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_FILE_NAME).deleteFile();
+        Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_BACKUP_FILE_NAME).deleteFile();
 
         startScan();
     } else {

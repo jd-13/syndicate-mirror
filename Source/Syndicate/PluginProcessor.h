@@ -22,7 +22,7 @@
 #include "ParameterData.h"
 #include "RichterLFO/RichterLFO.h"
 #include "EnvelopeFollowerWrapper.h"
-#include "PluginConfigurator.h"
+#include "PluginConfigurator.hpp"
 
 class SyndicateAudioProcessorEditor;
 

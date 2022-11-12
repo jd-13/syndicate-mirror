@@ -43,6 +43,7 @@ void PluginSlotModulationTray::resized() {
     juce::Rectangle<int> scrollableArea(std::max(targetWidth * static_cast<int>(_modulationTargets.size()), viewableArea.getWidth()),
                                         viewableArea.getHeight());
     _targetsView->getViewedComponent()->setBounds(scrollableArea);
+    scrollableArea.removeFromBottom(_targetsView->getScrollBarThickness());
 
     juce::FlexBox flexBox;
     flexBox.flexWrap = juce::FlexBox::Wrap::wrap;

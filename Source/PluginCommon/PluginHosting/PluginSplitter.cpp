@@ -203,12 +203,12 @@ float PluginSplitter::getGainLinear(int chainNumber, int positionInChain) {
     return retVal;
 }
 
-std::optional<GainStageLevelsProvider> PluginSplitter::getGainStageLevelsProvider(int chainNumber, int positionInChain) {
+std::optional<GainStageLevelsInterface> PluginSplitter::getGainStageLevelsInterface(int chainNumber, int positionInChain) {
     if (chainNumber < _chains.size()) {
-        return _chains[chainNumber].chain->getGainStageLevelsProvider(positionInChain);
+        return _chains[chainNumber].chain->getGainStageLevelsInterface(positionInChain);
     }
 
-    return std::optional<GainStageLevelsProvider>();
+    return std::optional<GainStageLevelsInterface>();
 }
 
 bool PluginSplitter::setPan(int chainNumber, int positionInChain, float pan) {

@@ -96,6 +96,8 @@ void ChainViewComponent::resized() {
 
     juce::Rectangle<int> scrollableArea = _viewPort->getViewedComponent()->getLocalBounds();
 
+    const int scrollbarWidth {_viewPort->getScrollBarThickness()};
+
     for (int slotNumber {0}; slotNumber < _pluginSlots.size(); slotNumber++) {
         if (slotNumber < _pluginSlots.size() - 1) {
             const bool hasModulationTray {_pluginModulationInterface.getPluginModulationConfig(_chainNumber, slotNumber).isActive};
@@ -103,11 +105,11 @@ void ChainViewComponent::resized() {
                 UIUtils::PLUGIN_SLOT_HEIGHT + (hasModulationTray ? UIUtils::PLUGIN_SLOT_MOD_TRAY_HEIGHT : 0)
             };
 
-            _pluginSlots[slotNumber]->setBounds(scrollableArea.removeFromTop(slotHeight));
+            _pluginSlots[slotNumber]->setBounds(scrollableArea.removeFromTop(slotHeight).withTrimmedRight(scrollbarWidth));
             scrollableArea.removeFromTop(MARGIN_HEIGHT);
         } else {
             // The last slot is an empty one
-            _pluginSlots[slotNumber]->setBounds(scrollableArea.removeFromTop(UIUtils::PLUGIN_SLOT_HEIGHT));
+            _pluginSlots[slotNumber]->setBounds(scrollableArea.removeFromTop(UIUtils::PLUGIN_SLOT_HEIGHT).withTrimmedRight(scrollbarWidth));
         }
     }
 }

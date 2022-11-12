@@ -4,6 +4,8 @@
 
 #include <optional>
 
+#include "XmlConsts.hpp"
+
 enum class MODULATION_TYPE {
     MACRO,
     LFO,
@@ -70,9 +72,6 @@ public:
     }
 
 private:
-    const char* XML_MODULATION_SOURCE_ID {"SourceId"};
-    const char* XML_MODULATION_SOURCE_TYPE {"SourceType"};
-
     static juce::String _modulationTypeToString(MODULATION_TYPE type) {
         switch (type) {
             case MODULATION_TYPE::MACRO:
