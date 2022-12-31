@@ -36,7 +36,7 @@ void CrossoverParameterComponent::paint(juce::Graphics &g) {
 
 void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
 
-    const size_t numCrossovers {_processor.pluginSplitter->getNumChains() - 1};
+    const size_t numCrossovers {_processor.pluginSplitter->chains.size() - 1};
     for (size_t bandIndex {0}; bandIndex < numCrossovers; bandIndex++) {
         const double crossoverXPos {
             UIUtils::Crossover::sliderValueToXPos(_processor.getCrossoverFrequency(bandIndex), getWidth())
@@ -56,7 +56,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
     constexpr double fractionOfHeight {0.85};
     constexpr int spacing {10};
 
-    const size_t numCrossovers {_processor.pluginSplitter->getNumChains() - 1};
+    const size_t numCrossovers {_processor.pluginSplitter->chains.size() - 1};
     for (int bandIndex {0}; bandIndex < numCrossovers; bandIndex++) {
         g.setColour(UIUtils::neutralControlColour);
 
@@ -94,8 +94,8 @@ void CrossoverParameterComponent::_drawBandButtons(juce::Graphics &g) {
     const juce::Colour muteColour(252, 0, 0);
     const juce::Colour soloColour(252, 137, 22);
 
-    for (int bandIndex {0}; bandIndex < _processor.pluginSplitter->getNumChains(); bandIndex++) {
-        const double crossoverXPos {bandIndex < _processor.pluginSplitter->getNumChains() - 1 ?
+    for (int bandIndex {0}; bandIndex < _processor.pluginSplitter->chains.size(); bandIndex++) {
+        const double crossoverXPos {bandIndex < _processor.pluginSplitter->chains.size() - 1 ?
             UIUtils::Crossover::sliderValueToXPos(_processor.getCrossoverFrequency(bandIndex), getWidth()) :
             getWidth()
         };

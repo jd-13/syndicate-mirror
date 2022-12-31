@@ -1,6 +1,6 @@
 #include "CrossoverImagerComponent.h"
-#include "PluginSplitterMultiband.h"
 #include "UIUtils.h"
+#include "SplitterMutators.hpp"
 
 namespace {
     int dBToYPos(float dBValue, int crossoverHeight) {
@@ -27,13 +27,13 @@ CrossoverImagerComponent::CrossoverImagerComponent(SyndicateAudioProcessor& proc
 void CrossoverImagerComponent::paint(juce::Graphics& g) {
     _stopEvent.reset();
 
-    PluginSplitterMultiband* multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(_processor.pluginSplitter.get());
+    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(_processor.pluginSplitter);
 
     g.fillAll(UIUtils::backgroundColour);
 
     if (multibandSplitter != nullptr) {
-        const int numPoints {multibandSplitter->getFFTOutputsSize()};
-        const float* fftBuffer {multibandSplitter->getFFTOutputs()};
+        const int numPoints {SplitterMutators::getFFTOutputsSize()};
+        const float* fftBuffer {SplitterMutators::getFFTOutputs(multibandSplitter)};
 
         // Draw a line to each point in the FFT
         juce::Path p;

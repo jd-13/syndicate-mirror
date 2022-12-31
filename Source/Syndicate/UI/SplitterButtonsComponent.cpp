@@ -1,6 +1,7 @@
 #include "ParameterData.h"
 
 #include "SplitterButtonsComponent.h"
+#include "PluginConfigurator.hpp"
 
 SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& processor)
         : _processor(processor) {
@@ -56,8 +57,8 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     midsideBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     midsideBtn->setTooltip("Two chains of plugins to process the mid and side channels separately");
 
-    leftrightBtn->setEnabled(_processor.canDoStereoSplitTypes());
-    midsideBtn->setEnabled(_processor.canDoStereoSplitTypes());
+    leftrightBtn->setEnabled(canDoStereoSplitTypes(_processor.getBusesLayout()));
+    midsideBtn->setEnabled(canDoStereoSplitTypes(_processor.getBusesLayout()));
 }
 
 SplitterButtonsComponent::~SplitterButtonsComponent() {

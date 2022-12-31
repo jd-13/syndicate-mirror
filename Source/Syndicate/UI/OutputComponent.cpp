@@ -1,6 +1,7 @@
 #include "ParameterData.h"
 
 #include "OutputComponent.h"
+#include "PluginConfigurator.hpp"
 
 OutputMeter::OutputMeter(const SyndicateAudioProcessor& processor) :
             _processor(processor) {
@@ -21,7 +22,7 @@ void OutputMeter::paint(juce::Graphics& g) {
     const int zeroLineHeight = dBToHeight(0);
 
     // Draw the meter for each channel
-    const int numChannels {_processor.canDoStereoSplitTypes() ? 2 : 1};
+    const int numChannels {canDoStereoSplitTypes(_processor.getBusesLayout()) ? 2 : 1};
     constexpr int MARGIN {4};
     const int availableWidth {getWidth() - ((1 + numChannels) * MARGIN)};
     const int channelWidth {availableWidth / numChannels};
@@ -87,7 +88,7 @@ OutputComponent::OutputComponent(SyndicateAudioProcessor& processor) : _processo
     addAndMakeVisible(outputGainLabel.get());
     UIUtils::setDefaultLabelStyle(outputGainLabel);
 
-    panSlider->setEnabled(_processor.canDoStereoSplitTypes());
+    panSlider->setEnabled(canDoStereoSplitTypes(_processor.getBusesLayout()));
 
     panSlider->start(panLabel.get(), panLabel->getText());
     outputGainSlider->setValueToString([](double value) { return juce::String(value, 1) + " dB";});

@@ -1,5 +1,6 @@
 #include "GraphViewComponent.h"
 #include "UIUtils.h"
+#include "SplitterMutators.hpp"
 
 GraphViewComponent::GraphViewComponent(SyndicateAudioProcessor& processor)
         : _processor(processor),
@@ -41,17 +42,17 @@ void GraphViewComponent::onParameterUpdate() {
             _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[0].get());
 
             if (_processor.pluginSplitter != nullptr) {
-                _chainViews[0]->setPlugins(_processor.pluginSplitter->getChain(0).get());
+                _chainViews[0]->setPlugins(_processor.pluginSplitter->chains[0].chain);
             }
             break;
         case SPLIT_TYPE::PARALLEL:
         case SPLIT_TYPE::MULTIBAND:
-            for (size_t index {0}; index < _processor.pluginSplitter->getNumChains(); index++) {
+            for (size_t index {0}; index < SplitterMutators::getNumChains(_processor.pluginSplitter); index++) {
                 _chainViews.push_back(std::make_unique<ChainViewComponent>(index, _pluginSelectionInterface, _pluginModulationInterface));
                 _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[index].get());
 
                 if (_processor.pluginSplitter != nullptr) {
-                    _chainViews[index]->setPlugins(_processor.pluginSplitter->getChain(index).get());
+                    _chainViews[index]->setPlugins(_processor.pluginSplitter->chains[index].chain);
                 }
             }
             break;
@@ -61,14 +62,14 @@ void GraphViewComponent::onParameterUpdate() {
             _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[0].get());
 
             if (_processor.pluginSplitter != nullptr) {
-                _chainViews[0]->setPlugins(_processor.pluginSplitter->getChain(0).get());
+                _chainViews[0]->setPlugins(_processor.pluginSplitter->chains[0].chain);
             }
 
             _chainViews.push_back(std::make_unique<ChainViewComponent>(1, _pluginSelectionInterface, _pluginModulationInterface));
             _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[1].get());
 
             if (_processor.pluginSplitter != nullptr) {
-                _chainViews[1]->setPlugins(_processor.pluginSplitter->getChain(1).get());
+                _chainViews[1]->setPlugins(_processor.pluginSplitter->chains[1].chain);
             }
             break;
     }

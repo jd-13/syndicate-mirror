@@ -5,7 +5,7 @@
 #include "MONSTRFilters/MONSTRParameters.h"
 #include "General/CoreMath.h"
 #include "WEFilters/EffectsProcessor.h"
-#include "PluginChain.h"
+#include "PluginChain.hpp"
 
 // DSPFilters sets off a lot of clang warnings - disable them for Butterworth.h only
 #ifdef __clang__
@@ -151,7 +151,7 @@ public:
         _stereoFilters.setupHigh(_sampleRate, _highCutoffHz);
     }
 
-    virtual ~SplitterBand() = default;
+    ~SplitterBand() = default;
 
     void setIsActive(bool val) { _isActive = val; }
     void setIsMuted(bool val) { _isMuted = val; }

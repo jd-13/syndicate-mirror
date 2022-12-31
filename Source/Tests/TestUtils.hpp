@@ -4,9 +4,17 @@
 #include "PluginConfigurator.hpp"
 
 namespace TestUtils {
+    // TODO remove
     inline juce::AudioProcessor::BusesLayout createLayoutWithInputChannels(juce::AudioChannelSet channelSet) {
         juce::AudioProcessor::BusesLayout layout;
         layout.inputBuses.add(channelSet);
+        return layout;
+    };
+
+    inline juce::AudioProcessor::BusesLayout createLayoutWithChannels(juce::AudioChannelSet inputSet, juce::AudioChannelSet outputSet) {
+        juce::AudioProcessor::BusesLayout layout;
+        layout.inputBuses.add(inputSet);
+        layout.outputBuses.add(outputSet);
         return layout;
     };
 

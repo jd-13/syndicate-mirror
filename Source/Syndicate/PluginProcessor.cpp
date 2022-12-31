@@ -10,55 +10,15 @@
 
 #include "PluginEditor.h"
 #include "ParameterData.h"
-#include "PluginSplitterSeries.h"
-#include "PluginSplitterParallel.h"
-#include "PluginSplitterMultiband.h"
-#include "PluginSplitterLeftRight.h"
-#include "PluginSplitterMidSide.h"
 #include "AllUtils.h"
 #include "PluginUtils.h"
+#include "ChainMutators.hpp"
+#include "SplitterMutators.hpp"
+#include "SplitterProcessors.hpp"
+#include "XmlReader.hpp"
+#include "XmlWriter.hpp"
 
 namespace {
-    // Splitter
-    const char* XML_SPLITTER_STR {"Splitter"};
-    const char* XML_SPLIT_TYPE_STR {"SplitType"};
-    const char* XML_SPLIT_TYPE_SERIES_STR {"series"};
-    const char* XML_SPLIT_TYPE_PARALLEL_STR {"parallel"};
-    const char* XML_SPLIT_TYPE_MULTIBAND_STR {"multiband"};
-    const char* XML_SPLIT_TYPE_LEFTRIGHT_STR {"leftright"};
-    const char* XML_SPLIT_TYPE_MIDSIDE_STR {"midside"};
-
-    const char* splitTypeToString(SPLIT_TYPE splitType) {
-        switch (splitType) {
-            case SPLIT_TYPE::SERIES:
-                return XML_SPLIT_TYPE_SERIES_STR;
-            case SPLIT_TYPE::PARALLEL:
-                return XML_SPLIT_TYPE_PARALLEL_STR;
-            case SPLIT_TYPE::MULTIBAND:
-                return XML_SPLIT_TYPE_MULTIBAND_STR;
-            case SPLIT_TYPE::LEFTRIGHT:
-                return XML_SPLIT_TYPE_LEFTRIGHT_STR;
-            case SPLIT_TYPE::MIDSIDE:
-                return XML_SPLIT_TYPE_MIDSIDE_STR;
-        }
-    }
-
-    SPLIT_TYPE stringToSplitType(juce::String splitTypeString) {
-        SPLIT_TYPE retVal {SPLIT_TYPE::SERIES};
-
-        if (splitTypeString == XML_SPLIT_TYPE_PARALLEL_STR) {
-            retVal = SPLIT_TYPE::PARALLEL;
-        } else if (splitTypeString == XML_SPLIT_TYPE_MULTIBAND_STR) {
-            retVal = SPLIT_TYPE::MULTIBAND;
-        } else if (splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR) {
-            retVal = SPLIT_TYPE::LEFTRIGHT;
-        } else if (splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR) {
-            retVal = SPLIT_TYPE::MIDSIDE;
-        }
-
-        return retVal;
-    }
-
     // Modulation sources
     const char* XML_MODULATION_SOURCES_STR {"ModulationSources"};
 
@@ -250,11 +210,7 @@ void SyndicateAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     WECore::AudioSpinLock lock(pluginSplitterMutex);
     if (pluginSplitter != nullptr) {
         juce::Logger::writeToLog("Setting bus layout:\n" + Utils::busesLayoutToString(getBusesLayout()));
-        pluginSplitter->setBusesLayout(getBusesLayout());
-    }
-
-    if (pluginSplitter != nullptr) {
-        pluginSplitter->prepareToPlay(sampleRate, samplesPerBlock);
+        SplitterProcessor::prepareToPlay(*pluginSplitter.get(), sampleRate, samplesPerBlock, getBusesLayout());
     }
 }
 
@@ -264,7 +220,7 @@ void SyndicateAudioProcessor::releaseResources()
     // spare memory, etc.
     WECore::AudioSpinLock lock(pluginSplitterMutex);
     if (pluginSplitter != nullptr) {
-        pluginSplitter->releaseResources();
+        SplitterProcessor::releaseResources(*pluginSplitter.get());
     }
 
     _resetModulationSources();
@@ -279,7 +235,7 @@ void SyndicateAudioProcessor::reset() {
 
     WECore::AudioSpinLock lock(pluginSplitterMutex);
     if (pluginSplitter != nullptr) {
-        pluginSplitter->reset();
+        SplitterProcessor::reset(*pluginSplitter.get());
     }
 }
 
@@ -356,7 +312,7 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     {
         WECore::AudioSpinTryLock lock(pluginSplitterMutex);
         if (lock.isLocked() && pluginSplitter != nullptr) {
-            pluginSplitter->processBlock(buffer, midiMessages);
+            SplitterProcessor::processBlock(*pluginSplitter.get(), buffer, midiMessages);
         }
     }
 
@@ -369,7 +325,7 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     }
 
     // Apply the output pan
-    if (canDoStereoSplitTypes()) {
+    if (canDoStereoSplitTypes(getBusesLayout())) {
         // Stereo input - apply balance
         Utils::processBalance(outputPan->get(), buffer);
     }
@@ -428,7 +384,7 @@ void SyndicateAudioProcessor::addLfo() {
 void SyndicateAudioProcessor::addEnvelope() {
     std::shared_ptr<WECore::AREnv::AREnvelopeFollowerSquareLaw> newEnv {new WECore::AREnv::AREnvelopeFollowerSquareLaw()};
     newEnv->setSampleRate(getSampleRate());
-    envelopes.push_back({newEnv, 0});
+    envelopes.push_back({newEnv, 0, false});
 }
 
 void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition definition) {
@@ -447,9 +403,9 @@ void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition 
 
     // Iterate through each plugin, remove the source if it has been assigned and renumber ones that
     // are numbered higher
-    for (PluginChainWrapper& chain : pluginSplitter->getChains()) {
-        for (int slotIndex {0}; slotIndex < chain.chain->getNumSlots(); slotIndex++) {
-            PluginModulationConfig thisPluginConfig = chain.chain->getPluginModulationConfig(slotIndex);
+    for (PluginChainWrapper& chain : pluginSplitter->chains) {
+        for (int slotIndex {0}; slotIndex < ChainMutators::getNumSlots(chain.chain); slotIndex++) {
+            PluginModulationConfig thisPluginConfig = ChainMutators::getPluginModulationConfig(chain.chain, slotIndex);
 
             // Iterate through each configured parameter
             for (std::shared_ptr<PluginParameterModulationConfig> parameterConfig : thisPluginConfig.parameterConfigs) {
@@ -476,7 +432,7 @@ void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition 
                 }
             }
 
-            chain.chain->setPluginModulationConfig(thisPluginConfig, slotIndex);
+            ChainMutators::setPluginModulationConfig(chain.chain, thisPluginConfig, slotIndex);
         }
     }
 
@@ -490,8 +446,11 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
 
     if (!_isSplitterInitialised) {
-        pluginSplitter.reset(new PluginSplitterSeries([&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);}));
-        pluginSplitter->addListener(this);
+        pluginSplitter.reset(
+            new PluginSplitterSeries({getBusesLayout(), getSampleRate(), getBlockSize()},
+                                     [&](int id, MODULATION_TYPE type) { return getModulationValueForSource(id, type); },
+                                     [&](int newLatencySamples) { onLatencyChange(newLatencySamples); })
+        );
     }
 
     if (splitType != _splitType || !_isSplitterInitialised) {
@@ -500,31 +459,25 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
 
         switch (splitType) {
             case SPLIT_TYPE::SERIES:
-                pluginSplitter.reset(new PluginSplitterSeries(pluginSplitter->releaseChains(),
-                                     [&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);}));
+                pluginSplitter.reset(new PluginSplitterSeries(pluginSplitter));
                 break;
             case SPLIT_TYPE::PARALLEL:
-                pluginSplitter.reset(new PluginSplitterParallel(pluginSplitter->releaseChains(),
-                                     [&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);}));
+                pluginSplitter.reset(new PluginSplitterParallel(pluginSplitter));
                 break;
             case SPLIT_TYPE::MULTIBAND:
-                pluginSplitter.reset(new PluginSplitterMultiband(pluginSplitter->releaseChains(),
-                                     [&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);},
-                                     canDoStereoSplitTypes()));
+                pluginSplitter.reset(new PluginSplitterMultiband(pluginSplitter));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
-                if (canDoStereoSplitTypes()) {
-                    pluginSplitter.reset(new PluginSplitterLeftRight(pluginSplitter->releaseChains(),
-                                         [&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);}));
+                if (canDoStereoSplitTypes(getBusesLayout())) {
+                    pluginSplitter.reset(new PluginSplitterLeftRight(pluginSplitter));
                 } else {
                     juce::Logger::writeToLog("SyndicateAudioProcessor::setSplitType: Attempted to use left/right split while not in 2in2out configuration");
                     assert(false);
                 }
                 break;
             case SPLIT_TYPE::MIDSIDE:
-                if (canDoStereoSplitTypes()) {
-                    pluginSplitter.reset(new PluginSplitterMidSide(pluginSplitter->releaseChains(),
-                                         [&](int id, MODULATION_TYPE type) {return getModulationValueForSource(id, type);}));
+                if (canDoStereoSplitTypes(getBusesLayout())) {
+                    pluginSplitter.reset(new PluginSplitterMidSide(pluginSplitter));
                 } else {
                     juce::Logger::writeToLog("SyndicateAudioProcessor::setSplitType: Attempted to use mid/side split while not in 2in2out configuration");
                     assert(false);
@@ -533,17 +486,15 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
         }
 
         // Add chain parameters if needed
-        while (chainParameters.size() < pluginSplitter->getNumChains()) {
+        while (chainParameters.size() < SplitterMutators::getNumChains(pluginSplitter)) {
             chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
         }
 
         // Make sure prepareToPlay has been called on the splitter as we don't actually know if the host
         // will call it via the PluginProcessor
         if (pluginSplitter != nullptr) {
-            pluginSplitter->prepareToPlay(getSampleRate(), getBlockSize());
+            SplitterProcessor::prepareToPlay(*pluginSplitter.get(), getSampleRate(), getBlockSize(), getBusesLayout());
         }
-
-        pluginSplitter->addListener(this);
 
         // For graph state changes we need to make sure the processor has updated its state first,
         // then the UI can rebuild based on the processor state
@@ -558,10 +509,10 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
 
 void SyndicateAudioProcessor::addParallelChain() {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterParallel* parallelSplitter = dynamic_cast<PluginSplitterParallel*>(pluginSplitter.get());
+    auto parallelSplitter = std::dynamic_pointer_cast<PluginSplitterParallel>(pluginSplitter);
 
     if (parallelSplitter != nullptr) {
-        if (parallelSplitter->addChain()) {
+        if (SplitterMutators::addChain(parallelSplitter)) {
             lock.unlock();
             chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
 
@@ -574,10 +525,10 @@ void SyndicateAudioProcessor::addParallelChain() {
 
 void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterParallel* parallelSplitter = dynamic_cast<PluginSplitterParallel*>(pluginSplitter.get());
+    auto parallelSplitter = std::dynamic_pointer_cast<PluginSplitterParallel>(pluginSplitter);
 
     if (parallelSplitter != nullptr) {
-        if (parallelSplitter->removeChain(chainNumber)) {
+        if (SplitterMutators::removeChain(parallelSplitter, chainNumber)) {
             lock.unlock();
             chainParameters.erase(chainParameters.begin() + chainNumber);
 
@@ -590,10 +541,10 @@ void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
 
 void SyndicateAudioProcessor::addCrossoverBand() {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterMultiband* multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(pluginSplitter.get());
+    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(pluginSplitter);
 
     if (multibandSplitter != nullptr) {
-        if (multibandSplitter->addBand()) {
+        if (SplitterMutators::addBand(multibandSplitter)) {
             lock.unlock();
             chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
 
@@ -606,10 +557,10 @@ void SyndicateAudioProcessor::addCrossoverBand() {
 
 void SyndicateAudioProcessor::removeCrossoverBand() {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterMultiband* multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(pluginSplitter.get());
+    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(pluginSplitter);
 
     if (multibandSplitter != nullptr) {
-        if (multibandSplitter->removeBand()) {
+        if (SplitterMutators::removeBand(multibandSplitter)) {
             lock.unlock();
             chainParameters.erase(chainParameters.begin() + chainParameters.size() - 1);
 
@@ -622,15 +573,15 @@ void SyndicateAudioProcessor::removeCrossoverBand() {
 
 void SyndicateAudioProcessor::setCrossoverFrequency(size_t index, float val) {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterMultiband* multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(pluginSplitter.get());
+    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(pluginSplitter);
 
     if (multibandSplitter != nullptr) {
-        if (index < multibandSplitter->getNumBands() - 1) {
+        if (index < SplitterMutators::getNumBands(multibandSplitter) - 1) {
 
             // Changing the frequency of one crossover may affect others if they also need to be
             // moved - so we set the splitter first, it will update all the frequencies internally,
             // then update the parameter
-            multibandSplitter->setCrossoverFrequency(index, val);
+            SplitterMutators::setCrossoverFrequency(multibandSplitter, index, val);
             lock.unlock();
             _splitterParameters->triggerUpdate();
         }
@@ -639,13 +590,13 @@ void SyndicateAudioProcessor::setCrossoverFrequency(size_t index, float val) {
 
 float SyndicateAudioProcessor::getCrossoverFrequency(size_t index) {
     WECore::AudioSpinLock lock(pluginSplitterMutex);
-    PluginSplitterMultiband* multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(pluginSplitter.get());
+    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(pluginSplitter);
 
     float retVal {0};
 
     if (multibandSplitter != nullptr) {
-        if (index < multibandSplitter->getNumBands() - 1) {
-            retVal = multibandSplitter->getCrossoverFrequency(index);
+        if (index < SplitterMutators::getNumBands(multibandSplitter) - 1) {
+            retVal = SplitterMutators::getCrossoverFrequency(multibandSplitter, index);
         }
     }
 
@@ -665,7 +616,7 @@ bool SyndicateAudioProcessor::onPluginSelectedByUser(std::shared_ptr<juce::Audio
         // Hand the plugin over to the splitter
         {
             WECore::AudioSpinLock lock(pluginSplitterMutex);
-            pluginSplitter->replacePlugin(std::move(plugin), chainNumber, pluginNumber);
+            SplitterMutators::replacePlugin(pluginSplitter, std::move(plugin), chainNumber, pluginNumber);
         }
 
         // Ideally we'd like to handle plugin selection like any other parameter - just update the
@@ -690,7 +641,7 @@ void SyndicateAudioProcessor::removePlugin(int chainNumber, int pluginNumber) {
     {
         WECore::AudioSpinLock lock(pluginSplitterMutex);
         if (pluginSplitter != nullptr) {
-            pluginSplitter->removeSlot(chainNumber, pluginNumber);
+            SplitterMutators::removeSlot(pluginSplitter, chainNumber, pluginNumber);
         }
     }
 
@@ -705,7 +656,7 @@ void SyndicateAudioProcessor::insertGainStage(int chainNumber, int pluginNumber)
     {
         WECore::AudioSpinLock lock(pluginSplitterMutex);
         if (pluginSplitter != nullptr) {
-            pluginSplitter->insertGainStage(chainNumber, pluginNumber, getBusesLayout());
+            SplitterMutators::insertGainStage(pluginSplitter, chainNumber, pluginNumber);
         }
     }
 
@@ -717,32 +668,32 @@ void SyndicateAudioProcessor::insertGainStage(int chainNumber, int pluginNumber)
 void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
     // Copy everything we need
     std::shared_ptr<juce::AudioPluginInstance> plugin =
-        pluginSplitter->getPlugin(fromChainNumber, fromSlotNumber);
+        SplitterMutators::getPlugin(pluginSplitter, fromChainNumber, fromSlotNumber);
 
     if (plugin != nullptr) {
         // This is a plugin
         PluginModulationConfig config =
-            pluginSplitter->getPluginModulationConfig(fromChainNumber, fromSlotNumber);
+            SplitterMutators::getPluginModulationConfig(pluginSplitter, fromChainNumber, fromSlotNumber);
 
         // Remove it from the chain
-        pluginSplitter->removeSlot(fromChainNumber, fromSlotNumber);
+        SplitterMutators::removeSlot(pluginSplitter, fromChainNumber, fromSlotNumber);
 
         // Add it in the new position
-        pluginSplitter->insertPlugin(plugin, toChainNumber, toSlotNumber);
-        pluginSplitter->setPluginModulationConfig(config, toChainNumber, toSlotNumber);
+        SplitterMutators::insertPlugin(pluginSplitter, plugin, toChainNumber, toSlotNumber);
+        SplitterMutators::setPluginModulationConfig(pluginSplitter, config, toChainNumber, toSlotNumber);
 
     } else {
         // This is a gain stage
-        const float gain {pluginSplitter->getGainLinear(fromChainNumber, fromSlotNumber)};
-        const float pan {pluginSplitter->getPan(fromChainNumber, fromSlotNumber)};
+        const float gain {SplitterMutators::getGainLinear(pluginSplitter, fromChainNumber, fromSlotNumber)};
+        const float pan {SplitterMutators::getPan(pluginSplitter, fromChainNumber, fromSlotNumber)};
 
         // Remove it from the chain
-        pluginSplitter->removeSlot(fromChainNumber, fromSlotNumber);
+        SplitterMutators::removeSlot(pluginSplitter, fromChainNumber, fromSlotNumber);
 
         // Add it in the new position
-        pluginSplitter->insertGainStage(toChainNumber, toSlotNumber, getBusesLayout());
-        pluginSplitter->setGainLinear(toChainNumber, toSlotNumber, gain);
-        pluginSplitter->setPan(toChainNumber, toSlotNumber, pan);
+        SplitterMutators::insertGainStage(pluginSplitter, toChainNumber, toSlotNumber);
+        SplitterMutators::setGainLinear(pluginSplitter, toChainNumber, toSlotNumber, gain);
+        SplitterMutators::setPan(pluginSplitter, toChainNumber, toSlotNumber, pan);
     }
 
     if (_editor != nullptr) {
@@ -750,9 +701,8 @@ void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, 
     }
 }
 
-bool SyndicateAudioProcessor::canDoStereoSplitTypes() const {
-    return getMainBusNumInputChannels() == getMainBusNumOutputChannels() &&
-           getMainBusNumOutputChannels() == 2;
+void SyndicateAudioProcessor::onLatencyChange(int newLatencySamples) {
+    setLatencySamples(newLatencySamples);
 }
 
 std::vector<juce::String> SyndicateAudioProcessor::_provideParamNamesForMigration() {
@@ -773,27 +723,27 @@ void SyndicateAudioProcessor::_onParameterUpdate() {
     if (pluginSplitter != nullptr) {
         switch (_splitType) {
             case SPLIT_TYPE::SERIES:
-                pluginSplitter->getChain(0)->setChainBypass(chainParameters[0].getBypass());
+                ChainMutators::setChainBypass(pluginSplitter->chains[0].chain, chainParameters[0].getBypass());
                 break;
             case SPLIT_TYPE::PARALLEL:
             case SPLIT_TYPE::MULTIBAND:
                 for (size_t chainIndex {0}; chainIndex < chainParameters.size(); chainIndex++) {
                     const ChainParameters& params = chainParameters[chainIndex];
 
-                    pluginSplitter->getChain(chainIndex)->setChainBypass(params.getBypass());
-                    pluginSplitter->getChain(chainIndex)->setChainMute(params.getMute());
-                    pluginSplitter->setChainSolo(chainIndex, params.getSolo());
+                    ChainMutators::setChainBypass(pluginSplitter->chains[chainIndex].chain, params.getBypass());
+                    ChainMutators::setChainMute(pluginSplitter->chains[chainIndex].chain, params.getMute());
+                    SplitterMutators::setChainSolo(pluginSplitter, chainIndex, params.getSolo());
                 }
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
             case SPLIT_TYPE::MIDSIDE:
-                pluginSplitter->getChain(0)->setChainBypass(chainParameters[0].getBypass());
-                pluginSplitter->getChain(0)->setChainMute(chainParameters[0].getMute());
-                pluginSplitter->setChainSolo(0, chainParameters[0].getSolo());
+                ChainMutators::setChainBypass(pluginSplitter->chains[0].chain, chainParameters[0].getBypass());
+                ChainMutators::setChainMute(pluginSplitter->chains[0].chain, chainParameters[0].getMute());
+                SplitterMutators::setChainSolo(pluginSplitter, 0, chainParameters[0].getSolo());
 
-                pluginSplitter->getChain(1)->setChainBypass(chainParameters[1].getBypass());
-                pluginSplitter->getChain(1)->setChainMute(chainParameters[1].getMute());
-                pluginSplitter->setChainSolo(1, chainParameters[1].getSolo());
+                ChainMutators::setChainBypass(pluginSplitter->chains[1].chain, chainParameters[1].getBypass());
+                ChainMutators::setChainMute(pluginSplitter->chains[1].chain, chainParameters[1].getMute());
+                SplitterMutators::setChainSolo(pluginSplitter, 1, chainParameters[1].getSolo());
                 break;
         }
     }
@@ -897,56 +847,52 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::XmlElement* element) {
-    // Restore the split type before doing anything else
-    if (element->hasAttribute(XML_SPLIT_TYPE_STR)) {
-        const juce::String splitTypeString = element->getStringAttribute(XML_SPLIT_TYPE_STR);
-        juce::Logger::writeToLog("Restoring split type: " + splitTypeString);
+    {
+        WECore::AudioSpinLock lock(_processor->pluginSplitterMutex);
 
-        // We need to check if the split type we're attempting to restore is supported.
-        // For example in Logic when switching from a stereo to mono plugin we may have saved to XML
-        // using a left/right split in a 2in2out configuration but will be restoring into a 1in1out
-        // configuration.
-        // In that case we move to a parallel split type.
-        const SPLIT_TYPE splitType {stringToSplitType(splitTypeString)};
-        const bool isExpecting2in2out {splitType == SPLIT_TYPE::LEFTRIGHT || splitType == SPLIT_TYPE::MIDSIDE};
+        // We need a temporary copy so that the lambda can capture it by value
+        // (for some reason lambdas can only capture members by reference, but that won't work here
+        // since the member will be destroyed by the time the lambda wants to use it)
+        SyndicateAudioProcessor* tmpProcessor = _processor;
 
-        if (isExpecting2in2out && !_processor->canDoStereoSplitTypes()) {
-            // Migrate to parallel
-            _processor->setSplitType(SPLIT_TYPE::PARALLEL);
-        } else {
-            // Carry on as normal
-            _processor->setSplitType(splitType);
-        }
-
-    } else {
-        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_SPLIT_TYPE_STR));
+        _processor->pluginSplitter = XmlReader::restoreSplitterFromXml(
+            element,
+            [tmpProcessor](int id, MODULATION_TYPE type) { return tmpProcessor->getModulationValueForSource(id, type); },
+            [tmpProcessor](int newLatencySamples) { tmpProcessor->onLatencyChange(newLatencySamples); },
+            {_processor->getBusesLayout(), _processor->getSampleRate(), _processor->getBlockSize()},
+            _processor->pluginConfigurator,
+            [&](juce::String errorText) { _processor->restoreErrors.push_back(errorText); });
     }
 
-    // Now actually restore the splitter
-    WECore::AudioSpinLock lock(_processor->pluginSplitterMutex);
-    _processor->pluginSplitter->restoreFromXml(
-        element,
-        {_processor->getBusesLayout(), _processor->getSampleRate(), _processor->getBlockSize()},
-        _processor->pluginConfigurator,
-        [&](juce::String errorText) { _processor->restoreErrors.push_back(errorText); });
-    _processor->pluginSplitter->prepareToPlay(_processor->getSampleRate(), _processor->getBlockSize());
+    // Call this just to make sure everything is set up
+    if (auto seriesSplitter = std::dynamic_pointer_cast<PluginSplitterSeries>(_processor->pluginSplitter)) {
+        _processor->setSplitType(SPLIT_TYPE::SERIES);
+    } else if (auto parallelSplitter = std::dynamic_pointer_cast<PluginSplitterParallel>(_processor->pluginSplitter)) {
+        _processor->setSplitType(SPLIT_TYPE::PARALLEL);
+    } else if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(_processor->pluginSplitter)) {
+        _processor->setSplitType(SPLIT_TYPE::MULTIBAND);
+    } else if (auto leftRightSplitter = std::dynamic_pointer_cast<PluginSplitterLeftRight>(_processor->pluginSplitter)) {
+        _processor->setSplitType(SPLIT_TYPE::LEFTRIGHT);
+    } else if (auto midSideSplitter = std::dynamic_pointer_cast<PluginSplitterMidSide>(_processor->pluginSplitter)) {
+        _processor->setSplitType(SPLIT_TYPE::MIDSIDE);
+    }
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreChainParameters() {
-    while (_processor->chainParameters.size() > _processor->pluginSplitter->getNumChains()) {
+    while (_processor->chainParameters.size() > _processor->pluginSplitter->chains.size()) {
         // More parameters than chains, delete them
         _processor->chainParameters.erase(_processor->chainParameters.begin());
     }
 
-    for (int chainNumber {0}; chainNumber < _processor->pluginSplitter->getNumChains(); chainNumber++) {
+    for (int chainNumber {0}; chainNumber < _processor->pluginSplitter->chains.size(); chainNumber++) {
         // Add parameters if needed
         if (_processor->chainParameters.size() <= chainNumber) {
             _processor->chainParameters.emplace_back([&]() { triggerUpdate(); });
         }
 
-        _processor->chainParameters[chainNumber].setBypass(_processor->pluginSplitter->getChain(chainNumber)->getChainBypass());
-        _processor->chainParameters[chainNumber].setMute(_processor->pluginSplitter->getChain(chainNumber)->getChainMute());
-        _processor->chainParameters[chainNumber].setSolo(_processor->pluginSplitter->getChainSolo(chainNumber));
+        _processor->chainParameters[chainNumber].setBypass(_processor->pluginSplitter->chains[chainNumber].chain->isChainBypassed);
+        _processor->chainParameters[chainNumber].setMute(_processor->pluginSplitter->chains[chainNumber].chain->isChainMuted);
+        _processor->chainParameters[chainNumber].setSolo(SplitterMutators::getChainSolo(_processor->pluginSplitter, chainNumber));
     }
 }
 
@@ -1019,10 +965,10 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreModulationSourcesFromX
 
             if (_processor->envelopes.size() > index) {
                 // Replace an existing (default) envelope
-                _processor->envelopes[index] = {newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR))};
+                _processor->envelopes[index] = {newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR)), false};
             } else {
                 // Add a new envelope
-                _processor->envelopes.push_back({newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR))});
+                _processor->envelopes.push_back({newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR)), false});
             }
         }
     } else {
@@ -1042,13 +988,7 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreMacroNamesFromXml(juce
 
 void SyndicateAudioProcessor::SplitterParameters::_writeSplitterToXml(juce::XmlElement* element) {
     WECore::AudioSpinLock lock(_processor->pluginSplitterMutex);
-    _processor->pluginSplitter->writeToXml(element);
-
-    // We take responsibility for storing the split type here as when restoring the split type
-    // again later the processor can change the splitter's type but the splitter can't do it
-    // itself
-    element->setAttribute(
-        XML_SPLIT_TYPE_STR, splitTypeToString(_processor->pluginSplitter->getSplitType()));
+    XmlWriter::write(_processor->pluginSplitter, element);
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeModulationSourcesToXml(juce::XmlElement* element) {
@@ -1090,12 +1030,6 @@ void SyndicateAudioProcessor::SplitterParameters::_writeModulationSourcesToXml(j
 void SyndicateAudioProcessor::SplitterParameters::_writeMacroNamesToXml(juce::XmlElement* element) {
     for (int index {0}; index < _processor->macroNames.size(); index++) {
         element->setAttribute(getMacroNameXMLName(index), _processor->macroNames[index]);
-    }
-}
-
-void SyndicateAudioProcessor::_onLatencyChange() {
-    if (pluginSplitter != nullptr) {
-        setLatencySamples(pluginSplitter->getLatencySamples());
     }
 }
 

@@ -26,7 +26,7 @@ CrossoverMouseListener::CrossoverMouseListener(SyndicateAudioProcessor& processo
 
                 // Check if this crossover handle is getting too close to another and move it if
                 // needed
-                for (int crossoverIndex {0}; crossoverIndex < _processor.pluginSplitter->getNumChains() - 1; crossoverIndex++) {
+                for (int crossoverIndex {0}; crossoverIndex < _processor.pluginSplitter->chains.size() - 1; crossoverIndex++) {
                     const double otherXPos {
                         UIUtils::Crossover::sliderValueToXPos(_processor.getCrossoverFrequency(crossoverIndex), componentWidth)
                     };
@@ -73,7 +73,7 @@ CrossoverMouseListener::FloatParameterInteraction* CrossoverMouseListener::_reso
 
     // For each available band, check if the cursor landed on a crossover frequency handle or on
     // the gaps in between
-    const size_t numBands {_processor.pluginSplitter->getNumChains()};
+    const size_t numBands {_processor.pluginSplitter->chains.size()};
 
     for (size_t bandIndex {0}; bandIndex < numBands; bandIndex++) {
         const double crossoverXPos {bandIndex < numBands - 1 ?

@@ -1,4 +1,6 @@
-#include "SplitterBand.h"
+#include "SplitterBand.hpp"
+
+#include "ChainProcessors.hpp"
 
 void SplitterBand::setLowCutoff(double val) {
     _lowCutoffHz = WECore::MONSTR::Parameters::CROSSOVER_FREQUENCY.BoundsCheck(val);
@@ -59,7 +61,7 @@ void SplitterBand::processBlock(juce::AudioBuffer<float>& buffer) {
             if (_chain != nullptr) {
                 // TODO support midi buffers
                 juce::MidiBuffer midiBuffer;
-                _chain->processBlock(buffer, midiBuffer);
+                ChainProcessor::processBlock(*_chain, buffer, midiBuffer);
             }
         }
     }

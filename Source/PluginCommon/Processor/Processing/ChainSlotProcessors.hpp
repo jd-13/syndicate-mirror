@@ -4,12 +4,12 @@
 #include "ChainSlots.hpp"
 
 namespace ChainProcessor {
-    void prepareToPlay(ChainSlotGainStage& gainStage, double sampleRate);
+    void prepareToPlay(ChainSlotGainStage& gainStage, HostConfiguration config);
     void releaseResources(ChainSlotGainStage& gainStage);
     void reset(ChainSlotGainStage& gainStage);
     void processBlock(ChainSlotGainStage& gainStage, juce::AudioBuffer<float>& buffer);
 
-    void prepareToPlay(ChainSlotPlugin& slot, double sampleRate, int samplesPerBlock);
+    void prepareToPlay(ChainSlotPlugin& slot, HostConfiguration config);
     void releaseResources(ChainSlotPlugin& slot);
     void reset(ChainSlotPlugin& slot);
     void processBlock(ChainSlotPlugin& slot, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages);

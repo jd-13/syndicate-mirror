@@ -1,7 +1,7 @@
 #include <JuceHeader.h>
 #include "ChainParameters.h"
 #include "BaseSlotComponent.h"
-#include "PluginChain.h"
+#include "PluginChain.hpp"
 #include "PluginSelectionInterface.h"
 #include "PluginModulationInterface.h"
 
@@ -16,7 +16,7 @@ public:
                        PluginModulationInterface& pluginModulationInterface);
     ~ChainViewComponent();
 
-    void setPlugins(PluginChain* newChain);
+    void setPlugins(std::shared_ptr<PluginChain> newChain);
 
     void resized() override;
 

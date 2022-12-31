@@ -1,6 +1,7 @@
 #include "PluginSelectionInterface.h"
 #include "UIUtils.h"
 #include "PluginUtils.h"
+#include "SplitterMutators.hpp"
 
 PluginSelectionInterface::PluginSelectionInterface(SyndicateAudioProcessor& processor)
     : _processor(processor),
@@ -41,7 +42,7 @@ juce::String PluginSelectionInterface::getPluginName(int chainNumber, int plugin
     juce::String retVal;
 
     std::shared_ptr<juce::AudioPluginInstance> plugin =
-        _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
+        SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, pluginNumber);
 
     if (plugin != nullptr) {
         retVal = plugin->getPluginDescription().name;
@@ -52,7 +53,7 @@ juce::String PluginSelectionInterface::getPluginName(int chainNumber, int plugin
 
 void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumber) {
     std::shared_ptr<juce::AudioPluginInstance> plugin =
-        _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
+        SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, pluginNumber);
 
     if (plugin != nullptr) {
         // Check if a window is already open for this plugin
@@ -64,14 +65,14 @@ void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumbe
         }
 
         std::shared_ptr<PluginEditorBounds> editorBounds =
-            _processor.pluginSplitter->getPluginEditorBounds(chainNumber, pluginNumber);
+            SplitterMutators::getPluginEditorBounds(_processor.pluginSplitter, chainNumber, pluginNumber);
         _guestPluginWindows.emplace_back(new GuestPluginWindow([&, plugin]() { _onPluginWindowClose(plugin); }, plugin, editorBounds));
     }
 }
 
 void PluginSelectionInterface::removePlugin(int chainNumber, int pluginNumber) {
     std::shared_ptr<juce::AudioPluginInstance> plugin =
-        _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
+        SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, pluginNumber);
 
     if (plugin != nullptr) {
         // Check if the plugin owns an open editor window and close it
@@ -89,14 +90,14 @@ void PluginSelectionInterface::removePlugin(int chainNumber, int pluginNumber) {
 
 void PluginSelectionInterface::togglePluginBypass(int chainNumber, int pluginNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        _processor.pluginSplitter->setSlotBypass(
-            chainNumber, pluginNumber, !_processor.pluginSplitter->getSlotBypass(chainNumber, pluginNumber));
+        SplitterMutators::setSlotBypass(_processor.pluginSplitter,
+            chainNumber, pluginNumber, !SplitterMutators::getSlotBypass(_processor.pluginSplitter, chainNumber, pluginNumber));
     }
 }
 
 bool PluginSelectionInterface::getPluginBypass(int chainNumber, int pluginNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        return _processor.pluginSplitter->getSlotBypass(chainNumber, pluginNumber);
+        return SplitterMutators::getSlotBypass(_processor.pluginSplitter, chainNumber, pluginNumber);
     }
     return false;
 }
@@ -132,7 +133,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
         // If we are replacing a previous plugin, we need to check if it had a window open and close
         // it
         const std::shared_ptr<juce::AudioPluginInstance> previousPlugin =
-            _processor.pluginSplitter->getPlugin(_chainNumber, _pluginNumber);
+            SplitterMutators::getPlugin(_processor.pluginSplitter, _chainNumber, _pluginNumber);
 
         if (previousPlugin != nullptr) {
             for (int index {0}; index < _guestPluginWindows.size(); index++) {
@@ -149,7 +150,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
 
             // Create the new plugin window
             std::shared_ptr<PluginEditorBounds> editorBounds =
-                _processor.pluginSplitter->getPluginEditorBounds(_chainNumber, _pluginNumber);
+                SplitterMutators::getPluginEditorBounds(_processor.pluginSplitter, _chainNumber, _pluginNumber);
             _guestPluginWindows.emplace_back(new GuestPluginWindow([&, sharedPlugin]() { _onPluginWindowClose(sharedPlugin); },
                                                                    sharedPlugin,
                                                                    editorBounds));
@@ -182,20 +183,20 @@ void PluginSelectionInterface::_onPluginWindowClose(std::shared_ptr<juce::AudioP
 bool PluginSelectionInterface::isPluginSlot(int chainNumber, int slotNumber) {
     // TODO implement a more reliable way of checking this
     std::shared_ptr<juce::AudioPluginInstance> plugin =
-        _processor.pluginSplitter->getPlugin(chainNumber, slotNumber);
+        SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, slotNumber);
 
     return plugin != nullptr;
 }
 
 void PluginSelectionInterface::setGainStageGain(int chainNumber, int slotNumber, float gain) {
     if (_processor.pluginSplitter != nullptr) {
-        _processor.pluginSplitter->setGainLinear(chainNumber, slotNumber, gain);
+        SplitterMutators::setGainLinear(_processor.pluginSplitter, chainNumber, slotNumber, gain);
     }
 }
 
 float PluginSelectionInterface::getGainStageGain(int chainNumber, int slotNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        return _processor.pluginSplitter->getGainLinear(chainNumber, slotNumber);
+        return SplitterMutators::getGainLinear(_processor.pluginSplitter, chainNumber, slotNumber);
     }
 
     return 0.0f;
@@ -203,7 +204,7 @@ float PluginSelectionInterface::getGainStageGain(int chainNumber, int slotNumber
 
 std::optional<GainStageLevelsInterface> PluginSelectionInterface::getGainStageLevelsInterface(int chainNumber, int slotNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        return _processor.pluginSplitter->getGainStageLevelsInterface(chainNumber, slotNumber);
+        return SplitterMutators::getGainStageLevelsInterface(_processor.pluginSplitter, chainNumber, slotNumber);
     }
 
     return std::optional<GainStageLevelsInterface>();
@@ -211,13 +212,13 @@ std::optional<GainStageLevelsInterface> PluginSelectionInterface::getGainStageLe
 
 void PluginSelectionInterface::setGainStagePan(int chainNumber, int slotNumber, float pan) {
     if (_processor.pluginSplitter != nullptr) {
-        _processor.pluginSplitter->setPan(chainNumber, slotNumber, pan);
+        SplitterMutators::setPan(_processor.pluginSplitter, chainNumber, slotNumber, pan);
     }
 }
 
 float PluginSelectionInterface::getGainStagePan(int chainNumber, int slotNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        return _processor.pluginSplitter->getPan(chainNumber, slotNumber);
+        return SplitterMutators::getPan(_processor.pluginSplitter, chainNumber, slotNumber);
     }
 
     return 0.0f;

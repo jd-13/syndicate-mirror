@@ -1,20 +1,26 @@
 #include "catch.hpp"
 
-#include "Xml.hpp"
+#include "XmlReader.hpp"
 #include "XmlConsts.hpp"
+#include "XmlWriter.hpp"
 #include "TestUtils.hpp"
+#include "SplitterMutators.hpp"
 
 namespace {
+    // Use values that would never be sensible  defaults so we know if they were actually set
+    constexpr int NUM_SAMPLES {10};
+    constexpr int SAMPLE_RATE {2000};
+
     class XMLTestPluginInstance : public TestUtils::TestPluginInstance {
     public:
         juce::PluginDescription description;
-        HostConfiguration config;
         std::string retrievedData;
 
         bool shouldSetLayoutSuccessfully;
 
-        XMLTestPluginInstance(const juce::PluginDescription& newDescription,
-                              const HostConfiguration& newConfig) : description(newDescription), config(newConfig) {
+        XMLTestPluginInstance() : shouldSetLayoutSuccessfully(true) { }
+
+        XMLTestPluginInstance(const juce::PluginDescription& newDescription) : description(newDescription) {
             shouldSetLayoutSuccessfully = description.name == "failLayout" ? false : true;
         }
 
@@ -27,6 +33,276 @@ namespace {
     protected:
         bool isBusesLayoutSupported(const BusesLayout& arr) const override { return shouldSetLayoutSuccessfully; }
     };
+}
+
+SCENARIO("XmlReader: Can restore PluginSplitter") {
+    GIVEN("An XmlElement that has no attributes") {
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        PluginConfigurator configurator;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        bool latencyCalled {false};
+        auto latencyCallback = [&latencyCalled](int) {
+            latencyCalled = true;
+        };
+
+        auto errorCallback = [](juce::String) {
+            // Do nothing
+        };
+
+        WHEN("Asked to restore a PluginSplitter from it") {
+            std::shared_ptr<PluginSplitter> splitter = XmlReader::restoreSplitterFromXml(
+                &e, modulationCallback, latencyCallback, config, configurator, errorCallback);
+
+            THEN("A PluginSplitter with default values is created") {
+                CHECK(std::dynamic_pointer_cast<PluginSplitterSeries>(splitter) != nullptr);
+                CHECK(splitter->chains.size() == 0);
+                CHECK(splitter->numChainsSoloed == 0);
+                CHECK(splitter->config.sampleRate == SAMPLE_RATE);
+                CHECK(splitter->config.blockSize == NUM_SAMPLES);
+                CHECK(latencyCalled);
+            }
+        }
+    }
+
+    GIVEN("An XmlElement with three chains, one soloed") {
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+        config.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+
+        PluginConfigurator configurator;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        bool latencyCalled {false};
+        auto latencyCallback = [&latencyCalled](int) {
+            latencyCalled = true;
+        };
+
+        auto errorCallback = [](juce::String) {
+            // Do nothing
+        };
+
+        const juce::String splitTypeString = GENERATE(
+            juce::String(XML_SPLIT_TYPE_SERIES_STR),
+            juce::String(XML_SPLIT_TYPE_PARALLEL_STR),
+            juce::String(XML_SPLIT_TYPE_MULTIBAND_STR),
+            juce::String(XML_SPLIT_TYPE_LEFTRIGHT_STR),
+            juce::String(XML_SPLIT_TYPE_MIDSIDE_STR)
+        );
+
+        // Build the XML elements
+        e.setAttribute(XML_SPLIT_TYPE_STR, splitTypeString);
+        juce::XmlElement* chainsElement = e.createNewChildElement(XML_CHAINS_STR);
+
+        // First chain
+        auto chain1 = std::make_shared<PluginChain>(modulationCallback);
+        ChainMutators::insertGainStage(chain1, 0, config);
+
+        juce::XmlElement* chainElement1 = chainsElement->createNewChildElement(getChainXMLName(0));
+        chainElement1->setAttribute(XML_IS_CHAIN_SOLOED_STR, true);
+        XmlWriter::write(chain1, chainElement1);
+
+        // Second chain
+        auto chain2 = std::make_shared<PluginChain>(modulationCallback);
+
+        ChainMutators::insertGainStage(chain2, 0, config);
+        ChainMutators::insertGainStage(chain2, 1, config);
+
+        juce::XmlElement* chainElement2 = chainsElement->createNewChildElement(getChainXMLName(1));
+        chainElement2->setAttribute(XML_IS_CHAIN_SOLOED_STR, false);
+        XmlWriter::write(chain2, chainElement2);
+
+        // Third chain
+        auto chain3 = std::make_shared<PluginChain>(modulationCallback);
+        ChainMutators::insertGainStage(chain3, 0, config);
+
+        juce::XmlElement* chainElement3 = chainsElement->createNewChildElement(getChainXMLName(2));
+        chainElement3->setAttribute(XML_IS_CHAIN_SOLOED_STR, true);
+        XmlWriter::write(chain3, chainElement3);
+
+        if (splitTypeString == XML_SPLIT_TYPE_MULTIBAND_STR) {
+            juce::XmlElement* crossoverElement = e.createNewChildElement(XML_CROSSOVERS_STR);
+            crossoverElement->setAttribute(getCrossoverXMLName(0), 2500);
+            crossoverElement->setAttribute(getCrossoverXMLName(1), 4000);
+        }
+
+        WHEN("Asked to restore a PluginSplitter from it") {
+            std::shared_ptr<PluginSplitter> splitter = XmlReader::restoreSplitterFromXml(
+                &e, modulationCallback, latencyCallback, config, configurator, errorCallback);
+
+            THEN("A PluginSplitter with the correct values is created") {
+                if (splitTypeString == XML_SPLIT_TYPE_SERIES_STR) {
+                    CHECK(std::dynamic_pointer_cast<PluginSplitterSeries>(splitter) != nullptr);
+                } else if (splitTypeString == XML_SPLIT_TYPE_PARALLEL_STR) {
+                    CHECK(std::dynamic_pointer_cast<PluginSplitterParallel>(splitter) != nullptr);
+                } else if (splitTypeString == XML_SPLIT_TYPE_MULTIBAND_STR) {
+                    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter);
+                    REQUIRE(multibandSplitter != nullptr);
+                    CHECK(SplitterMutators::getCrossoverFrequency(multibandSplitter, 0) == Approx(2500.0));
+                    CHECK(SplitterMutators::getCrossoverFrequency(multibandSplitter, 1) == Approx(4000.0));
+                } else if (splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR) {
+                    CHECK(std::dynamic_pointer_cast<PluginSplitterLeftRight>(splitter) != nullptr);
+                } else if (splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR) {
+                    CHECK(std::dynamic_pointer_cast<PluginSplitterMidSide>(splitter) != nullptr);
+                }
+
+                CHECK(splitter->chains.size() == 3);
+                CHECK(splitter->chains[0].chain->chain.size() == 1);
+                CHECK(splitter->chains[1].chain->chain.size() == 2);
+                CHECK(splitter->chains[2].chain->chain.size() == 1);
+                CHECK(splitter->config.sampleRate == SAMPLE_RATE);
+                CHECK(splitter->config.blockSize == NUM_SAMPLES);
+                CHECK(latencyCalled);
+                CHECK(splitter->numChainsSoloed == 2);
+            }
+        }
+    }
+}
+
+SCENARIO("XmlReader: Can restore PluginChain") {
+    GIVEN("An XmlElement that has no attributes") {
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = 44100;
+        config.blockSize = 64;
+
+        PluginConfigurator configurator;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        auto errorCallback = [](juce::String) {
+            // Do nothing
+        };
+
+        WHEN("Asked to restore a PluginChain from it") {
+            auto chain = XmlReader::restoreChainFromXml(
+                &e, config, configurator, modulationCallback, errorCallback);
+
+            THEN("A PluginChain with default values is created") {
+                CHECK(chain->isChainBypassed == false);
+                CHECK(chain->isChainMuted == false);
+                CHECK(chain->chain.size() == 0);
+                CHECK(chain->getModulationValueCallback(0, MODULATION_TYPE::MACRO) == 1.234f);
+            }
+        }
+    }
+
+    GIVEN("An XmlElement that has an invalid plugin element") {
+        juce::XmlElement e("test");
+        e.setAttribute(XML_IS_CHAIN_BYPASSED_STR, false);
+        e.setAttribute(XML_IS_CHAIN_MUTED_STR, false);
+
+        auto* pluginsElement = e.createNewChildElement(XML_PLUGINS_STR);
+        auto* invalidPluginElement = pluginsElement->createNewChildElement(getSlotXMLName(0));
+        invalidPluginElement->setAttribute(XML_SLOT_TYPE_STR, "some invalid type");
+
+        HostConfiguration config;
+        config.sampleRate = 44100;
+        config.blockSize = 64;
+
+        PluginConfigurator configurator;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        auto errorCallback = [](juce::String) {
+            // Do nothing
+        };
+
+        WHEN("Asked to restore a PluginChain from it") {
+            auto chain = XmlReader::restoreChainFromXml(
+                &e, config, configurator, modulationCallback, errorCallback);
+
+            THEN("A PluginChain with default values is created") {
+                CHECK(chain->isChainBypassed == false);
+                CHECK(chain->isChainMuted == false);
+                CHECK(chain->chain.size() == 0);
+                CHECK(chain->getModulationValueCallback(0, MODULATION_TYPE::MACRO) == 1.234f);
+            }
+        }
+    }
+
+    GIVEN("An XmlElement that has attributes set correctly") {
+        const bool isChainBypassed = GENERATE(false, true);
+        const bool isChainMuted = GENERATE(false, true);
+
+        // Only test loading gain stages - we can't test loading a real plugin here
+        const int numGainStages = GENERATE(0, 1, 2);
+
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = 44100;
+        config.blockSize = 64;
+
+        PluginConfigurator configurator;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        auto errorCallback = [](juce::String) {
+            // Do nothing
+        };
+
+        e.setAttribute(XML_IS_CHAIN_BYPASSED_STR, isChainBypassed);
+        e.setAttribute(XML_IS_CHAIN_MUTED_STR, isChainMuted);
+
+        auto* pluginsElement = e.createNewChildElement(XML_PLUGINS_STR);
+
+        for (int index {0}; index < numGainStages; index++) {
+            auto* gainStageElement = pluginsElement->createNewChildElement(getSlotXMLName(index));
+            gainStageElement->setAttribute(XML_SLOT_TYPE_STR, XML_SLOT_TYPE_GAIN_STAGE_STR);
+            gainStageElement->setAttribute(XML_SLOT_IS_BYPASSED_STR, index % 2 == 0);
+            gainStageElement->setAttribute(XML_GAIN_STAGE_GAIN_STR, 0.1 * index);
+            gainStageElement->setAttribute(XML_GAIN_STAGE_PAN_STR, 0.21 * index);
+        }
+
+        WHEN("Asked to restore a PluginChain from it") {
+            auto chain = XmlReader::restoreChainFromXml(
+                &e, config, configurator, modulationCallback, errorCallback);
+
+            THEN("A PluginChain with default values is created") {
+                CHECK(chain->isChainBypassed == isChainBypassed);
+                CHECK(chain->isChainMuted == isChainMuted);
+                CHECK(chain->chain.size() == numGainStages);
+                CHECK(chain->getModulationValueCallback(0, MODULATION_TYPE::MACRO) == 1.234f);
+
+                for (int index {0}; index < numGainStages; index++) {
+                    CHECK(chain->chain[index]->isBypassed == (index % 2 == 0));
+
+                    auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(chain->chain[index]);
+                    REQUIRE(gainStage != nullptr);
+                    CHECK(gainStage->gain == Approx(0.1 * index));
+                    CHECK(gainStage->pan == Approx(0.21 * index));
+                }
+            }
+        }
+    }
 }
 
 SCENARIO("XmlReader: Can determine if an XmlElement is a gain stage or a plugin") {
@@ -153,7 +429,7 @@ SCENARIO("XmlReader: Can restore ChainSlotPlugin") {
             PluginConfigurator(),
             [](const juce::PluginDescription& description, const HostConfiguration& config) {
                 return std::make_tuple<std::unique_ptr<juce::AudioPluginInstance>, juce::String>(
-                    std::make_unique<XMLTestPluginInstance>(description, config), ""
+                    std::make_unique<XMLTestPluginInstance>(description), ""
                 );
             },
             [](juce::String errorMsg) { }
@@ -450,191 +726,6 @@ SCENARIO("XmlReader: Can restore ModulationSourceDefinition") {
             THEN("A PluginParameterModulationSource with the correct values is created") {
                 CHECK(definition.id == modulationId);
                 CHECK(definition.type == modulationType);
-            }
-        }
-    }
-}
-
-SCENARIO("XmlWriter: Can write ChainSlotGainStage") {
-    GIVEN("A ChainSlotGainStage") {
-        juce::AudioProcessor::BusesLayout layout;
-        layout.inputBuses.add(juce::AudioChannelSet::mono());
-
-        const bool isBypassed = GENERATE(true, false);
-
-        auto gainStage = std::make_shared<ChainSlotGainStage>(0.5, 0.6, isBypassed, layout);
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            XmlWriter::write(gainStage, &e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getStringAttribute(XML_SLOT_TYPE_STR) == XML_SLOT_TYPE_GAIN_STAGE_STR);
-                CHECK(e.getDoubleAttribute(XML_GAIN_STAGE_GAIN_STR) == 0.5f);
-                CHECK(e.getDoubleAttribute(XML_GAIN_STAGE_PAN_STR) == 0.6f);
-                CHECK(e.getBoolAttribute(XML_SLOT_IS_BYPASSED_STR) == isBypassed);
-            }
-        }
-    }
-}
-
-SCENARIO("XmlReader: Can write ChainSlotPlugin") {
-    GIVEN("A ChainSlotPlugin") {
-        const bool isBypassed = GENERATE(false, true);
-        juce::PluginDescription description;
-        description.name = "random name - will be discarded by test plugin";
-
-        HostConfiguration hostConfig;
-        std::shared_ptr<juce::AudioPluginInstance> plugin =
-            std::make_shared<XMLTestPluginInstance>(description, hostConfig);
-
-        auto config = std::make_shared<PluginModulationConfig>();
-        config->parameterConfigs.push_back(std::make_shared<PluginParameterModulationConfig>());
-        config->parameterConfigs[0]->targetParameterName = "testConfig1";
-
-        auto modulationCallback = [](int, MODULATION_TYPE) { return 0.0f; };
-
-        auto slot = std::make_shared<ChainSlotPlugin>(plugin, isBypassed, modulationCallback);
-        slot->modulationConfig = config;
-
-        const juce::Rectangle<int> bounds(150, 200);
-        slot->editorBounds = std::make_shared<PluginEditorBounds>(std::optional<juce::Rectangle<int>>(bounds));
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            XmlWriter::write(slot, &e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getStringAttribute(XML_SLOT_TYPE_STR) == XML_SLOT_TYPE_PLUGIN_STR);
-                CHECK(e.getBoolAttribute(XML_SLOT_IS_BYPASSED_STR) == isBypassed);
-
-                auto descriptionElement = e.getChildByName("PLUGIN");
-                CHECK(descriptionElement->getStringAttribute("name") == "TestPlugin");
-
-                juce::MemoryBlock pluginState;
-                pluginState.fromBase64Encoding(e.getStringAttribute(XML_PLUGIN_DATA_STR));
-                std::string pluginStateStr(pluginState.begin(), pluginState.getSize());
-                CHECK(pluginStateStr == "testPluginData");
-
-                auto configElement = e.getChildByName(XML_MODULATION_CONFIG_STR);
-                auto paramConfigElement = configElement->getChildByName("ParamConfig_0");
-                CHECK(paramConfigElement->getStringAttribute(XML_MODULATION_TARGET_PARAMETER_NAME_STR) == "testConfig1");
-
-                CHECK(juce::Rectangle<int>::fromString(e.getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) == bounds);
-            }
-        }
-    }
-}
-
-SCENARIO("XmlReader: Can write PluginModulationConfig") {
-    GIVEN("A PluginModulationConfig") {
-        const bool isActive = GENERATE(false, true);
-
-        auto config = std::make_shared<PluginModulationConfig>();
-        config->isActive = isActive;
-        config->parameterConfigs.push_back(std::make_shared<PluginParameterModulationConfig>());
-        config->parameterConfigs[0]->targetParameterName = "testConfig1";
-        config->parameterConfigs.push_back(std::make_shared<PluginParameterModulationConfig>());
-        config->parameterConfigs[1]->targetParameterName = "testConfig2";
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            XmlWriter::write(config, &e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getBoolAttribute(XML_MODULATION_IS_ACTIVE_STR) == isActive);
-
-                juce::XmlElement* firstConfig = e.getChildByName("ParamConfig_0");
-                CHECK(firstConfig->getStringAttribute(XML_MODULATION_TARGET_PARAMETER_NAME_STR) == "testConfig1");
-
-                juce::XmlElement* secondSource = e.getChildByName("ParamConfig_1");
-                CHECK(secondSource->getStringAttribute(XML_MODULATION_TARGET_PARAMETER_NAME_STR) == "testConfig2");
-            }
-        }
-    }
-}
-
-SCENARIO("XmlReader: Can write PluginParameterModulationConfig") {
-    GIVEN("A PluginParameterModulationConfig") {
-
-        typedef std::tuple<std::string, float> testData;
-        auto [parameterName, restValue] = GENERATE(
-            testData("parameterName", 0),
-            testData(" ", 0.5),
-            testData("name with spaces", 1));
-
-        auto config = std::make_shared<PluginParameterModulationConfig>();
-        config->targetParameterName = parameterName;
-        config->restValue = restValue;
-        config->sources.push_back(std::make_shared<PluginParameterModulationSource>(
-            ModulationSourceDefinition(1, MODULATION_TYPE::LFO), -0.5));
-        config->sources.push_back(std::make_shared<PluginParameterModulationSource>(
-            ModulationSourceDefinition(2, MODULATION_TYPE::ENVELOPE), 0.5));
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            XmlWriter::write(config, &e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getStringAttribute(XML_MODULATION_TARGET_PARAMETER_NAME_STR) == juce::String(parameterName));
-                CHECK(e.getDoubleAttribute(XML_MODULATION_REST_VALUE_STR) == restValue);
-
-                juce::XmlElement* firstSource = e.getChildByName("Source_0");
-                CHECK(firstSource->getIntAttribute(XML_MODULATION_SOURCE_ID) == 1);
-                CHECK(firstSource->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "lfo");
-                CHECK(firstSource->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == -0.5);
-
-                juce::XmlElement* secondSource = e.getChildByName("Source_1");
-                CHECK(secondSource->getIntAttribute(XML_MODULATION_SOURCE_ID) == 2);
-                CHECK(secondSource->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "envelope");
-                CHECK(secondSource->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == 0.5);
-            }
-        }
-    }
-}
-
-SCENARIO("XmlWriter: Can write PluginParameterModulationSource") {
-    GIVEN("A PluginParameterModulationSource") {
-        const double modulationAmount = GENERATE(-1, -0.5, 0, 0.5, 1);
-
-        auto source = std::make_shared<PluginParameterModulationSource>(
-            ModulationSourceDefinition(1, MODULATION_TYPE::LFO), modulationAmount);
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            XmlWriter::write(source, &e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getIntAttribute(XML_MODULATION_SOURCE_ID) == 1);
-                CHECK(e.getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "lfo");
-                CHECK(e.getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == modulationAmount);
-            }
-        }
-    }
-}
-
-SCENARIO("XmlWriter: Can write ModulationSourceDefinition") {
-    GIVEN("A ModulationSourceDefinition") {
-
-        const int modulationId = GENERATE(1, 2, 3);
-
-        typedef std::pair<MODULATION_TYPE, juce::String> testData;
-
-        auto [modulationType, modulationTypeString] = GENERATE(
-            testData(MODULATION_TYPE::MACRO, "macro"),
-            testData(MODULATION_TYPE::LFO, "lfo"),
-            testData(MODULATION_TYPE::ENVELOPE, "envelope")
-        );
-
-        ModulationSourceDefinition definition(modulationId, modulationType);
-
-        WHEN("Asked to write it to XML") {
-            juce::XmlElement e("test");
-            definition.writeToXml(&e);
-
-            THEN("An XmlElement with the correct attributes is created") {
-                CHECK(e.getIntAttribute(XML_MODULATION_SOURCE_ID) == modulationId);
-                CHECK(e.getStringAttribute(XML_MODULATION_SOURCE_TYPE) == modulationTypeString);
             }
         }
     }

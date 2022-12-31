@@ -2,10 +2,27 @@
 
 #include <JuceHeader.h>
 #include "ChainSlots.hpp"
+#include "PluginChain.hpp"
+#include "PluginSplitter.hpp"
 
 // TODO lock on entry so UI can't make changes
 
 namespace XmlReader {
+    std::shared_ptr<PluginSplitter> restoreSplitterFromXml(
+        juce::XmlElement* element,
+        std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+        std::function<void(int)> latencyChangeCallback,
+        HostConfiguration configuration,
+        const PluginConfigurator& pluginConfigurator,
+        std::function<void(juce::String)> onErrorCallback);
+
+    std::unique_ptr<PluginChain> restoreChainFromXml(
+        juce::XmlElement* element,
+        HostConfiguration configuration,
+        const PluginConfigurator& pluginConfigurator,
+        std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+        std::function<void(juce::String)> onErrorCallback);
+
     bool XmlElementIsPlugin(juce::XmlElement* element);
     bool XmlElementIsGainStage(juce::XmlElement* element);
 
@@ -26,13 +43,4 @@ namespace XmlReader {
     std::unique_ptr<PluginModulationConfig> restorePluginModulationConfig(juce::XmlElement* element);
     std::unique_ptr<PluginParameterModulationConfig> restorePluginParameterModulationConfig(juce::XmlElement* element);
     std::unique_ptr<PluginParameterModulationSource> restorePluginParameterModulationSource(juce::XmlElement* element);
-}
-
-namespace XmlWriter {
-    void write(std::shared_ptr<ChainSlotGainStage> gainStage, juce::XmlElement* element);
-
-    void write(std::shared_ptr<ChainSlotPlugin> chainSlot, juce::XmlElement* element);
-    void write(std::shared_ptr<PluginModulationConfig> config, juce::XmlElement* element);
-    void write(std::shared_ptr<PluginParameterModulationConfig> config, juce::XmlElement* element);
-    void write(std::shared_ptr<PluginParameterModulationSource> source, juce::XmlElement* element);
 }

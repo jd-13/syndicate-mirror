@@ -79,11 +79,11 @@ namespace UIUtils {
 
     class TextOnlyButtonLookAndFeel : public StaticButtonLookAndFeel {
     public:
-        void drawButtonBackground(juce::Graphics& g,
-                                  juce::Button& button,
-                                  const juce::Colour& backgroundColour,
-                                  bool isMouseOverButton,
-                                  bool isButtonDown) override { /* Do nothing */ }
+        void drawButtonBackground(juce::Graphics& /*g*/,
+                                  juce::Button& /*button*/,
+                                  const juce::Colour& /*backgroundColour*/,
+                                  bool /*isMouseOverButton*/,
+                                  bool /*isButtonDown*/) override { /* Do nothing */ }
     };
 
     class SearchBarLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
@@ -134,8 +134,8 @@ namespace UIUtils {
                          std::function<void()> onCloseCallback);
 
         void resized() override;
-        void paint(juce::Graphics& g);
-        void buttonClicked(juce::Button* buttonThatWasClicked);
+        void paint(juce::Graphics& g) override;
+        void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
     private:
         std::function<void()> _onCloseCallback;

@@ -2,6 +2,21 @@
 
 #include <JuceHeader.h>
 
+inline bool canDoStereoSplitTypes(const juce::AudioProcessor::BusesLayout& layout) {
+    return layout.getMainInputChannels() == layout.getMainOutputChannels() &&
+           layout.getMainOutputChannels() == 2;
+}
+
+inline int getTotalNumInputChannels(const juce::AudioProcessor::BusesLayout& layout) {
+    int retVal {0};
+
+    for (int index {0}; index < layout.inputBuses.size(); index++) {
+        retVal += layout.getNumChannels(true, index);
+    }
+
+    return retVal;
+}
+
 struct HostConfiguration {
     juce::AudioProcessor::BusesLayout layout;
     double sampleRate;

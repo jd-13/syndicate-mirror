@@ -14,7 +14,7 @@
 #include "CoreJUCEPlugin/CustomParameter.h"
 #include "MainLogger.h"
 #include "PluginScanClient.h"
-#include "PluginSplitter.h"
+#include "PluginSplitter.hpp"
 #include "PluginSelectorState.h"
 #include "PluginParameterSelectorState.h"
 #include "ChainParameters.h"
@@ -29,14 +29,13 @@ class SyndicateAudioProcessorEditor;
 //==============================================================================
 /**
 */
-class SyndicateAudioProcessor : public WECore::JUCEPlugin::CoreAudioProcessor,
-                                public LatencyListener
+class SyndicateAudioProcessor : public WECore::JUCEPlugin::CoreAudioProcessor
 {
 public:
     PluginScanClient pluginScanClient;
     PluginSelectorState pluginSelectorState; // TODO convert this to a custom parameter
     PluginParameterSelectorState pluginParameterSelectorState;
-    std::unique_ptr<PluginSplitter> pluginSplitter;
+    std::shared_ptr<PluginSplitter> pluginSplitter;
     WECore::AudioSpinMutex pluginSplitterMutex;
     std::vector<ChainParameters> chainParameters;
     std::vector<std::shared_ptr<WECore::Richter::RichterLFO>> lfos;
@@ -116,9 +115,10 @@ public:
     void moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
 
     /**
-     * Returns true if split types that require a stereo in/out configuration can be used.
+     * Called by a splitter when its latency has changed, so this processor can update the latency
+     * it reports back to the host.
      */
-    bool canDoStereoSplitTypes() const;
+    void onLatencyChange(int newLatencySamples);
 
 private:
     /**
@@ -165,8 +165,6 @@ private:
     void _onParameterUpdate() override;
 
     void _resetModulationSources();
-
-    void _onLatencyChange() override;
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SyndicateAudioProcessor)

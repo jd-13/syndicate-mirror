@@ -3,6 +3,7 @@
 #include "EmptyPluginSlotComponent.h"
 #include "GainStageSlotComponent.h"
 #include "PluginSlotComponent.h"
+#include "ChainMutators.hpp"
 
 namespace {
     std::tuple<bool, int, int> slotPositionFromVariant(juce::var variant) {
@@ -43,11 +44,11 @@ ChainViewComponent::~ChainViewComponent() {
     _viewPort = nullptr;
 }
 
-void ChainViewComponent::setPlugins(PluginChain* newChain) {
+void ChainViewComponent::setPlugins(std::shared_ptr<PluginChain> newChain) {
     // Clear all slots and rebuild the chain
     _pluginSlots.clear();
 
-    for (size_t index {0}; index < newChain->getNumSlots(); index++) {
+    for (size_t index {0}; index < ChainMutators::getNumSlots(newChain); index++) {
         // Add the slot
         std::unique_ptr<BaseSlotComponent> newSlot;
         if (_pluginSelectionInterface.isPluginSlot(_chainNumber, index)) {

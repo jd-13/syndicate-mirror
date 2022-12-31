@@ -35,7 +35,7 @@ struct ChainSlotGainStage : ChainSlotBase {
         }
     }
 
-    virtual ~ChainSlotGainStage() = default;
+    ~ChainSlotGainStage() = default;
 };
 
 /**
@@ -80,6 +80,8 @@ struct PluginParameterModulationConfig {
 
     // Used when retrieving the parameter name from a juce::AudioProcessorParameter
     static constexpr int PLUGIN_PARAMETER_NAME_LENGTH_LIMIT {30};
+
+    PluginParameterModulationConfig() : restValue(0) {}
 };
 
 struct PluginModulationConfig {
@@ -116,5 +118,5 @@ struct ChainSlotPlugin : ChainSlotBase {
           getModulationValueCallback(newGetModulationValueCallback),
           editorBounds(new PluginEditorBounds()) {}
 
-    virtual ~ChainSlotPlugin() = default;
+    ~ChainSlotPlugin() = default;
 };

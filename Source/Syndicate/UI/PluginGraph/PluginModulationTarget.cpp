@@ -334,15 +334,16 @@ void PluginModulationTarget::_removeTargetSlot(ModulationSourceDefinition defini
 
     if (modulationConfig.parameterConfigs.size() > _targetNumber) {
         // Remove this source from the target
-        std::vector<std::shared_ptr<PluginParameterModulationSource>> sources = modulationConfig.parameterConfigs[_targetNumber]->sources;
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> updatedSources = modulationConfig.parameterConfigs[_targetNumber]->sources;
 
-        for (int index {0}; index < sources.size(); index++) {
-            if (sources[index]->definition == definition) {
-                sources.erase(sources.begin() + index);
+        for (int index {0}; index < updatedSources.size(); index++) {
+            if (updatedSources[index]->definition == definition) {
+                updatedSources.erase(updatedSources.begin() + index);
                 break;
             }
         }
 
+        modulationConfig.parameterConfigs[_targetNumber]->sources = updatedSources;
         _pluginModulationInterface.setPluginModulationConfig(modulationConfig, _chainNumber, _pluginNumber);
 
         _reloadState();

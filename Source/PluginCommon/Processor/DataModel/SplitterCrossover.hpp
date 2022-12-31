@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <array>
-#include "SplitterBand.h"
+#include "SplitterBand.hpp"
 
 class SplitterCrossover {
 public:
     SplitterCrossover();
-    virtual ~SplitterCrossover() = default;
+    ~SplitterCrossover() = default;
 
     void setIsActive(size_t index, bool isActive);
     void setIsMuted(size_t index, bool isMuted);
@@ -26,7 +26,7 @@ public:
 
     void addBand();
     void removeBand();
-    void processBlock(juce::AudioBuffer<float> buffer);
+    void processBlock(juce::AudioBuffer<float>& buffer);
 
     void reset();
 

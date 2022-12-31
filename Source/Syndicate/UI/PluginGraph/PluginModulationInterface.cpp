@@ -1,5 +1,6 @@
 #include "PluginModulationInterface.h"
 #include "GraphViewComponent.h"
+#include "SplitterMutators.hpp"
 
 namespace {
     juce::Array<juce::AudioProcessorParameter*> getParamsExcludingSelected(
@@ -41,29 +42,27 @@ PluginModulationConfig PluginModulationInterface::getPluginModulationConfig(int 
     PluginModulationConfig retVal;
 
     if (_processor.pluginSplitter != nullptr) {
-        retVal = _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber);
+        retVal = SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber);
     }
 
     return retVal;
 }
 
 bool PluginModulationInterface::setPluginModulationConfig(PluginModulationConfig config, int chainNumber, int pluginNumber) {
-    bool retVal {false};
-
     if (_processor.pluginSplitter != nullptr) {
-        retVal = _processor.pluginSplitter->setPluginModulationConfig(config, chainNumber, pluginNumber);
+        return SplitterMutators::setPluginModulationConfig(_processor.pluginSplitter, config, chainNumber, pluginNumber);
     }
 
-    return retVal;
+    return false;
 }
 
 bool PluginModulationInterface::togglePluginModulationActive(int chainNumber, int pluginNumber) {
     bool retVal {false};
 
     if (_processor.pluginSplitter != nullptr) {
-        PluginModulationConfig config = _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber);
+        PluginModulationConfig config = SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber);
         config.isActive = !config.isActive;
-        _processor.pluginSplitter->setPluginModulationConfig(config, chainNumber, pluginNumber);
+        retVal = SplitterMutators::setPluginModulationConfig(_processor.pluginSplitter, config, chainNumber, pluginNumber);
 
         // We need the graph to redraw so that it puts all the plugins at the right height after
         // the modulation tray is expanded/collapsed
@@ -79,12 +78,12 @@ void PluginModulationInterface::selectModulationTarget(int chainNumber, int plug
     if (_processor.pluginSplitter != nullptr) {
         // Collect the parameter list for this plugin
         std::shared_ptr<juce::AudioPluginInstance> plugin =
-            _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
+            SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, pluginNumber);
 
         // Create the selector
         PluginParameterSelectorListParameters parameters {
             _processor.pluginParameterSelectorState,
-            getParamsExcludingSelected(plugin->getParameters(), _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber)),
+            getParamsExcludingSelected(plugin->getParameters(), SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber)),
             [&, chainNumber, pluginNumber, targetNumber](juce::AudioProcessorParameter* parameter) { _onPluginParameterSelected(parameter, chainNumber, pluginNumber, targetNumber); }
         };
 
@@ -97,11 +96,11 @@ void PluginModulationInterface::selectModulationTarget(int chainNumber, int plug
 
 void PluginModulationInterface::removeModulationTarget(int chainNumber, int pluginNumber, int targetNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        PluginModulationConfig config = _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber);
+        PluginModulationConfig config = SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber);
 
         if (config.parameterConfigs.size() > targetNumber) {
             config.parameterConfigs.erase(config.parameterConfigs.begin() + targetNumber);
-            _processor.pluginSplitter->setPluginModulationConfig(config, chainNumber, pluginNumber);
+            SplitterMutators::setPluginModulationConfig(_processor.pluginSplitter, config, chainNumber, pluginNumber);
 
             // TODO maybe find a more efficient way to refresh this part of the display than redrawing
             // the whole graph?
@@ -116,11 +115,11 @@ juce::AudioProcessorParameter* PluginModulationInterface::getPluginParameterForT
     juce::AudioProcessorParameter* retVal {nullptr};
 
     if (_processor.pluginSplitter != nullptr) {
-        PluginModulationConfig config = _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber);
+        PluginModulationConfig config = SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber);
 
         if (config.parameterConfigs.size() > targetNumber) {
 
-            std::shared_ptr<juce::AudioPluginInstance> plugin = _processor.pluginSplitter->getPlugin(chainNumber, pluginNumber);
+            std::shared_ptr<juce::AudioPluginInstance> plugin = SplitterMutators::getPlugin(_processor.pluginSplitter, chainNumber, pluginNumber);
 
             if (plugin != nullptr) {
                 const juce::String paramName(config.parameterConfigs[targetNumber]->targetParameterName);
@@ -141,7 +140,7 @@ juce::AudioProcessorParameter* PluginModulationInterface::getPluginParameterForT
 
 void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber) {
     if (_processor.pluginSplitter != nullptr) {
-        PluginModulationConfig config = _processor.pluginSplitter->getPluginModulationConfig(chainNumber, pluginNumber);
+        PluginModulationConfig config = SplitterMutators::getPluginModulationConfig(_processor.pluginSplitter, chainNumber, pluginNumber);
 
         // Increase the number of configs if needed
         while (config.parameterConfigs.size() <= targetNumber) {
@@ -150,7 +149,7 @@ void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorP
 
         config.parameterConfigs[targetNumber]->targetParameterName = parameter->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
 
-        _processor.pluginSplitter->setPluginModulationConfig(config, chainNumber, pluginNumber);
+        SplitterMutators::setPluginModulationConfig(_processor.pluginSplitter, config, chainNumber, pluginNumber);
 
         // TODO maybe find a more efficient way to refresh this part of the display than redrawing
         // the whole graph?

@@ -55,7 +55,7 @@ SCENARIO("ChainProcessor: Gain stage silence in = silence out") {
         ChainSlotGainStage gainStage(1, 0, false, layout);
 
         WHEN("The buffer is processed") {
-            ChainProcessor::prepareToPlay(gainStage, SAMPLE_RATE);
+            ChainProcessor::prepareToPlay(gainStage, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(gainStage, buffer);
 
             THEN("The buffer contains silence") {
@@ -94,7 +94,7 @@ SCENARIO("ChainProcessor: Gain stage gain is applied correctly") {
         ChainSlotGainStage gainStage(gain, 0, false, layout);
 
         WHEN("The buffer is processed") {
-            ChainProcessor::prepareToPlay(gainStage, SAMPLE_RATE);
+            ChainProcessor::prepareToPlay(gainStage, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(gainStage, buffer);
 
             THEN("The buffer has the correct gain applied") {
@@ -130,7 +130,7 @@ SCENARIO("ChainProcessor: Gain stage gain isn't applied when bypassed") {
         ChainSlotGainStage gainStage(0.5, 0, true, layout);
 
         WHEN("The buffer is processed") {
-            ChainProcessor::prepareToPlay(gainStage, SAMPLE_RATE);
+            ChainProcessor::prepareToPlay(gainStage, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(gainStage, buffer);
 
             THEN("The buffer is unchanged") {
@@ -164,7 +164,7 @@ SCENARIO("ChainProcessor: Gain stage panning is applied correctly") {
         ChainSlotGainStage gainStage(1, pan, false, layout);
 
         WHEN("The buffer is processed") {
-            ChainProcessor::prepareToPlay(gainStage, SAMPLE_RATE);
+            ChainProcessor::prepareToPlay(gainStage, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(gainStage, buffer);
 
             THEN("The buffer has been panned correctly") {
@@ -204,7 +204,7 @@ SCENARIO("ChainProcessor: Gain stage panning isn't applied when bypassed") {
         ChainSlotGainStage gainStage(1, pan, true, layout);
 
         WHEN("The buffer is processed") {
-            ChainProcessor::prepareToPlay(gainStage, SAMPLE_RATE);
+            ChainProcessor::prepareToPlay(gainStage, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(gainStage, buffer);
 
             THEN("The buffer is unchanged ") {
@@ -239,8 +239,9 @@ SCENARIO("ChainProcessor: Plugin isn't applied when bypassed") {
 
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
+            auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
 
-            ChainProcessor::prepareToPlay(slot, SAMPLE_RATE, NUM_SAMPLES);
+            ChainProcessor::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(slot, buffer, midiBuffer);
 
             THEN("The buffer is unchanged") {
@@ -320,8 +321,9 @@ SCENARIO("ChainProcessor: Plugin is applied correctly with modulation") {
 
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
-
-            ChainProcessor::prepareToPlay(slot, SAMPLE_RATE, NUM_SAMPLES);
+            auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
+            
+            ChainProcessor::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessor::processBlock(slot, buffer, midiBuffer);
 
             THEN("The buffer is processed and modulation is applied correctly") {

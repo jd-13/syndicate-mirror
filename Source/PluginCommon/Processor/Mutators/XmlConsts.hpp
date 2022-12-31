@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SplitTypes.hpp"
+
 inline const char* XML_SLOT_TYPE_STR {"SlotType"};
 inline const char* XML_SLOT_TYPE_PLUGIN_STR {"Plugin"};
 inline const char* XML_SLOT_TYPE_GAIN_STAGE_STR {"GainStage"};
@@ -19,6 +21,23 @@ inline const char* XML_PLUGIN_EDITOR_BOUNDS_STR {"PluginEditorBounds"};
 inline const char* XML_MODULATION_SOURCE_ID {"SourceId"};
 inline const char* XML_MODULATION_SOURCE_TYPE {"SourceType"};
 
+inline const char* XML_IS_CHAIN_BYPASSED_STR {"isChainBypassed"};
+inline const char* XML_IS_CHAIN_MUTED_STR {"isChainMuted"};
+inline const char* XML_PLUGINS_STR {"Plugins"};
+
+inline const char* XML_CHAINS_STR {"Chains"};
+inline const char* XML_IS_CHAIN_SOLOED_STR {"isSoloed"};
+
+inline const char* XML_SPLITTER_STR {"Splitter"};
+inline const char* XML_SPLIT_TYPE_STR {"SplitType"};
+inline const char* XML_SPLIT_TYPE_SERIES_STR {"series"};
+inline const char* XML_SPLIT_TYPE_PARALLEL_STR {"parallel"};
+inline const char* XML_SPLIT_TYPE_MULTIBAND_STR {"multiband"};
+inline const char* XML_SPLIT_TYPE_LEFTRIGHT_STR {"leftright"};
+inline const char* XML_SPLIT_TYPE_MIDSIDE_STR {"midside"};
+
+inline const char* XML_CROSSOVERS_STR {"Crossovers"};
+
 inline std::string getParameterModulationConfigXmlName(int configNumber) {
     std::string retVal("ParamConfig_");
     retVal += std::to_string(configNumber);
@@ -28,5 +47,54 @@ inline std::string getParameterModulationConfigXmlName(int configNumber) {
 inline std::string getParameterModulationSourceXmlName(int sourceNumber) {
     std::string retVal("Source_");
     retVal += std::to_string(sourceNumber);
+    return retVal;
+}
+
+inline std::string getSlotXMLName(int pluginNumber) {
+    std::string retVal("Slot_");
+    retVal += std::to_string(pluginNumber);
+    return retVal;
+}
+
+inline std::string getChainXMLName(int chainNumber) {
+    std::string retVal("Chain_");
+    retVal += std::to_string(chainNumber);
+    return retVal;
+}
+
+inline const char* splitTypeToString(SPLIT_TYPE splitType) {
+    switch (splitType) {
+        case SPLIT_TYPE::SERIES:
+            return XML_SPLIT_TYPE_SERIES_STR;
+        case SPLIT_TYPE::PARALLEL:
+            return XML_SPLIT_TYPE_PARALLEL_STR;
+        case SPLIT_TYPE::MULTIBAND:
+            return XML_SPLIT_TYPE_MULTIBAND_STR;
+        case SPLIT_TYPE::LEFTRIGHT:
+            return XML_SPLIT_TYPE_LEFTRIGHT_STR;
+        case SPLIT_TYPE::MIDSIDE:
+            return XML_SPLIT_TYPE_MIDSIDE_STR;
+    }
+}
+
+inline SPLIT_TYPE stringToSplitType(juce::String splitTypeString) {
+    SPLIT_TYPE retVal {SPLIT_TYPE::SERIES};
+
+    if (splitTypeString == XML_SPLIT_TYPE_PARALLEL_STR) {
+        retVal = SPLIT_TYPE::PARALLEL;
+    } else if (splitTypeString == XML_SPLIT_TYPE_MULTIBAND_STR) {
+        retVal = SPLIT_TYPE::MULTIBAND;
+    } else if (splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR) {
+        retVal = SPLIT_TYPE::LEFTRIGHT;
+    } else if (splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR) {
+        retVal = SPLIT_TYPE::MIDSIDE;
+    }
+
+    return retVal;
+}
+
+inline juce::String getCrossoverXMLName(int crossoverNumber) {
+    juce::String retVal("Crossover_");
+    retVal += juce::String(crossoverNumber);
     return retVal;
 }

@@ -1,4 +1,4 @@
-#include "SplitterCrossover.h"
+#include "SplitterCrossover.hpp"
 
 SplitterCrossover::SplitterCrossover() : _numBands(WECore::MONSTR::Parameters::_DEFAULT_NUM_BANDS), _numBandsSoloed(0) {
 
@@ -197,7 +197,7 @@ void SplitterCrossover::removeBand() {
     reset();
 }
 
-void SplitterCrossover::processBlock(juce::AudioBuffer<float> buffer) {
+void SplitterCrossover::processBlock(juce::AudioBuffer<float>& buffer) {
 
     // If the buffer we've been passed is bigger than our static internal buffer, then we need
     // to break it into chunks

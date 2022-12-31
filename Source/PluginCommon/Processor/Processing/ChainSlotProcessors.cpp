@@ -26,11 +26,12 @@ namespace {
 }
 
 namespace ChainProcessor {
-    void prepareToPlay(ChainSlotGainStage& gainStage, double sampleRate) {
+    void prepareToPlay(ChainSlotGainStage& gainStage, HostConfiguration config) {
+        gainStage.numMainChannels = config.layout.getMainInputChannels();
         assert(gainStage.numMainChannels <= 2);
 
         for (auto& env : gainStage.meterEnvelopes) {
-            env.setSampleRate(sampleRate);
+            env.setSampleRate(config.sampleRate);
         }
     }
 
@@ -67,9 +68,9 @@ namespace ChainProcessor {
         }
     }
 
-    void prepareToPlay(ChainSlotPlugin& slot, double sampleRate, int samplesPerBlock) {
-        slot.plugin->setRateAndBufferSizeDetails(sampleRate, samplesPerBlock);
-        slot.plugin->prepareToPlay(sampleRate, samplesPerBlock);
+    void prepareToPlay(ChainSlotPlugin& slot, HostConfiguration config) {
+        slot.plugin->setRateAndBufferSizeDetails(config.sampleRate, config.blockSize);
+        slot.plugin->prepareToPlay(config.sampleRate, config.blockSize);
     }
 
     void releaseResources(ChainSlotPlugin& slot) {

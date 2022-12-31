@@ -1,5 +1,5 @@
 #include "PluginParameterSelectorList.h"
-#include "PluginChain.h"
+#include "PluginChain.hpp"
 #include "PluginParameterSelectorState.h"
 #include "UIUtils.h"
 
