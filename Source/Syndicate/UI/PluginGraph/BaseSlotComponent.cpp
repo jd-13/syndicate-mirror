@@ -10,7 +10,19 @@ BaseSlotComponent::BaseSlotComponent(int chainNumber, int slotNumber) : _chainNu
     dragHandle.reset(new UIUtils::DragHandle());
     addAndMakeVisible(dragHandle.get());
     dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::neutralControlColour);
-    dragHandle->setTooltip(TRANS("Drag to move this slot to another position"));
+
+    juce::String copyKey;
+#if _WIN32
+        copyKey = "Alt";
+#elif __APPLE__
+        copyKey = "Option";
+#elif __linux__
+        copyKey = "Alt";
+#else
+    #error "Unknown OS"
+#endif
+
+    dragHandle->setTooltip(TRANS("Drag to move this slot to another position - hold " + copyKey + " key to copy"));
     dragHandle->addMouseListener(this, false);
 }
 
@@ -44,6 +56,10 @@ void BaseSlotComponent::mouseDrag(const juce::MouseEvent& e) {
             juce::var details;
             details.append(_chainNumber);
             details.append(_slotNumber);
+
+            // This is a copy if alt is down, otherwise move
+            details.append(juce::ModifierKeys::currentModifiers.isAltDown());
+
             container->startDragging(details, this);
         }
     }

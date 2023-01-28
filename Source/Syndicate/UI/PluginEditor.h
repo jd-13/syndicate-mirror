@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 6.1.6
+  Created with Projucer version: 7.0.3
 
   ------------------------------------------------------------------------------
 
@@ -65,9 +65,16 @@ private:
     //[UserVariables]   -- You can add your own custom variables in this section.
     SyndicateAudioProcessor& _processor;
     WECore::JUCEPlugin::TooltipLabelUpdater _tooltipLabelUpdater;
-    std::unique_ptr<SplitterHeaderComponent> splitterHeader;
+    std::unique_ptr<SplitterHeaderComponent> _splitterHeader;
     bool _isHeaderInitialised;
     std::unique_ptr<UIUtils::PopoverComponent> _errorPopover;
+    std::unique_ptr<MacrosComponent> _macrosSidebar;
+    std::unique_ptr<SplitterButtonsComponent> _splitterButtonsBar;
+    std::unique_ptr<juce::Component> _headerExtensionComponent;
+    std::unique_ptr<OutputComponent> _outputSidebar;
+    std::unique_ptr<GraphViewComponent> _graphView;
+    std::unique_ptr<ModulationBar> _modulationBar;
+    std::unique_ptr<juce::Label> _tooltipLbl;
 
     void _enableDoubleClickToDefault();
     void _startSliderReadouts();
@@ -79,13 +86,6 @@ private:
     //[/UserVariables]
 
     //==============================================================================
-    std::unique_ptr<MacrosComponent> macrosSidebar;
-    std::unique_ptr<SplitterButtonsComponent> splitterButtonsBar;
-    std::unique_ptr<OutputComponent> outputSidebar;
-    std::unique_ptr<ModulationBar> modulationBar;
-    std::unique_ptr<GraphViewComponent> graphView;
-    std::unique_ptr<juce::Label> tooltipLbl;
-    std::unique_ptr<juce::Component> headerExtensionComponent;
 
 
     //==============================================================================

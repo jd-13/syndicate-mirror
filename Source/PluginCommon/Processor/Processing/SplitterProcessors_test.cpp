@@ -255,7 +255,7 @@ SCENARIO("SplitterProcessor: Gain stage and plugin processing is applied correct
                         splitTypeString == XML_SPLIT_TYPE_SERIES_STR || isChainSoloed ? 0.5f :
                         splitTypeString == XML_SPLIT_TYPE_PARALLEL_STR ? 1.8f :
                         splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR ? 0.8f :
-                        splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR ? 0.2f : 0.0f
+                        splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR ? 0.8f : 0.0f
                     };
 
                     const float expectedRightSample {
@@ -265,7 +265,7 @@ SCENARIO("SplitterProcessor: Gain stage and plugin processing is applied correct
                         splitTypeString == XML_SPLIT_TYPE_PARALLEL_STR && isChainSoloed ? 0.25f :
                         splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR && !isChainSoloed ? 1.3f :
                         splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR && isChainSoloed ? 0.0f :
-                        splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR && !isChainSoloed ? 0.8f :
+                        splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR && !isChainSoloed ? 0.2f :
                         splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR && isChainSoloed ? 0.5f : 0.0f
                     };
 

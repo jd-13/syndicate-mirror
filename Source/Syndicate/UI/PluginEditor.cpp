@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 6.1.6
+  Created with Projucer version: 7.0.3
 
   ------------------------------------------------------------------------------
 
@@ -40,69 +40,60 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     //[Constructor_pre] You can add your own custom stuff here..
     //[/Constructor_pre]
 
-    macrosSidebar.reset (new MacrosComponent (this, _processor.macros, _processor.macroNames));
-    addAndMakeVisible (macrosSidebar.get());
-    macrosSidebar->setName ("Macros");
-
-    macrosSidebar->setBounds (0, 0, 64, 526);
-
-    splitterButtonsBar.reset (new SplitterButtonsComponent (_processor));
-    addAndMakeVisible (splitterButtonsBar.get());
-    splitterButtonsBar->setName ("Splitter Buttons");
-
-    splitterButtonsBar->setBounds (64, 0, 572, 40);
-
-    outputSidebar.reset (new OutputComponent (_processor));
-    addAndMakeVisible (outputSidebar.get());
-    outputSidebar->setName ("Output");
-
-    outputSidebar->setBounds (636, 120, 64, 406);
-
-    modulationBar.reset (new ModulationBar (_processor, this));
-    addAndMakeVisible (modulationBar.get());
-    modulationBar->setName ("Modulation");
-
-    modulationBar->setBounds (64, 396, 572, 130);
-
-    graphView.reset (new GraphViewComponent (_processor));
-    addAndMakeVisible (graphView.get());
-    graphView->setName ("Graph View");
-
-    graphView->setBounds (64, 120, 572, 276);
-
-    tooltipLbl.reset (new juce::Label ("Tooltip Label",
-                                       juce::String()));
-    addAndMakeVisible (tooltipLbl.get());
-    tooltipLbl->setFont (juce::Font (15.00f, juce::Font::plain).withTypefaceStyle ("Regular"));
-    tooltipLbl->setJustificationType (juce::Justification::centred);
-    tooltipLbl->setEditable (false, false, false);
-    tooltipLbl->setColour (juce::Label::textColourId, juce::Colour (0xff929292));
-    tooltipLbl->setColour (juce::TextEditor::textColourId, juce::Colours::black);
-    tooltipLbl->setColour (juce::TextEditor::backgroundColourId, juce::Colour (0x00000000));
-
-    tooltipLbl->setBounds (8, 525, 684, 24);
-
-    headerExtensionComponent.reset (new juce::Component());
-    addAndMakeVisible (headerExtensionComponent.get());
-    headerExtensionComponent->setName ("Header Extension Component");
-
-    headerExtensionComponent->setBounds (636, 40, 64, 80);
-
 
     //[UserPreSize]
+    _macrosSidebar.reset(new MacrosComponent(this, _processor.macros, _processor.macroNames));
+    addAndMakeVisible(_macrosSidebar.get());
+    _macrosSidebar->setName("Macros");
+
+    _splitterButtonsBar.reset(new SplitterButtonsComponent(_processor));
+    addAndMakeVisible(_splitterButtonsBar.get());
+    _splitterButtonsBar->setName("Splitter Buttons");
+
+    _headerExtensionComponent.reset(new juce::Component());
+    addAndMakeVisible(_headerExtensionComponent.get());
+    _headerExtensionComponent->setName("Header Extension Component");
+
+    _splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
+    addAndMakeVisible(_splitterHeader.get());
+    _splitterHeader->setName("Splitter Header");
+
+    _outputSidebar.reset(new OutputComponent(_processor));
+    addAndMakeVisible(_outputSidebar.get());
+    _outputSidebar->setName("Output");
+
+    _graphView.reset(new GraphViewComponent(_processor));
+    addAndMakeVisible(_graphView.get());
+    _graphView->setName("Graph View");
+
+    _modulationBar.reset(new ModulationBar(_processor, this));
+    addAndMakeVisible(_modulationBar.get());
+    _modulationBar->setName("Modulation");
+
+    _tooltipLbl.reset(new juce::Label("Tooltip Label", juce::String()));
+    addAndMakeVisible(_tooltipLbl.get());
+    _tooltipLbl->setFont(juce::Font (15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+    _tooltipLbl->setJustificationType(juce::Justification::centred);
+    _tooltipLbl->setEditable(false, false, false);
+    _tooltipLbl->setColour(juce::Label::textColourId, juce::Colour(0xff929292));
+    _tooltipLbl->setColour(juce::TextEditor::textColourId, juce::Colours::black);
+    _tooltipLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     //[/UserPreSize]
 
     setSize (700, 550);
 
 
     //[Constructor] You can add your own custom stuff here..
+    setResizable(true, true);
+
     _processor.setEditor(this);
+    setBounds(_processor.mainWindowState.bounds);
 
     _setSliderRanges();
 
     // Start tooltip label
     addMouseListener(&_tooltipLabelUpdater, true);
-    _tooltipLabelUpdater.start(tooltipLbl.get(), getAudioProcessor()->wrapperType);
+    _tooltipLabelUpdater.start(_tooltipLbl.get(), getAudioProcessor()->wrapperType);
 
     // Call this once to force an update
     needsGraphRebuild();
@@ -116,17 +107,20 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
 SyndicateAudioProcessorEditor::~SyndicateAudioProcessorEditor()
 {
     //[Destructor_pre]. You can add your own custom destruction code here..
+    _processor.mainWindowState.bounds = getBounds();
     _processor.setEditor(nullptr);
     _tooltipLabelUpdater.stop();
+
+    _macrosSidebar = nullptr;
+    _splitterButtonsBar = nullptr;
+    _splitterHeader = nullptr;
+    _headerExtensionComponent = nullptr;
+    _outputSidebar = nullptr;
+    _graphView = nullptr;
+    _modulationBar = nullptr;
+    _tooltipLbl = nullptr;
     //[/Destructor_pre]
 
-    macrosSidebar = nullptr;
-    splitterButtonsBar = nullptr;
-    outputSidebar = nullptr;
-    modulationBar = nullptr;
-    graphView = nullptr;
-    tooltipLbl = nullptr;
-    headerExtensionComponent = nullptr;
 
 
     //[Destructor]. You can add your own custom destruction code here..
@@ -151,6 +145,27 @@ void SyndicateAudioProcessorEditor::resized()
     if (_errorPopover != nullptr) {
         _errorPopover->setBounds(getLocalBounds());
     }
+
+    constexpr int SIDEBAR_WIDTH {64};
+    constexpr int SPLITTER_BUTTONS_HEIGHT {40};
+    constexpr int TOOLTIP_HEIGHT {24};
+
+    juce::Rectangle<int> availableArea = getLocalBounds().withTrimmedBottom(1);
+
+    _tooltipLbl->setBounds(availableArea.removeFromBottom(TOOLTIP_HEIGHT));
+
+    _macrosSidebar->setBounds(availableArea.removeFromLeft(SIDEBAR_WIDTH));
+
+    juce::Rectangle<int> rightArea = availableArea.removeFromRight(SIDEBAR_WIDTH).withTrimmedTop(SPLITTER_BUTTONS_HEIGHT);
+    _headerExtensionComponent->setBounds(rightArea.removeFromTop(80));
+    _outputSidebar->setBounds(rightArea);
+
+    _splitterButtonsBar->setBounds(availableArea.removeFromTop(SPLITTER_BUTTONS_HEIGHT));
+    _splitterHeader->setBounds(availableArea.removeFromTop(80));
+
+    _modulationBar->setBounds(availableArea.removeFromBottom(130));
+
+    _graphView->setBounds(availableArea);
     //[/UserPreResize]
 
     //[UserResized] Add your own custom resize handling here..
@@ -161,9 +176,9 @@ void SyndicateAudioProcessorEditor::resized()
 
 //[MiscUserCode] You can add your own definitions of your custom methods or any other code here...
 void SyndicateAudioProcessorEditor::needsGraphRebuild() {
-    splitterButtonsBar->onParameterUpdate();
+    _splitterButtonsBar->onParameterUpdate();
     _updateSplitterHeader();
-    graphView->onParameterUpdate();
+    _graphView->onParameterUpdate();
 }
 
 void SyndicateAudioProcessorEditor::_enableDoubleClickToDefault() {
@@ -183,9 +198,9 @@ void SyndicateAudioProcessorEditor::_setSliderRanges() {
 }
 
 void SyndicateAudioProcessorEditor::_onParameterUpdate() {
-    splitterHeader->onParameterUpdate();
-    outputSidebar->onParameterUpdate();
-    macrosSidebar->onParameterUpdate();
+    _splitterHeader->onParameterUpdate();
+    _outputSidebar->onParameterUpdate();
+    _macrosSidebar->onParameterUpdate();
 }
 
 void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
@@ -195,31 +210,32 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
     if (_processor.getSplitType() != previousSplitType || !_isHeaderInitialised) {
         previousSplitType = _processor.getSplitType();
         _isHeaderInitialised = true;
+        const juce::Rectangle<int> bounds = _splitterHeader->getBounds();
 
         switch (_processor.getSplitType()) {
             case SPLIT_TYPE::SERIES:
-                splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
+                _splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
                 break;
             case SPLIT_TYPE::PARALLEL:
-                splitterHeader.reset(new ParallelSplitterSubComponent(_processor, headerExtensionComponent.get(), graphView->getViewport()));
+                _splitterHeader.reset(new ParallelSplitterSubComponent(_processor, _headerExtensionComponent.get(), _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::MULTIBAND:
-                splitterHeader.reset(new MultibandSplitterSubComponent(_processor, headerExtensionComponent.get()));
+                _splitterHeader.reset(new MultibandSplitterSubComponent(_processor, _headerExtensionComponent.get()));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
-                splitterHeader.reset(new LeftrightSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
+                _splitterHeader.reset(new LeftrightSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
                 break;
             case SPLIT_TYPE::MIDSIDE:
-                splitterHeader.reset(new MidsideSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
+                _splitterHeader.reset(new MidsideSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
                 break;
         }
 
-        addAndMakeVisible(splitterHeader.get());
-        splitterHeader->setName("Splitter Header");
-        splitterHeader->setBounds(64, 40, 573, 80);
+        addAndMakeVisible(_splitterHeader.get());
+        _splitterHeader->setName("Splitter Header");
+        _splitterHeader->setBounds(bounds);
     }
 
-    splitterHeader->onParameterUpdate();
+    _splitterHeader->onParameterUpdate();
 }
 
 void SyndicateAudioProcessorEditor::_displayErrorsIfNeeded() {
@@ -259,29 +275,6 @@ BEGIN_JUCER_METADATA
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="1" initialWidth="700" initialHeight="550">
   <BACKGROUND backgroundColour="ff272727"/>
-  <GENERICCOMPONENT name="Macros" id="457c6719877e7b6b" memberName="macrosSidebar"
-                    virtualName="MacrosComponent" explicitFocusOrder="0" pos="0 0 64 526"
-                    class="juce::Component" params="this, _processor.macros, _processor.macroNames"/>
-  <GENERICCOMPONENT name="Splitter Buttons" id="f0b13db8ae7b5461" memberName="splitterButtonsBar"
-                    virtualName="SplitterButtonsComponent" explicitFocusOrder="0"
-                    pos="64 0 572 40" class="juce::Component" params="_processor"/>
-  <GENERICCOMPONENT name="Output" id="5e939e07c46125f3" memberName="outputSidebar"
-                    virtualName="OutputComponent" explicitFocusOrder="0" pos="636 120 64 406"
-                    class="juce::Component" params="_processor"/>
-  <GENERICCOMPONENT name="Modulation" id="de122523938b745c" memberName="modulationBar"
-                    virtualName="ModulationBar" explicitFocusOrder="0" pos="64 396 572 130"
-                    class="juce::Component" params="_processor, this"/>
-  <GENERICCOMPONENT name="Graph View" id="beaec81e6712632e" memberName="graphView"
-                    virtualName="GraphViewComponent" explicitFocusOrder="0" pos="64 120 572 276"
-                    class="juce::Component" params="_processor"/>
-  <LABEL name="Tooltip Label" id="37c38fbe0fd8f213" memberName="tooltipLbl"
-         virtualName="" explicitFocusOrder="0" pos="8 525 684 24" textCol="ff929292"
-         edTextCol="ff000000" edBkgCol="0" labelText="" editableSingleClick="0"
-         editableDoubleClick="0" focusDiscardsChanges="0" fontname="Default font"
-         fontsize="15.0" kerning="0.0" bold="0" italic="0" justification="36"/>
-  <GENERICCOMPONENT name="Header Extension Component" id="d0575d325a1b0f48" memberName="headerExtensionComponent"
-                    virtualName="" explicitFocusOrder="0" pos="636 40 64 80" class="juce::Component"
-                    params=""/>
 </JUCER_COMPONENT>
 
 END_JUCER_METADATA

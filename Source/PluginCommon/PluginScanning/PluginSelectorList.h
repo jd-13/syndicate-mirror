@@ -65,7 +65,7 @@ private:
     juce::AudioPluginFormat::PluginCreationCallback _pluginCreationCallback;
     std::function<double()> _getSampleRateCallback;
     std::function<int()> _getBlockSizeCallback;
-    juce::AudioPluginFormatManager _formatManager;
+    juce::AudioPluginFormatManager& _formatManager;
     juce::Colour _rowBackgroundColour;
     juce::Colour _rowTextColour;
 };

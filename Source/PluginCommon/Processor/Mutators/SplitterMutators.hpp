@@ -36,7 +36,7 @@ namespace SplitterMutators {
     SPLIT_TYPE getSplitType(const std::shared_ptr<PluginSplitter> splitter);
 
     // PluginSplitterParallel
-    bool addChain(std::shared_ptr<PluginSplitterParallel> splitter);
+    void addChain(std::shared_ptr<PluginSplitterParallel> splitter);
     bool removeChain(std::shared_ptr<PluginSplitterParallel> splitter, int chainNumber);
 
     // PluginSplitterMultiband

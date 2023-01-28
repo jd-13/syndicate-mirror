@@ -20,6 +20,7 @@ public:
     void togglePluginBypass(int chainNumber, int pluginNumber);
     bool getPluginBypass(int chainNumber, int pluginNumber);
     void insertGainStage(int chainNumber, int pluginNumber);
+    void copySlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
     void moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
 
     /**

@@ -46,6 +46,15 @@ namespace {
 
     const char* XML_MACRO_NAMES_STR {"MacroNames"};
 
+    const char* XML_CACHED_CROSSOVER_FREQUENCIES_STR {"CrossoverFrequencies"};
+
+    const char* XML_MAIN_WINDOW_STATE_STR {"MainWindowState"};
+    const char* XML_MAIN_WINDOW_BOUNDS_STR {"MainEditorBounds"};
+    const char* XML_GRAPH_VIEW_POSITION_STR {"GraphViewScrollPosition"};
+    const char* XML_CHAIN_VIEW_POSITIONS_STR {"ChainViewScrollPositions"};
+    const char* XML_LFO_BUTTONS_POSITION_STR {"LfoButtonsScrollPosition"};
+    const char* XML_ENV_BUTTONS_POSITION_STR {"EnvButtonsScrollPosition"};
+
     std::string getLfoXMLName(int lfoNumber) {
         std::string retVal("LFO_");
         retVal += std::to_string(lfoNumber);
@@ -61,6 +70,18 @@ namespace {
     juce::String getMacroNameXMLName(int macroNumber) {
         juce::String retVal("MacroName_");
         retVal += juce::String(macroNumber);
+        return retVal;
+    }
+
+    juce::String getCachedCrossoverFreqXMLName(int crossoverNumber) {
+        juce::String retVal("Crossover_");
+        retVal += juce::String(crossoverNumber);
+        return retVal;
+    }
+
+    juce::String getChainPositionXMLName(int chainNumber) {
+        juce::String retVal("Chain_");
+        retVal += juce::String(chainNumber);
         return retVal;
     }
 
@@ -113,6 +134,8 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
         env.setReleaseTimeMs(50);
         env.setFilterEnabled(false);
     }
+
+    formatManager.addDefaultFormats();
 }
 
 SyndicateAudioProcessor::~SyndicateAudioProcessor()
@@ -454,6 +477,14 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
     }
 
     if (splitType != _splitType || !_isSplitterInitialised) {
+        if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(pluginSplitter)) {
+            cachedcrossoverFrequencies = std::vector<float>();
+
+            for (int index {0}; index < multibandSplitter->crossover.getNumBands(); index++) {
+                cachedcrossoverFrequencies.value().push_back(multibandSplitter->crossover.getCrossoverFrequency(index));
+            }
+        }
+
         _splitType = splitType;
         _isSplitterInitialised = true;
 
@@ -465,7 +496,7 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
                 pluginSplitter.reset(new PluginSplitterParallel(pluginSplitter));
                 break;
             case SPLIT_TYPE::MULTIBAND:
-                pluginSplitter.reset(new PluginSplitterMultiband(pluginSplitter));
+                pluginSplitter.reset(new PluginSplitterMultiband(pluginSplitter, cachedcrossoverFrequencies));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
                 if (canDoStereoSplitTypes(getBusesLayout())) {
@@ -512,13 +543,12 @@ void SyndicateAudioProcessor::addParallelChain() {
     auto parallelSplitter = std::dynamic_pointer_cast<PluginSplitterParallel>(pluginSplitter);
 
     if (parallelSplitter != nullptr) {
-        if (SplitterMutators::addChain(parallelSplitter)) {
-            lock.unlock();
-            chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
+        SplitterMutators::addChain(parallelSplitter);
+        lock.unlock();
+        chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
 
-            if (_editor != nullptr) {
-                _editor->needsGraphRebuild();
-            }
+        if (_editor != nullptr) {
+            _editor->needsGraphRebuild();
         }
     }
 }
@@ -665,6 +695,81 @@ void SyndicateAudioProcessor::insertGainStage(int chainNumber, int pluginNumber)
     }
 }
 
+void SyndicateAudioProcessor::copySlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
+    std::shared_ptr<juce::AudioPluginInstance> sourcePlugin =
+        SplitterMutators::getPlugin(pluginSplitter, fromChainNumber, fromSlotNumber);
+
+    if (sourcePlugin != nullptr) {
+        // This is a plugin
+
+        // Get the state and config before making changes that might change the plugin's position
+        juce::MemoryBlock sourceState;
+        sourcePlugin->getStateInformation(sourceState);
+
+        PluginModulationConfig sourceConfig =
+            SplitterMutators::getPluginModulationConfig(pluginSplitter, fromChainNumber, fromSlotNumber);
+
+        // Create the callback
+        // Be careful about what is used in this callback - anything in local scope needs to be captured by value
+        auto onPluginCreated = [&, sourceState, sourceConfig, toChainNumber, toSlotNumber](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
+            if (plugin != nullptr) {
+                // Create the shared pointer here as we need it for the window
+                std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(plugin);
+
+                if (pluginConfigurator.configure(
+                        sharedPlugin, {getBusesLayout(), getSampleRate(), getBlockSize()})) {
+                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Plugin configured");
+
+                    // Hand the plugin over to the splitter
+                    {
+                        WECore::AudioSpinLock lock(pluginSplitterMutex);
+                        SplitterMutators::insertPlugin(pluginSplitter, sharedPlugin, toChainNumber, toSlotNumber);
+                    }
+
+                    // Apply plugin state
+                    sharedPlugin->setStateInformation(sourceState.getData(), sourceState.getSize());
+
+                    // Apply modulation
+                    SplitterMutators::setPluginModulationConfig(pluginSplitter, sourceConfig, toChainNumber, toSlotNumber);
+
+                    // Ideally we'd like to handle plugin selection like any other parameter - just update the
+                    // parameter and just action the update in the callback
+                    // We can't do that though as the splitters are stateful, but we still update the parameter
+                    // so the UI also gets the update - need to do this last though as the UI pulls its state
+                    // from the splitter
+                    if (_editor != nullptr) {
+                        _editor->needsGraphRebuild();
+                    }
+                } else {
+                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to configure plugin");
+                }
+            } else {
+                juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to load plugin: " + error);
+            }
+        };
+
+        // Try to load the plugin
+        formatManager.createPluginInstanceAsync(
+            sourcePlugin->getPluginDescription(),
+            getSampleRate(),
+            getBlockSize(),
+            onPluginCreated);
+    } else {
+        // This is a gain stage
+        const float gain {SplitterMutators::getGainLinear(pluginSplitter, fromChainNumber, fromSlotNumber)};
+        const float pan {SplitterMutators::getPan(pluginSplitter, fromChainNumber, fromSlotNumber)};
+
+        // Add it in the new position
+        SplitterMutators::insertGainStage(pluginSplitter, toChainNumber, toSlotNumber);
+        SplitterMutators::setGainLinear(pluginSplitter, toChainNumber, toSlotNumber, gain);
+        SplitterMutators::setPan(pluginSplitter, toChainNumber, toSlotNumber, pan);
+
+        if (_editor != nullptr) {
+            _editor->needsGraphRebuild();
+        }
+    }
+}
+
 void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
     // Copy everything we need
     std::shared_ptr<juce::AudioPluginInstance> plugin =
@@ -808,6 +913,14 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
         } else {
             juce::Logger::writeToLog("Missing element " + juce::String(XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR));
         }
+
+        juce::XmlElement* mainWindowElement = element->getChildByName(XML_MAIN_WINDOW_STATE_STR);
+        if (mainWindowElement != nullptr) {
+            // Restore the main window state
+            _restoreMainWindowStateFromXml(mainWindowElement);
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_MAIN_WINDOW_STATE_STR));
+        }
     } else {
         juce::Logger::writeToLog("Restore failed - no processor");
     }
@@ -834,6 +947,9 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
         _writeMacroNamesToXml(macroNamesElement);
 
         // Store window states
+        juce::XmlElement* mainWindowElement = element->createNewChildElement(XML_MAIN_WINDOW_STATE_STR);
+        _writeMainWindowStateToXml(mainWindowElement);
+
         juce::XmlElement* pluginSelectorElement = element->createNewChildElement(XML_PLUGIN_SELECTOR_STATE_STR);
         _processor->pluginSelectorState.writeToXml(pluginSelectorElement);
 
@@ -847,6 +963,20 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::XmlElement* element) {
+    // Restore the cached crossover frequencies first, we need to allow for them to be overwritten
+    // by the later call to setSplitType() in the case that we're restoring a multiband split
+    juce::XmlElement* frequenciesElement = element->getChildByName(XML_CACHED_CROSSOVER_FREQUENCIES_STR);
+    if (frequenciesElement != nullptr) {
+        _processor->cachedcrossoverFrequencies = std::vector<float>();
+        const int numFrequencies {frequenciesElement->getNumAttributes()};
+        for (int index {0}; index < numFrequencies; index++) {
+            if (frequenciesElement->hasAttribute(getCachedCrossoverFreqXMLName(index))) {
+                _processor->cachedcrossoverFrequencies.value().push_back(
+                    frequenciesElement->getDoubleAttribute(getCachedCrossoverFreqXMLName(index)));
+            }
+        }
+    }
+
     {
         WECore::AudioSpinLock lock(_processor->pluginSplitterMutex);
 
@@ -986,9 +1116,58 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreMacroNamesFromXml(juce
     }
 }
 
+void SyndicateAudioProcessor::SplitterParameters::_restoreMainWindowStateFromXml(juce::XmlElement* element) {
+    if (element->hasAttribute(XML_MAIN_WINDOW_BOUNDS_STR)) {
+        const juce::String boundsString = element->getStringAttribute(XML_MAIN_WINDOW_BOUNDS_STR);
+        _processor->mainWindowState.bounds = juce::Rectangle<int>::fromString(boundsString);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MAIN_WINDOW_BOUNDS_STR));
+    }
+
+    if (element->hasAttribute(XML_GRAPH_VIEW_POSITION_STR)) {
+        _processor->mainWindowState.graphViewScrollPosition = element->getIntAttribute(XML_GRAPH_VIEW_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_GRAPH_VIEW_POSITION_STR));
+    }
+
+    juce::XmlElement* chainScrollPositionsElement = element->getChildByName(XML_CHAIN_VIEW_POSITIONS_STR);
+    if (chainScrollPositionsElement != nullptr) {
+        std::vector<int> chainViewScrollPositions;
+
+        const int numChains {chainScrollPositionsElement->getNumAttributes()};
+        for (int index {0}; index < numChains; index++) {
+            if (chainScrollPositionsElement->hasAttribute(getChainPositionXMLName(index))) {
+                chainViewScrollPositions.push_back(chainScrollPositionsElement->getIntAttribute(getChainPositionXMLName(index)));
+            }
+        }
+
+        _processor->mainWindowState.chainViewScrollPositions = chainViewScrollPositions;
+    }
+
+    if (element->hasAttribute(XML_LFO_BUTTONS_POSITION_STR)) {
+        _processor->mainWindowState.lfoButtonsScrollPosition = element->getIntAttribute(XML_LFO_BUTTONS_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_LFO_BUTTONS_POSITION_STR));
+    }
+
+    if (element->hasAttribute(XML_ENV_BUTTONS_POSITION_STR)) {
+        _processor->mainWindowState.envButtonsScrollPosition = element->getIntAttribute(XML_ENV_BUTTONS_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_ENV_BUTTONS_POSITION_STR));
+    }
+}
+
 void SyndicateAudioProcessor::SplitterParameters::_writeSplitterToXml(juce::XmlElement* element) {
     WECore::AudioSpinLock lock(_processor->pluginSplitterMutex);
     XmlWriter::write(_processor->pluginSplitter, element);
+
+    // Store the cached crossover frequencies
+    if (_processor->cachedcrossoverFrequencies.has_value()) {
+        juce::XmlElement* frequenciesElement = element->createNewChildElement(XML_CACHED_CROSSOVER_FREQUENCIES_STR);
+        for (int index {0}; index < _processor->cachedcrossoverFrequencies.value().size(); index++) {
+            frequenciesElement->setAttribute(getCachedCrossoverFreqXMLName(index), _processor->cachedcrossoverFrequencies.value()[index]);
+        }
+    }
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeModulationSourcesToXml(juce::XmlElement* element) {
@@ -1031,6 +1210,24 @@ void SyndicateAudioProcessor::SplitterParameters::_writeMacroNamesToXml(juce::Xm
     for (int index {0}; index < _processor->macroNames.size(); index++) {
         element->setAttribute(getMacroNameXMLName(index), _processor->macroNames[index]);
     }
+}
+
+void SyndicateAudioProcessor::SplitterParameters::_writeMainWindowStateToXml(juce::XmlElement* element) {
+    // Store the main window bounds
+    element->setAttribute(XML_MAIN_WINDOW_BOUNDS_STR, _processor->mainWindowState.bounds.toString());
+
+    // Store scroll positions
+    element->setAttribute(XML_GRAPH_VIEW_POSITION_STR, _processor->mainWindowState.graphViewScrollPosition);
+
+    juce::XmlElement* chainScrollPositionsElement = element->createNewChildElement(XML_CHAIN_VIEW_POSITIONS_STR);
+    for (int index {0}; index < _processor->mainWindowState.chainViewScrollPositions.size(); index++) {
+        chainScrollPositionsElement->setAttribute(
+            getChainPositionXMLName(index), _processor->mainWindowState.chainViewScrollPositions[index]
+        );
+    }
+
+    element->setAttribute(XML_LFO_BUTTONS_POSITION_STR, _processor->mainWindowState.lfoButtonsScrollPosition);
+    element->setAttribute(XML_ENV_BUTTONS_POSITION_STR, _processor->mainWindowState.envButtonsScrollPosition);
 }
 
 //==============================================================================

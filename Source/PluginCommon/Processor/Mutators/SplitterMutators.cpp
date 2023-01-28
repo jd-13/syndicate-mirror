@@ -182,19 +182,13 @@ namespace SplitterMutators {
         return SPLIT_TYPE::SERIES;
     }
 
-    bool addChain(std::shared_ptr<PluginSplitterParallel> splitter) {
-        // Number of parallel chains is limited to the same as the crossover to avoid weird edge cases
-        // when switching bands
-        if (splitter->chains.size() < WECore::MONSTR::Parameters::NUM_BANDS.maxValue) {
-            splitter->chains.emplace_back(std::make_shared<PluginChain>(splitter->getModulationValueCallback), false);
-            ChainProcessor::prepareToPlay(*(splitter->chains[splitter->chains.size() - 1].chain.get()), splitter->config);
-            splitter->chains[splitter->chains.size() - 1].chain->latencyListener.setSplitter(splitter.get());
+    void addChain(std::shared_ptr<PluginSplitterParallel> splitter) {
+        splitter->chains.emplace_back(std::make_shared<PluginChain>(splitter->getModulationValueCallback), false);
 
-            splitter->onLatencyChange();
-            return true;
-        }
+        ChainProcessor::prepareToPlay(*(splitter->chains[splitter->chains.size() - 1].chain.get()), splitter->config);
+        splitter->chains[splitter->chains.size() - 1].chain->latencyListener.setSplitter(splitter.get());
 
-        return false;
+        splitter->onLatencyChange();
     }
 
     bool removeChain(std::shared_ptr<PluginSplitterParallel> splitter, int chainNumber) {

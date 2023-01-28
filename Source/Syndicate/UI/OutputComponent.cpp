@@ -118,10 +118,11 @@ void OutputComponent::resized() {
     panLabel->setBounds(availableArea.removeFromTop(24));
     availableArea.removeFromTop(20);
 
-    juce::Rectangle<int> meterGainArea = availableArea.removeFromTop(280);
-    outputMeter->setBounds(meterGainArea.removeFromLeft(meterGainArea.getWidth() / 2));
-    outputGainSlider->setBounds(meterGainArea);
-    outputGainLabel->setBounds(availableArea.removeFromTop(24));
+    availableArea.removeFromBottom(8);
+    outputGainLabel->setBounds(availableArea.removeFromBottom(24));
+
+    outputMeter->setBounds(availableArea.removeFromLeft(availableArea.getWidth() / 2));
+    outputGainSlider->setBounds(availableArea);
 }
 
 void OutputComponent::sliderValueChanged(juce::Slider* sliderThatWasMoved) {

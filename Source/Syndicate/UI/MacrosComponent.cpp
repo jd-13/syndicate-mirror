@@ -8,6 +8,10 @@ MacrosComponent::MacrosComponent(juce::DragAndDropContainer* dragContainer,
         _macroComponents.push_back(std::make_unique<MacroComponent>(index + 1, dragContainer, macroParams[index], macroNames[index]));
         addAndMakeVisible(_macroComponents[index].get());
     }
+
+#ifdef RESIZE_DISABLE_EDIT
+    _hasAlreadyBeenResized = false;
+#endif
 }
 
 MacrosComponent::~MacrosComponent() {
@@ -34,6 +38,16 @@ void MacrosComponent::resized() {
     }
 
     flexBox.performLayout(availableArea.toFloat());
+
+#ifdef RESIZE_DISABLE_EDIT
+    if (_hasAlreadyBeenResized) {
+        for (std::unique_ptr<MacroComponent>& component : _macroComponents) {
+            component->disableEdit();
+        }
+    } else {
+        _hasAlreadyBeenResized = true;
+    }
+#endif
 }
 
 void MacrosComponent::onParameterUpdate() {

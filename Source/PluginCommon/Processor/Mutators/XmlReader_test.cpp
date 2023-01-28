@@ -538,6 +538,9 @@ SCENARIO("XmlReader: Can restore ChainSlotPlugin") {
         const juce::Rectangle<int> bounds(150, 200);
         e.setAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR, bounds.toString());
 
+        const juce::Rectangle<int> displayArea(2000, 1000);
+        e.setAttribute(XML_DISPLAY_AREA_STR, displayArea.toString());
+
         const std::string testString("testPluginData");
         juce::MemoryBlock block(testString.size(), true);
         block.copyFrom(testString.c_str(), 0, testString.size());
@@ -560,7 +563,8 @@ SCENARIO("XmlReader: Can restore ChainSlotPlugin") {
             THEN("A ChainSlotPlugin is created with the correct fields") {
                 REQUIRE(slot != nullptr);
                 CHECK(slot->isBypassed == isBypassed);
-                CHECK(*slot->editorBounds.get() == bounds);
+                CHECK(slot->editorBounds->value().editorBounds == bounds);
+                CHECK(slot->editorBounds->value().displayArea == displayArea);
 
                 auto plugin = dynamic_cast<XMLTestPluginInstance*>(slot->plugin.get());
                 REQUIRE(plugin != nullptr);

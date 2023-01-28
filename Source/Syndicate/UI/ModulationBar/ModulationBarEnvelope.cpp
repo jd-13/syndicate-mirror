@@ -177,7 +177,13 @@ void ModulationBarEnvelope::resized() {
     availableArea.removeFromBottom(4);
 
     juce::Rectangle<int> inputArea = availableArea.removeFromLeft(availableArea.getWidth() / 5);
-    inputArea.removeFromRight(4);
+
+    // Enforce the max width for this section (otherwise buttons look silly)
+    constexpr int MAX_INPUT_AREA_WIDTH {100};
+    const int excessWidth {std::max(inputArea.getWidth() - MAX_INPUT_AREA_WIDTH, 0)};
+    inputArea.removeFromLeft(excessWidth / 2.0);
+    inputArea.removeFromRight(excessWidth / 2.0 - 4);
+
     filterButton->setBounds(inputArea.removeFromTop(24));
     inputArea.removeFromTop(4);
     scInButton->setBounds(inputArea.removeFromBottom(24));
@@ -289,7 +295,7 @@ void ModulationBarEnvelope::FilterSliderLookAndFeel::drawLinearSliderThumb(
 }
 
 int ModulationBarEnvelope::FilterSliderLookAndFeel::getSliderThumbRadius(juce::Slider& slider) {
-    return slider.getWidth() / 8;
+    return slider.getHeight() / 8;
 }
 
 ModulationBarEnvelope::FilterSlider::FilterSlider() :

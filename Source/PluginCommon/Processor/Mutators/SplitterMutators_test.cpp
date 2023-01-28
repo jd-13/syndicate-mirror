@@ -118,11 +118,10 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
             auto splitterParallel = std::make_shared<PluginSplitterParallel>(std::dynamic_pointer_cast<PluginSplitter>(splitterSeries));
             splitterSeries.reset();
             {
-                bool isSuccess = SplitterMutators::addChain(splitterParallel);
-                isSuccess &= SplitterMutators::addChain(splitterParallel);
+                SplitterMutators::addChain(splitterParallel);
+                SplitterMutators::addChain(splitterParallel);
 
                 // THEN("The splitter contains a chain with two slots, and two empty chains")
-                CHECK(isSuccess);
                 CHECK(splitterParallel->chains.size() == 3);
                 CHECK(splitterParallel->chains[0].chain->chain.size() == 2);
                 CHECK(splitterParallel->chains[1].chain->chain.size() == 0);
@@ -213,55 +212,26 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
                 receivedLatency = 0;
             }
 
-            // WHEN("Too many chains are added")
-            {
-                bool isSuccess = SplitterMutators::addChain(splitterParallel);
-                isSuccess &= SplitterMutators::addChain(splitterParallel);
-                isSuccess &= SplitterMutators::addChain(splitterParallel);
-
-                REQUIRE(isSuccess);
-                REQUIRE(splitterParallel->chains.size() == 6);
-
-                // Reset
-                latencyCalled = false;
-                receivedLatency = 0;
-
-                // Attempt to add the seventh chain
-                isSuccess = SplitterMutators::addChain(splitterParallel);
-
-                // THEN("The last chain couldn't be added")
-                CHECK(!isSuccess);
-                CHECK(splitterParallel->chains.size() == 6);
-                CHECK(!latencyCalled);
-                CHECK(receivedLatency == 0);
-
-                // Reset
-                latencyCalled = false;
-                receivedLatency = 0;
-            }
-
             // WHEN("A chain with a gain stage is removed")
             {
                 auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterParallel);
-                bool isSuccess = SplitterMutators::insertGainStage(splitter, 3, 0);
+                bool isSuccess = SplitterMutators::insertGainStage(splitter, 1, 0);
 
                 REQUIRE(isSuccess);
-                REQUIRE(splitterParallel->chains[3].chain->chain.size() == 1);
+                REQUIRE(splitterParallel->chains.size() == 3);
+                REQUIRE(splitterParallel->chains[1].chain->chain.size() == 1);
 
                 // Reset
                 latencyCalled = false;
                 receivedLatency = 0;
 
-                isSuccess = SplitterMutators::removeChain(splitterParallel, 3);
+                isSuccess = SplitterMutators::removeChain(splitterParallel, 1);
 
                 // THEN("The correct chain is removed")
                 CHECK(isSuccess);
-                CHECK(splitterParallel->chains.size() == 5);
+                CHECK(splitterParallel->chains.size() == 2);
                 CHECK(splitterParallel->chains[0].chain->chain.size() == 1);
                 CHECK(splitterParallel->chains[1].chain->chain.size() == 0);
-                CHECK(splitterParallel->chains[2].chain->chain.size() == 0);
-                CHECK(splitterParallel->chains[3].chain->chain.size() == 0);
-                CHECK(splitterParallel->chains[4].chain->chain.size() == 0);
                 CHECK(latencyCalled);
                 CHECK(receivedLatency == 10);
 
@@ -276,7 +246,7 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
 
                 // THEN("The nothing changes")
                 CHECK(!isSuccess);
-                CHECK(splitterParallel->chains.size() == 5);
+                CHECK(splitterParallel->chains.size() == 2);
                 CHECK(!latencyCalled);
                 CHECK(receivedLatency == 0);
 
@@ -287,10 +257,7 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
 
             WHEN("A too many chains are removed")
             {
-                bool isSuccess = SplitterMutators::removeChain(splitterParallel, 0);
-                isSuccess &= SplitterMutators::removeChain(splitterParallel, 3);
-                isSuccess &= SplitterMutators::removeChain(splitterParallel, 2);
-                isSuccess &= SplitterMutators::removeChain(splitterParallel, 1);
+                bool isSuccess = SplitterMutators::removeChain(splitterParallel, 1);
 
                 REQUIRE(isSuccess);
                 REQUIRE(splitterParallel->chains.size() == 1);
@@ -304,7 +271,7 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
                 // THEN("The nothing changes")
                 CHECK(!isSuccess);
                 CHECK(splitterParallel->chains.size() == 1);
-                CHECK(splitterParallel->chains[0].chain->chain.size() == 0);
+                CHECK(splitterParallel->chains[0].chain->chain.size() == 1);
                 CHECK(!latencyCalled);
                 CHECK(receivedLatency == 0);
 
@@ -627,14 +594,18 @@ SCENARIO("SplitterMutators: PluginEditorBounds can be retrieved") {
         SplitterMutators::insertGainStage(splitter, 0, 0);
         SplitterMutators::insertPlugin(splitter, std::make_shared<MutatorTestPluginInstance>(), 1, 0);
 
-        juce::Rectangle<int> expectedBounds(10, 15, 40, 40);
-        std::dynamic_pointer_cast<ChainSlotPlugin>(splitter->chains[1].chain->chain[0])->editorBounds = std::make_shared<PluginEditorBounds>(juce::Rectangle<int>(10, 15, 40, 40));
+        auto& pluginBounds = std::dynamic_pointer_cast<ChainSlotPlugin>(splitter->chains[1].chain->chain[0])->editorBounds;
+        pluginBounds.reset(new PluginEditorBounds());
+        *(pluginBounds.get()) = PluginEditorBoundsContainer(
+            juce::Rectangle<int>(150, 200),
+            juce::Rectangle<int>(2000, 1000));
 
         WHEN("Editor bounds are retrieved for a plugin") {
             auto bounds = SplitterMutators::getPluginEditorBounds(splitter, 1, 0);
 
             THEN("Bounds are retrieved correctly") {
-                CHECK(bounds->value() == expectedBounds);
+                CHECK(bounds->value().editorBounds == juce::Rectangle<int>(150, 200));
+                CHECK(bounds->value().displayArea == juce::Rectangle<int>(2000, 1000));
             }
         }
 

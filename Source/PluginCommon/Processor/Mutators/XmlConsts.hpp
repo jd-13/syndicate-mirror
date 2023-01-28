@@ -17,6 +17,7 @@ inline const char* XML_MODULATION_TARGET_PARAMETER_NAME_STR {"TargetParameterNam
 inline const char* XML_MODULATION_REST_VALUE_STR {"RestValue"};
 inline const char* XML_MODULATION_SOURCE_AMOUNT {"SourceAmount"};
 inline const char* XML_PLUGIN_EDITOR_BOUNDS_STR {"PluginEditorBounds"};
+inline const char* XML_DISPLAY_AREA_STR {"DisplayArea"};
 
 inline const char* XML_MODULATION_SOURCE_ID {"SourceId"};
 inline const char* XML_MODULATION_SOURCE_TYPE {"SourceType"};

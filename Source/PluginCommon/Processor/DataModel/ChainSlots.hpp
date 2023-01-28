@@ -98,7 +98,17 @@ struct PluginModulationConfig {
     }
 };
 
-typedef std::optional<juce::Rectangle<int>> PluginEditorBounds;
+struct PluginEditorBoundsContainer {
+    juce::Rectangle<int> editorBounds;
+    juce::Rectangle<int> displayArea;
+
+    PluginEditorBoundsContainer(
+        juce::Rectangle<int> newEditorBounds,
+        juce::Rectangle<int> newDisplayAreaBounds) : editorBounds(newEditorBounds),
+                                                     displayArea(newDisplayAreaBounds) { }
+};
+
+typedef std::optional<PluginEditorBoundsContainer> PluginEditorBounds;
 
 /**
  * Represents a plugin in a slot in a processing chain.

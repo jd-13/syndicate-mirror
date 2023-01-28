@@ -26,6 +26,19 @@
 
 class SyndicateAudioProcessorEditor;
 
+struct MainWindowState {
+    juce::Rectangle<int> bounds;
+    int graphViewScrollPosition;
+    std::vector<int> chainViewScrollPositions;
+    int lfoButtonsScrollPosition;
+    int envButtonsScrollPosition;
+
+    MainWindowState() : bounds(0, 0, 700, 550),
+                        graphViewScrollPosition(0),
+                        lfoButtonsScrollPosition(0),
+                        envButtonsScrollPosition(0) {}
+};
+
 //==============================================================================
 /**
 */
@@ -44,6 +57,12 @@ public:
     std::array<juce::String, NUM_MACROS> macroNames;
     std::array<WECore::AREnv::AREnvelopeFollowerSquareLaw, 2> meterEnvelopes;
     std::vector<juce::String> restoreErrors; // Populated during restore, displayed and cleared when the UI is opened
+    juce::AudioPluginFormatManager formatManager;
+    MainWindowState mainWindowState;
+
+    // We store the crossover frequencies so they can be restored if the user switches from a
+    // multiband split to another type and back again
+    std::optional<std::vector<float>> cachedcrossoverFrequencies;
 
     //==============================================================================
     SyndicateAudioProcessor();
@@ -112,6 +131,8 @@ public:
 
     void insertGainStage(int chainNumber, int pluginNumber);
 
+    void copySlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
+
     void moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
 
     /**
@@ -144,10 +165,12 @@ private:
         void _restoreChainParameters();
         void _restoreModulationSourcesFromXml(juce::XmlElement* element);
         void _restoreMacroNamesFromXml(juce::XmlElement* element);
+        void _restoreMainWindowStateFromXml(juce::XmlElement* element);
 
         void _writeSplitterToXml(juce::XmlElement* element);
         void _writeModulationSourcesToXml(juce::XmlElement* element);
         void _writeMacroNamesToXml(juce::XmlElement* element);
+        void _writeMainWindowStateToXml(juce::XmlElement* element);
     };
 
     MainLogger _logger;

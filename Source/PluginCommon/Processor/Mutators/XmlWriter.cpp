@@ -93,7 +93,8 @@ namespace XmlWriter {
 
         // Store the editor bounds
         if (chainSlot->editorBounds->has_value()) {
-            element->setAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR, chainSlot->editorBounds->value().toString());
+            element->setAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR, chainSlot->editorBounds->value().editorBounds.toString());
+            element->setAttribute(XML_DISPLAY_AREA_STR, chainSlot->editorBounds->value().displayArea.toString());
         }
     }
 

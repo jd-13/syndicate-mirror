@@ -139,7 +139,7 @@ SCENARIO("XmlWriter: Can write PluginSplitter") {
 
             // WHEN("The splitter is changed to multiband")
             {
-                auto splitterMultiband = std::make_shared<PluginSplitterMultiband>(splitter);
+                auto splitterMultiband = std::make_shared<PluginSplitterMultiband>(splitter, std::optional<std::vector<float>>());
                 splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterMultiband);
 
                 juce::XmlElement e("test");
@@ -310,8 +310,10 @@ SCENARIO("XmlWriter: Can write ChainSlotPlugin") {
         auto slot = std::make_shared<ChainSlotPlugin>(plugin, isBypassed, modulationCallback);
         slot->modulationConfig = config;
 
-        const juce::Rectangle<int> bounds(150, 200);
-        slot->editorBounds = std::make_shared<PluginEditorBounds>(std::optional<juce::Rectangle<int>>(bounds));
+        slot->editorBounds.reset(new PluginEditorBounds());
+        *(slot->editorBounds.get()) = PluginEditorBoundsContainer(
+            juce::Rectangle<int>(150, 200),
+            juce::Rectangle<int>(2000, 1000));
 
         WHEN("Asked to write it to XML") {
             juce::XmlElement e("test");
@@ -333,7 +335,8 @@ SCENARIO("XmlWriter: Can write ChainSlotPlugin") {
                 auto paramConfigElement = configElement->getChildByName("ParamConfig_0");
                 CHECK(paramConfigElement->getStringAttribute(XML_MODULATION_TARGET_PARAMETER_NAME_STR) == "testConfig1");
 
-                CHECK(juce::Rectangle<int>::fromString(e.getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) == bounds);
+                CHECK(juce::Rectangle<int>::fromString(e.getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) == slot->editorBounds->value().editorBounds);
+                CHECK(juce::Rectangle<int>::fromString(e.getStringAttribute(XML_DISPLAY_AREA_STR)) == slot->editorBounds->value().displayArea);
             }
         }
     }

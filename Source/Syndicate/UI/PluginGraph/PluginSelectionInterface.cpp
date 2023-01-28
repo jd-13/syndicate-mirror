@@ -16,6 +16,7 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
     PluginSelectorListParameters parameters {
         _processor.pluginScanClient,
         _processor.pluginSelectorState,
+        _processor.formatManager,
         [&](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) { _onPluginSelected(std::move(plugin), error); },
         [&]() { return _processor.getSampleRate(); },
         [&]() { return _processor.getBlockSize(); },
@@ -104,6 +105,10 @@ bool PluginSelectionInterface::getPluginBypass(int chainNumber, int pluginNumber
 
 void PluginSelectionInterface::insertGainStage(int chainNumber, int pluginNumber) {
     _processor.insertGainStage(chainNumber, pluginNumber);
+}
+
+void PluginSelectionInterface::copySlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
+    _processor.copySlot(fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 }
 
 void PluginSelectionInterface::moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {

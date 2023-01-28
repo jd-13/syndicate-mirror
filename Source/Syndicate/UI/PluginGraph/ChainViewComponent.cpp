@@ -6,18 +6,20 @@
 #include "ChainMutators.hpp"
 
 namespace {
-    std::tuple<bool, int, int> slotPositionFromVariant(juce::var variant) {
+    std::tuple<bool, int, int, bool> slotDetailsFromVariant(juce::var variant) {
         bool isValid {false};
         int chainNumber {0};
         int slotNumber {0};
+        bool isCopy {false};
 
-        if (variant.isArray() && variant.size() == 2 && variant[0].isInt() && variant[1].isInt()) {
+        if (variant.isArray() && variant.size() == 3 && variant[0].isInt() && variant[1].isInt() && variant[2].isBool()) {
             isValid = true;
             chainNumber = variant[0];
             slotNumber = variant[1];
+            isCopy = variant[2];
         }
 
-        return std::make_tuple(isValid, chainNumber, slotNumber);
+        return std::make_tuple(isValid, chainNumber, slotNumber, isCopy);
     }
 }
 
@@ -77,6 +79,8 @@ void ChainViewComponent::resized() {
     availableArea.removeFromLeft(1);
     availableArea.removeFromRight(1);
 
+    const int scrollPosition {_viewPort->getViewPositionY()};
+
     _viewPort->setBounds(availableArea);
 
     // First pass to calculate the scrollable height
@@ -113,6 +117,9 @@ void ChainViewComponent::resized() {
             _pluginSlots[slotNumber]->setBounds(scrollableArea.removeFromTop(UIUtils::PLUGIN_SLOT_HEIGHT).withTrimmedRight(scrollbarWidth));
         }
     }
+
+    // Maintain the previous scroll position
+    _viewPort->setViewPosition(0, scrollPosition);
 }
 
 void ChainViewComponent::paint(juce::Graphics& g) {
@@ -126,15 +133,15 @@ void ChainViewComponent::paint(juce::Graphics& g) {
 }
 
 bool ChainViewComponent::isInterestedInDragSource(const SourceDetails& dragSourceDetails) {
-    auto [isValid, fromChainNumber, fromSlotNumber] = slotPositionFromVariant(dragSourceDetails.description);
+    auto [isValid, fromChainNumber, fromSlotNumber, isCopy] = slotDetailsFromVariant(dragSourceDetails.description);
 
-    // TODO check if the slot has actually moved
+    // TODO only interested if slot has actually moved or isCopy
 
     return isValid;
 }
 
 void ChainViewComponent::itemDragEnter(const SourceDetails& dragSourceDetails) {
-    auto [isValid, fromChainNumber, fromSlotNumber] = slotPositionFromVariant(dragSourceDetails.description);
+    auto [isValid, fromChainNumber, fromSlotNumber, isCopy] = slotDetailsFromVariant(dragSourceDetails.description);
 
     if (isValid) {
         _shouldDrawDragHint = true;
@@ -144,7 +151,7 @@ void ChainViewComponent::itemDragEnter(const SourceDetails& dragSourceDetails) {
 }
 
 void ChainViewComponent::itemDragMove(const SourceDetails& dragSourceDetails) {
-    auto [isValid, fromChainNumber, fromSlotNumber] = slotPositionFromVariant(dragSourceDetails.description);
+    auto [isValid, fromChainNumber, fromSlotNumber, isCopy] = slotDetailsFromVariant(dragSourceDetails.description);
 
     if (isValid) {
         _dragHintSlotNumber = _dragCursorPositionToSlotNumber(dragSourceDetails.localPosition);
@@ -162,7 +169,7 @@ void ChainViewComponent::itemDropped(const SourceDetails& dragSourceDetails) {
     repaint();
 
     // Actually move the slot
-    auto [isValid, fromChainNumber, fromSlotNumber] = slotPositionFromVariant(dragSourceDetails.description);
+    auto [isValid, fromChainNumber, fromSlotNumber, isCopy] = slotDetailsFromVariant(dragSourceDetails.description);
 
     if (isValid) {
         int targetSlot {_dragHintSlotNumber};
@@ -173,7 +180,11 @@ void ChainViewComponent::itemDropped(const SourceDetails& dragSourceDetails) {
             targetSlot--;
         }
 
-        _pluginSelectionInterface.moveSlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
+        if (isCopy) {
+            _pluginSelectionInterface.copySlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
+        } else {
+            _pluginSelectionInterface.moveSlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
+        }
     }
 }
 

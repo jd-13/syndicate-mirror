@@ -167,12 +167,28 @@ public:
         crossover.setIsStereo(canDoStereoSplitTypes(config.layout));
     }
 
-    PluginSplitterMultiband(std::shared_ptr<PluginSplitter> otherSplitter)
+    PluginSplitterMultiband(std::shared_ptr<PluginSplitter> otherSplitter, std::optional<std::vector<float>> crossoverFrequencies)
                             : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS) {
         juce::Logger::writeToLog("Converted to PluginSplitterMultiband");
 
-        // Set the crossover to have the correct number of bands and the correct frequencies (TODO)
-        crossover.setNumBands(chains.size());
+        // Set the crossover to have the correct number of bands (this will also default the frequencies)
+        while ((chains.size() < crossover.getNumBands()) &&
+               (crossover.getNumBands() > WECore::MONSTR::Parameters::NUM_BANDS.minValue)) {
+            crossover.removeBand();
+        }
+
+        while ((chains.size() > crossover.getNumBands()) &&
+               (crossover.getNumBands() < WECore::MONSTR::Parameters::NUM_BANDS.maxValue)) {
+            crossover.addBand();
+        }
+
+        // Restore the crossover frequencies if there are previous ones
+        if (crossoverFrequencies.has_value()) {
+            const size_t numCrossovers {std::min(crossoverFrequencies.value().size(), crossover.getNumBands())};
+            for (int index {0}; index < numCrossovers; index++) {
+                crossover.setCrossoverFrequency(index, crossoverFrequencies.value()[index]);
+            }
+        }
 
         crossover.setIsStereo(canDoStereoSplitTypes(config.layout));
 

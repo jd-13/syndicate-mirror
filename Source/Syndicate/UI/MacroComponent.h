@@ -4,6 +4,13 @@
 #include "ModulationSourceDefinition.hpp"
 #include "UIUtils.h"
 
+#if defined(__APPLE__) && defined(__aarch64__)
+// Workaround for an Apple M1 bug after resize
+// https://forum.juce.com/t/bug-m1-apple-silicon-keyboard-focus-lost-permanently-in-logic-when-plugin-is-resized/51292
+// TODO remove this when the bug is resolved
+#define RESIZE_DISABLE_EDIT
+#endif
+
 class MacroComponent  : public juce::Component,
                         public juce::Slider::Listener,
                         public juce::Label::Listener,
@@ -23,6 +30,12 @@ public:
     void sliderDragEnded(juce::Slider* slider) override;
     void labelTextChanged(juce::Label* labelThatHasChanged) override;
     void mouseDrag(const juce::MouseEvent& e) override;
+
+#ifdef RESIZE_DISABLE_EDIT
+    void disableEdit() {
+        nameLbl->setEditable(false, false, false);
+    }
+#endif
 
 private:
     juce::DragAndDropContainer* _dragContainer;

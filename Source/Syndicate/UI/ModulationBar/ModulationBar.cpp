@@ -5,7 +5,8 @@
 ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
                              juce::DragAndDropContainer* dragContainer) :
         _processor(processor),
-        _dragContainer(dragContainer) {
+        _dragContainer(dragContainer),
+        _hasRestoredScroll(false) {
     _addButtonLookAndFeel.reset(new AddButtonLookAndFeel());
 
     auto setUpButtonsView = [&] (std::unique_ptr<juce::Viewport>& view) {
@@ -31,6 +32,9 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
 }
 
 ModulationBar::~ModulationBar() {
+    _processor.mainWindowState.lfoButtonsScrollPosition = _lfoButtonsView->getViewPositionY();
+    _processor.mainWindowState.envButtonsScrollPosition = _envelopeButtonsView->getViewPositionY();
+
     _addLfoButton->setLookAndFeel(nullptr);
     _addEnvelopeButton->setLookAndFeel(nullptr);
 
@@ -168,6 +172,15 @@ void ModulationBar::_resetButtons() {
     _addEnvelopeButton->setLookAndFeel(_addButtonLookAndFeel.get());
 
     resized();
+
+    // We need to run this only once after the graph view has been constructed to restore the scroll
+    // position to the same as before the UI was last closed
+    if (!_hasRestoredScroll) {
+        _hasRestoredScroll = true;
+
+        _lfoButtonsView->setViewPosition(0, _processor.mainWindowState.lfoButtonsScrollPosition);
+        _envelopeButtonsView->setViewPosition(0, _processor.mainWindowState.envButtonsScrollPosition);
+    }
 }
 
 void ModulationBar::_createModulationSourceButton(ModulationSourceDefinition definition) {

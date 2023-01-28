@@ -288,8 +288,20 @@ namespace XmlReader {
 
                         // Restore the editor bounds
                         if (element->hasAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) {
-                            juce::String boundsString = element->getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR);
-                            retVal->editorBounds.reset(new PluginEditorBounds(juce::Rectangle<int>::fromString(boundsString)));
+                            const juce::String boundsString = element->getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR);
+
+                            if (element->hasAttribute(XML_DISPLAY_AREA_STR)) {
+                                const juce::String displayString = element->getStringAttribute(XML_DISPLAY_AREA_STR);
+
+                                retVal->editorBounds.reset(new PluginEditorBounds());
+                                *(retVal->editorBounds.get()) =  PluginEditorBoundsContainer(
+                                    juce::Rectangle<int>::fromString(boundsString),
+                                    juce::Rectangle<int>::fromString(displayString)
+                                );
+                            } else {
+                                juce::Logger::writeToLog("Missing attribute " + juce::String(XML_DISPLAY_AREA_STR));
+                            }
+
                         } else {
                             juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_EDITOR_BOUNDS_STR));
                         }

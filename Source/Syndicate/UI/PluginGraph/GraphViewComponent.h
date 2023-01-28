@@ -11,6 +11,8 @@ public:
     GraphViewComponent(SyndicateAudioProcessor& processor);
     ~GraphViewComponent();
 
+    void resized() override;
+
     void onParameterUpdate();
 
     UIUtils::LinkedScrollView* getViewport() { return _viewPort.get(); }
@@ -21,4 +23,5 @@ private:
     PluginSelectionInterface _pluginSelectionInterface;
     PluginModulationInterface _pluginModulationInterface;
     std::unique_ptr<UIUtils::LinkedScrollView> _viewPort;
+    bool _hasRestoredScroll;
 };

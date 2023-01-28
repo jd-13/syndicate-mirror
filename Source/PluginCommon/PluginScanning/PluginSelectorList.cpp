@@ -99,13 +99,11 @@ PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(
           _pluginCreationCallback(selectorListParameters.pluginCreationCallback),
           _getSampleRateCallback(selectorListParameters.getSampleRate),
           _getBlockSizeCallback(selectorListParameters.getBlockSize),
+          _formatManager(selectorListParameters.formatManager),
           _rowBackgroundColour(style.backgroundColour),
           _rowTextColour(style.neutralColour) {
     _pluginListSorter.setPluginList(_scanner.getPluginTypes());
     _pluginList = _pluginListSorter.getFilteredPluginList();
-
-    // Configure the format manager
-    _formatManager.addDefaultFormats();
 
     juce::Logger::writeToLog("Created PluginSelectorTableListBoxModel, found " + juce::String(_pluginList.size()) + " plugins");
 }

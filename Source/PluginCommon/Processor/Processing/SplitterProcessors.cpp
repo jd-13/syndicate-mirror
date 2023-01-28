@@ -151,9 +151,9 @@ namespace {
         const float* midRead {splitter.midBuffer->getReadPointer(0)};
         const float* sideRead {splitter.sideBuffer->getReadPointer(0)};
 
-        // Subtract side from mid to get the left buffer, add them to get the right buffer
-        juce::FloatVectorOperations::subtract(leftWrite, midRead, sideRead, numSamples);
-        juce::FloatVectorOperations::add(rightWrite, midRead, sideRead, numSamples);
+        // Add mid and side to get the left buffer, subtract them to get the right buffer
+        juce::FloatVectorOperations::add(leftWrite, midRead, sideRead, numSamples);
+        juce::FloatVectorOperations::subtract(rightWrite, midRead, sideRead, numSamples);
     }
 }
 

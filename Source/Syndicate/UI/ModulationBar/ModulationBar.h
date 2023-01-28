@@ -44,6 +44,8 @@ private:
     juce::DragAndDropContainer* _dragContainer;
     std::unique_ptr<AddButtonLookAndFeel> _addButtonLookAndFeel;
 
+    bool _hasRestoredScroll;
+
     void _resetButtons();
     void _createModulationSourceButton(ModulationSourceDefinition definition);
     void _selectModulationSource(ModulationButton* selectedButton);

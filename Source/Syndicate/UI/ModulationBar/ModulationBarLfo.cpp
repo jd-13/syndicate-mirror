@@ -189,6 +189,12 @@ void ModulationBarLfo::resized() {
 
     // Freq/tempo area
     juce::Rectangle<int> freqArea = availableArea.removeFromLeft(availableArea.getWidth() / 5);
+
+    // Enforce the max width for this section (otherwise buttons look silly)
+    constexpr int MAX_FREQ_AREA_WIDTH {100};
+    const int excessWidth {std::max(freqArea.getWidth() - MAX_FREQ_AREA_WIDTH, 0)};
+    freqArea = freqArea.reduced(excessWidth / 2.0, 0);
+
     const int freqSliderSize {freqArea.getHeight() / 2 - BUTTON_HEIGHT};
     tempoSyncButton->setBounds(freqArea.removeFromTop(BUTTON_HEIGHT));
 
@@ -224,6 +230,11 @@ void ModulationBarLfo::resized() {
     phaseSlider->setBounds(depthPhaseArea);
 
     // Wave area
+    constexpr int MAX_WAVE_AREA_WIDTH {450};
+    const int excessWaveWidth {std::max(availableArea.getWidth() - MAX_WAVE_AREA_WIDTH, 0)};
+    availableArea.removeFromLeft(excessWaveWidth / 2.0);
+    availableArea.removeFromRight(excessWaveWidth / 2.0);
+
     juce::FlexBox waveFlexBox;
     waveFlexBox.flexDirection = juce::FlexBox::Direction::row;
     waveFlexBox.flexWrap = juce::FlexBox::Wrap::wrap;
@@ -293,7 +304,11 @@ void ModulationBarLfo::TempoSliderLookAndFeel::drawButtonText(juce::Graphics& g,
                                                               bool /*isButtonDown*/) {
     g.setColour(findColour(juce::TextButton::textColourOnId));
 
-    juce::Rectangle<int> area = textButton.getLocalBounds().withPosition(0, 0).reduced(8)/*.withTrimmedTop(2).withTrimmedBottom(2)*/;
+    juce::Rectangle<int> area = textButton.getLocalBounds().withPosition(0, 0).reduced(8);
+
+    constexpr int MAX_CARAT_WIDTH {10};
+    const int excessWidth {std::max(area.getWidth() - MAX_CARAT_WIDTH, 0)};
+    area = area.reduced(excessWidth / 2.0, 0);
 
     const int horizontalMid {area.getWidth() / 2 + area.getX()};
     const int centreY {area.getY() + (textButton.getButtonText() == "+" ? 0 : area.getHeight())};
