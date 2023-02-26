@@ -117,10 +117,11 @@ GainStageSlotComponent::GainStageSlotComponent(
     // Initialise the slider values
     // (we don't need to set this again in an onParameterUpdate() or anything like that as nothing
     // else can change the internal value but this slider)
-    const double logGain {WECore::CoreMath::linearTodB(_pluginSelectionInterface.getGainStageGain(_chainNumber, _slotNumber))};
+    auto [linearGain, pan] = _pluginSelectionInterface.getGainStageGainAndPan(_chainNumber, _slotNumber);
+    const double logGain {WECore::CoreMath::linearTodB(linearGain)};
     gainSld->setValue(logGain, juce::dontSendNotification);
 
-    panSld->setValue(_pluginSelectionInterface.getGainStagePan(_chainNumber, _slotNumber), juce::dontSendNotification);
+    panSld->setValue(pan, juce::dontSendNotification);
 
     if (levelsInterface.has_value()) {
         panSld->setEnabled(levelsInterface.value().getNumChannels() == 2);

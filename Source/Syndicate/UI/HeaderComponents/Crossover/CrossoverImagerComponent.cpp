@@ -1,6 +1,6 @@
 #include "CrossoverImagerComponent.h"
 #include "UIUtils.h"
-#include "SplitterMutators.hpp"
+#include "SplitterInterface.hpp"
 
 namespace {
     int dBToYPos(float dBValue, int crossoverHeight) {
@@ -27,34 +27,29 @@ CrossoverImagerComponent::CrossoverImagerComponent(SyndicateAudioProcessor& proc
 void CrossoverImagerComponent::paint(juce::Graphics& g) {
     _stopEvent.reset();
 
-    auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(_processor.pluginSplitter);
-
     g.fillAll(UIUtils::backgroundColour);
 
-    if (multibandSplitter != nullptr) {
-        const int numPoints {SplitterMutators::getFFTOutputsSize()};
-        const float* fftBuffer {SplitterMutators::getFFTOutputs(multibandSplitter)};
+    auto fftBuffer = SplitterInterface::getFFTOutputs(_processor.splitter);
 
-        // Draw a line to each point in the FFT
-        juce::Path p;
+    // Draw a line to each point in the FFT
+    juce::Path p;
 
-        for (int index {1}; index < numPoints; index++) {
-            // TODO scale X and Y positions correctly
-            const int XPos {indexToXPos(index, numPoints, getWidth())};
+    for (int index {1}; index < fftBuffer.size(); index++) {
+        // TODO scale X and Y positions correctly
+        const int XPos {indexToXPos(index, fftBuffer.size(), getWidth())};
 
-            const float leveldB {static_cast<float>(WECore::CoreMath::linearTodB(fftBuffer[index]))};
-            const int YPos {dBToYPos(leveldB, getHeight())};
+        const float leveldB {static_cast<float>(WECore::CoreMath::linearTodB(fftBuffer[index]))};
+        const int YPos {dBToYPos(leveldB, getHeight())};
 
-            if (index == 1) {
-                p.startNewSubPath(XPos, YPos);
-            } else {
-                p.lineTo(XPos, YPos);
-            }
+        if (index == 1) {
+            p.startNewSubPath(XPos, YPos);
+        } else {
+            p.lineTo(XPos, YPos);
         }
-
-        g.setColour(UIUtils::neutralControlColour);
-        g.strokePath(p, juce::PathStrokeType(0.5f));
-
-        _stopEvent.signal();
     }
+
+    g.setColour(UIUtils::neutralControlColour);
+    g.strokePath(p, juce::PathStrokeType(0.5f));
+
+    _stopEvent.signal();
 }

@@ -361,9 +361,9 @@ namespace UIUtils {
         repaint();
     }
 
-    CircleButton::CircleButton(const juce::String& buttonName) : juce::Button(buttonName) { }
+    BypassButton::BypassButton(const juce::String& buttonName) : juce::Button(buttonName) { }
 
-    void CircleButton::paintButton(juce::Graphics& g,
+    void BypassButton::paintButton(juce::Graphics& g,
                                    bool /*shouldDrawButtonAsHighlighted*/,
                                    bool /*shouldDrawButtonAsDown*/) {
         const juce::Rectangle<float> area = getLocalBounds().reduced(1, 1).toFloat();
@@ -372,7 +372,31 @@ namespace UIUtils {
         g.drawEllipse(area, 1.0f);
         if (getToggleState()) {
             g.fillEllipse(area);
+            g.setColour(findColour(juce::TextButton::textColourOnId));
+        } else {
+            g.setColour(findColour(juce::TextButton::textColourOffId));
         }
+
+        g.drawLine(getWidth() * 0.5, getHeight() * 0.25, getWidth() * 0.5, getHeight() * 0.75, 1.0f);
+    }
+
+    ModulationButton::ModulationButton(const juce::String& buttonName) : juce::Button(buttonName) { }
+
+    void ModulationButton::paintButton(juce::Graphics& g,
+                                   bool /*shouldDrawButtonAsHighlighted*/,
+                                   bool /*shouldDrawButtonAsDown*/) {
+        const juce::Rectangle<float> area = getLocalBounds().reduced(1, 1).toFloat();
+
+        g.setColour(findColour(juce::TextButton::buttonOnColourId));
+        g.drawEllipse(area, 1.0f);
+        if (getToggleState()) {
+            g.fillEllipse(area);
+            g.setColour(findColour(juce::TextButton::textColourOnId));
+        } else {
+            g.setColour(findColour(juce::TextButton::textColourOffId));
+        }
+
+        g.drawText("M", getLocalBounds().reduced(2), juce::Justification::centred, false);
     }
 
     CrossButton::CrossButton(const juce::String& buttonName) : juce::Button(buttonName) { }

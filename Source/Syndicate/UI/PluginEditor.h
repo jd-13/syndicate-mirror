@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 7.0.3
+  Created with Projucer version: 7.0.4
 
   ------------------------------------------------------------------------------
 
@@ -24,6 +24,7 @@
 #include "CoreJUCEPlugin/CoreProcessorEditor.h"
 #include "CoreJUCEPlugin/TooltipLabelUpdater.h"
 #include "PluginProcessor.h"
+#include "ImportExportComponent.h"
 #include "MacrosComponent.h"
 #include "OutputComponent.h"
 #include "SplitterButtonsComponent.h"
@@ -54,6 +55,7 @@ public:
     //==============================================================================
     //[UserMethods]     -- You can add your own custom methods in this section.
     void needsGraphRebuild();
+    void needsToRefreshAll();
     //[/UserMethods]
 
     void paint (juce::Graphics& g) override;
@@ -68,6 +70,7 @@ private:
     std::unique_ptr<SplitterHeaderComponent> _splitterHeader;
     bool _isHeaderInitialised;
     std::unique_ptr<UIUtils::PopoverComponent> _errorPopover;
+    std::unique_ptr<ImportExportComponent> _importExportComponent;
     std::unique_ptr<MacrosComponent> _macrosSidebar;
     std::unique_ptr<SplitterButtonsComponent> _splitterButtonsBar;
     std::unique_ptr<juce::Component> _headerExtensionComponent;
@@ -75,6 +78,8 @@ private:
     std::unique_ptr<GraphViewComponent> _graphView;
     std::unique_ptr<ModulationBar> _modulationBar;
     std::unique_ptr<juce::Label> _tooltipLbl;
+    std::mutex _splitterHeaderMutex;
+    SPLIT_TYPE _previousSplitType;
 
     void _enableDoubleClickToDefault();
     void _startSliderReadouts();

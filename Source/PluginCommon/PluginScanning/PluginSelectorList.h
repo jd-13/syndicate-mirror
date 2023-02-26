@@ -32,9 +32,7 @@ public:
 
 private:
     juce::Array<juce::PluginDescription> _fullPluginList;
-
-    bool _isFilterNeeded() const;
-
+    
     bool _passesFilter(const juce::PluginDescription& plugin) const;
 };
 

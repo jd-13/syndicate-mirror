@@ -17,6 +17,7 @@ public:
     ~ModulationButton();
 
     void setIsSelected(bool isSelected);
+    bool getIsSelected() const;
 
     void resized() override;
     void paint(juce::Graphics& g) override;

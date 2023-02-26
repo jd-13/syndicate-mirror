@@ -22,12 +22,21 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
     setUpButtonsView(_lfoButtonsView);
     setUpButtonsView(_envelopeButtonsView);
 
-    _resetButtons();
+    needsRebuild();
 
-    if (_lfoButtons.size() > 0) {
-        _selectModulationSource(_lfoButtons[0].get());
-    } else if (_envelopeButtons.size() > 0) {
-        _selectModulationSource(_envelopeButtons[0].get());
+    // Restore the selection
+    if (_processor.mainWindowState.selectedModulationSource.has_value()) {
+        const ModulationSourceDefinition definition = _processor.mainWindowState.selectedModulationSource.value();
+
+        if (definition.type == MODULATION_TYPE::LFO) {
+            if (definition.id <= _lfoButtons.size()) {
+                _selectModulationSource(_lfoButtons[definition.id - 1].get());
+            }
+        } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
+            if (definition.id <= _envelopeButtons.size()) {
+                _selectModulationSource(_envelopeButtons[definition.id - 1].get());
+            }
+        }
     }
 }
 
@@ -35,6 +44,23 @@ ModulationBar::~ModulationBar() {
     _processor.mainWindowState.lfoButtonsScrollPosition = _lfoButtonsView->getViewPositionY();
     _processor.mainWindowState.envButtonsScrollPosition = _envelopeButtonsView->getViewPositionY();
 
+    // Reset stored state since it might now be invalid
+    _processor.mainWindowState.selectedModulationSource.reset();
+
+    // Store the selection
+    for (int buttonIndex {0}; buttonIndex < _lfoButtons.size() && !_processor.mainWindowState.selectedModulationSource.has_value(); buttonIndex++) {
+        if (_lfoButtons[buttonIndex]->getIsSelected()) {
+            _processor.mainWindowState.selectedModulationSource = _lfoButtons[buttonIndex]->definition;
+        }
+    }
+
+    for (int buttonIndex {0}; buttonIndex < _envelopeButtons.size() && !_processor.mainWindowState.selectedModulationSource.has_value(); buttonIndex++) {
+        if (_envelopeButtons[buttonIndex]->getIsSelected()) {
+            _processor.mainWindowState.selectedModulationSource = _envelopeButtons[buttonIndex]->definition;
+        }
+    }
+
+    // Usual clean up
     _addLfoButton->setLookAndFeel(nullptr);
     _addEnvelopeButton->setLookAndFeel(nullptr);
 
@@ -99,6 +125,16 @@ void ModulationBar::buttonClicked(juce::Button* buttonThatWasClicked) {
         _processor.addEnvelope();
         _resetButtons();
         _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
+    }
+}
+
+void ModulationBar::needsRebuild() {
+    _resetButtons();
+
+    if (_lfoButtons.size() > 0) {
+        _selectModulationSource(_lfoButtons[0].get());
+    } else if (_envelopeButtons.size() > 0) {
+        _selectModulationSource(_envelopeButtons[0].get());
     }
 }
 

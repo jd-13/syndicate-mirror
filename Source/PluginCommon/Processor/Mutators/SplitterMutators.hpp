@@ -45,7 +45,4 @@ namespace SplitterMutators {
     inline size_t getNumBands(std::shared_ptr<PluginSplitterMultiband> splitter) { return splitter->crossover.getNumBands(); }
     void setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val);
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index);
-
-    inline int getFFTOutputsSize() { return FFTProvider::NUM_OUTPUTS; }
-    inline const float* getFFTOutputs(std::shared_ptr<PluginSplitterMultiband> splitter) { return splitter->fftProvider.getOutputs(); }
 }

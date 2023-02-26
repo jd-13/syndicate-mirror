@@ -14,15 +14,14 @@
 #include "CoreJUCEPlugin/CustomParameter.h"
 #include "MainLogger.h"
 #include "PluginScanClient.h"
-#include "PluginSplitter.hpp"
 #include "PluginSelectorState.h"
 #include "PluginParameterSelectorState.h"
 #include "ChainParameters.h"
-#include "General/AudioSpinMutex.h"
 #include "ParameterData.h"
 #include "RichterLFO/RichterLFO.h"
 #include "EnvelopeFollowerWrapper.h"
 #include "PluginConfigurator.hpp"
+#include "SplitterInterface.hpp"
 
 class SyndicateAudioProcessorEditor;
 
@@ -32,6 +31,7 @@ struct MainWindowState {
     std::vector<int> chainViewScrollPositions;
     int lfoButtonsScrollPosition;
     int envButtonsScrollPosition;
+    std::optional<ModulationSourceDefinition> selectedModulationSource;
 
     MainWindowState() : bounds(0, 0, 700, 550),
                         graphViewScrollPosition(0),
@@ -48,8 +48,7 @@ public:
     PluginScanClient pluginScanClient;
     PluginSelectorState pluginSelectorState; // TODO convert this to a custom parameter
     PluginParameterSelectorState pluginParameterSelectorState;
-    std::shared_ptr<PluginSplitter> pluginSplitter;
-    WECore::AudioSpinMutex pluginSplitterMutex;
+    SplitterInterface::Splitter splitter;
     std::vector<ChainParameters> chainParameters;
     std::vector<std::shared_ptr<WECore::Richter::RichterLFO>> lfos;
     std::vector<EnvelopeFollowerWrapper> envelopes;
@@ -59,10 +58,6 @@ public:
     std::vector<juce::String> restoreErrors; // Populated during restore, displayed and cleared when the UI is opened
     juce::AudioPluginFormatManager formatManager;
     MainWindowState mainWindowState;
-
-    // We store the crossover frequencies so they can be restored if the user switches from a
-    // multiband split to another type and back again
-    std::optional<std::vector<float>> cachedcrossoverFrequencies;
 
     //==============================================================================
     SyndicateAudioProcessor();
@@ -110,7 +105,7 @@ public:
     void removeModulationSource(ModulationSourceDefinition definition);
 
     void setSplitType(SPLIT_TYPE splitType);
-    SPLIT_TYPE getSplitType() { return _splitType; }
+    SPLIT_TYPE getSplitType() { return SplitterInterface::getSplitType(splitter); }
 
     // Parallel Split
     void addParallelChain();
@@ -120,7 +115,6 @@ public:
     void addCrossoverBand();
     void removeCrossoverBand();
     void setCrossoverFrequency(size_t index, float val);
-    float getCrossoverFrequency(size_t index);
 
     // Plugin events
     bool onPluginSelectedByUser(std::shared_ptr<juce::AudioPluginInstance> plugin,
@@ -175,12 +169,10 @@ private:
 
     MainLogger _logger;
     SyndicateAudioProcessorEditor* _editor;
-    SPLIT_TYPE _splitType;
     double _outputGainLinear;
 
     SplitterParameters* _splitterParameters;
 
-    bool _isSplitterInitialised;
 
     std::vector<juce::String> _provideParamNamesForMigration() override;
     void _migrateParamValues(std::vector<float>& paramValues) override;

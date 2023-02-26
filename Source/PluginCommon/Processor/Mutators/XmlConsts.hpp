@@ -38,6 +38,7 @@ inline const char* XML_SPLIT_TYPE_LEFTRIGHT_STR {"leftright"};
 inline const char* XML_SPLIT_TYPE_MIDSIDE_STR {"midside"};
 
 inline const char* XML_CROSSOVERS_STR {"Crossovers"};
+inline const char* XML_CACHED_CROSSOVER_FREQUENCIES_STR {"CrossoverFrequencies"};
 
 inline std::string getParameterModulationConfigXmlName(int configNumber) {
     std::string retVal("ParamConfig_");
@@ -95,6 +96,12 @@ inline SPLIT_TYPE stringToSplitType(juce::String splitTypeString) {
 }
 
 inline juce::String getCrossoverXMLName(int crossoverNumber) {
+    juce::String retVal("Crossover_");
+    retVal += juce::String(crossoverNumber);
+    return retVal;
+}
+
+inline juce::String getCachedCrossoverFreqXMLName(int crossoverNumber) {
     juce::String retVal("Crossover_");
     retVal += juce::String(crossoverNumber);
     return retVal;

@@ -47,6 +47,10 @@ void ModulationButton::setIsSelected(bool isSelected) {
     selectButton->setToggleState(isSelected, juce::dontSendNotification);
 }
 
+bool ModulationButton::getIsSelected() const {
+    return selectButton->getToggleState();
+}
+
 void ModulationButton::resized() {
     const int labelWidth {getHeight()};
     const int selectButtonWidth {getWidth() - labelWidth};

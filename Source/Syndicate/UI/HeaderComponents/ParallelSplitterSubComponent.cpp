@@ -1,7 +1,6 @@
 #include "UIUtils.h"
 
 #include "ParallelSplitterSubComponent.h"
-#include "SplitterMutators.hpp"
 
 ParallelSplitterSubComponent::ParallelSplitterSubComponent(SyndicateAudioProcessor& processor,
                                                            juce::Component* extensionComponent,
@@ -55,11 +54,7 @@ void ParallelSplitterSubComponent::buttonClicked(juce::Button* buttonThatWasClic
 }
 
 void ParallelSplitterSubComponent::onParameterUpdate() {
-    // Lock here because we're in onParameterUpdate, so the UI thread could change something while
-    // we're here
-    WECore::AudioSpinLock lock(_processor.pluginSplitterMutex);
-
-    if (_chainButtons.size() != SplitterMutators::getNumChains(_processor.pluginSplitter)) {
+    if (_chainButtons.size() != SplitterInterface::getNumChains(_processor.splitter)) {
         _rebuildHeader();
     }
 
@@ -70,7 +65,7 @@ void ParallelSplitterSubComponent::onParameterUpdate() {
 
 void ParallelSplitterSubComponent::_rebuildHeader() {
     // Set up the scrollable view
-    const size_t numChains {SplitterMutators::getNumChains(_processor.pluginSplitter)};
+    const size_t numChains {SplitterInterface::getNumChains(_processor.splitter)};
     const int scrollPosition {_viewPort->getViewPositionX()};
     const int scrollableWidth {std::max(getWidth(), static_cast<int>(UIUtils::CHAIN_WIDTH * numChains))};
     const int scrollableHeight {getHeight()};

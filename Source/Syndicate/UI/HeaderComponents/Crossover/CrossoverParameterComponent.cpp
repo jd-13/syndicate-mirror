@@ -35,13 +35,10 @@ void CrossoverParameterComponent::paint(juce::Graphics &g) {
 }
 
 void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
-
-    const size_t numCrossovers {_processor.pluginSplitter->chains.size() - 1};
-    for (size_t bandIndex {0}; bandIndex < numCrossovers; bandIndex++) {
+    SplitterInterface::forEachCrossover(_processor.splitter, [&](float crossoverFrequency) {
         const double crossoverXPos {
-            UIUtils::Crossover::sliderValueToXPos(_processor.getCrossoverFrequency(bandIndex), getWidth())
+            UIUtils::Crossover::sliderValueToXPos(crossoverFrequency, getWidth())
         };
-
 
         juce::Path p;
         p.startNewSubPath(crossoverXPos, 0);
@@ -49,25 +46,22 @@ void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
 
         g.setColour(UIUtils::neutralControlColour);
         g.strokePath(p, juce::PathStrokeType(0.5f));
-    }
+    });
 }
 
 void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
     constexpr double fractionOfHeight {0.85};
     constexpr int spacing {10};
 
-    const size_t numCrossovers {_processor.pluginSplitter->chains.size() - 1};
-    for (int bandIndex {0}; bandIndex < numCrossovers; bandIndex++) {
+    SplitterInterface::forEachCrossover(_processor.splitter, [&](float crossoverFrequency) {
         g.setColour(UIUtils::neutralControlColour);
 
-        const float crossoverValue {_processor.getCrossoverFrequency(bandIndex)};
-
         const double crossoverXPos {
-            UIUtils::Crossover::sliderValueToXPos(crossoverValue, getWidth())
+            UIUtils::Crossover::sliderValueToXPos(crossoverFrequency, getWidth())
         };
 
         juce::GlyphArrangement ga;
-        ga.addLineOfText(juce::Font(16.0f), juce::String(static_cast<int>(crossoverValue)) + " Hz", 0, 0);
+        ga.addLineOfText(juce::Font(16.0f), juce::String(static_cast<int>(crossoverFrequency)) + " Hz", 0, 0);
 
         juce::Path p;
         ga.createPath(p);
@@ -84,7 +78,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
         );
 
         g.fillPath(p);
-    }
+    });
 }
 
 void CrossoverParameterComponent::_drawBandButtons(juce::Graphics &g) {
@@ -94,28 +88,29 @@ void CrossoverParameterComponent::_drawBandButtons(juce::Graphics &g) {
     const juce::Colour muteColour(252, 0, 0);
     const juce::Colour soloColour(252, 137, 22);
 
-    for (int bandIndex {0}; bandIndex < _processor.pluginSplitter->chains.size(); bandIndex++) {
-        const double crossoverXPos {bandIndex < _processor.pluginSplitter->chains.size() - 1 ?
-            UIUtils::Crossover::sliderValueToXPos(_processor.getCrossoverFrequency(bandIndex), getWidth()) :
+    SplitterInterface::forEachChain(_processor.splitter, [&](size_t chainNumber, std::shared_ptr<PluginChain>) {
+        const size_t numCrossovers {SplitterInterface::getNumChains(_processor.splitter) - 1};
+        const double crossoverXPos {chainNumber < numCrossovers ?
+            UIUtils::Crossover::sliderValueToXPos(SplitterInterface::getCrossoverFrequency(_processor.splitter, chainNumber), getWidth()) :
             getWidth()
         };
 
         drawBandButton("B",
-                       _processor.chainParameters[bandIndex].getBypass() ? bypassColour : UIUtils::neutralHighlightColour,
+                       _processor.chainParameters[chainNumber].getBypass() ? bypassColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        0);
 
         drawBandButton("M",
-                       _processor.chainParameters[bandIndex].getMute() ? muteColour : UIUtils::neutralHighlightColour,
+                       _processor.chainParameters[chainNumber].getMute() ? muteColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        1);
 
         drawBandButton("S",
-                       _processor.chainParameters[bandIndex].getSolo() ? soloColour : UIUtils::neutralHighlightColour,
+                       _processor.chainParameters[chainNumber].getSolo() ? soloColour : UIUtils::neutralHighlightColour,
                        g,
                        crossoverXPos,
                        2);
-    }
+    });
 }

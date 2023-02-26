@@ -25,12 +25,10 @@ private:
     bool _isHover;
     std::unique_ptr<PluginSlotModulationTray> _modulationTray;
 
-    std::unique_ptr<UIUtils::CircleButton> _bypassButton;
+    std::unique_ptr<UIUtils::BypassButton> _bypassButton;
     std::unique_ptr<UIUtils::PluginOpenButton> _openButton;
     std::unique_ptr<UIUtils::PluginReplaceButton> _replaceButton;
     std::unique_ptr<UIUtils::CrossButton> _deleteButton;
-    std::unique_ptr<UIUtils::CircleButton> _modulationButton;
+    std::unique_ptr<UIUtils::ModulationButton> _modulationButton;
     std::unique_ptr<juce::Label> _descriptionLabel;
-
-    bool _shouldDrawModulation() const;
 };

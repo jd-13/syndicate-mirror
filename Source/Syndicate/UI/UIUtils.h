@@ -17,8 +17,7 @@ namespace UIUtils {
     constexpr int PLUGIN_SLOT_CORNER_RADIUS {PLUGIN_SLOT_HEIGHT / 2};
     constexpr int SLOT_DRAG_HANDLE_WIDTH {PLUGIN_SLOT_HEIGHT};
 
-    const juce::Colour PLUGIN_SLOT_MODULATION_ON_COLOUR(100, 0, 200);
-    const juce::Colour PLUGIN_SLOT_MODULATION_OFF_COLOUR(120, 120, 120);
+    const juce::Colour PLUGIN_SLOT_MODULATION_ON_COLOUR(161, 102, 221);
 
     // Modulation tray
     constexpr int PLUGIN_SLOT_MOD_TRAY_HEIGHT {PLUGIN_SLOT_HEIGHT * 3};
@@ -203,9 +202,18 @@ namespace UIUtils {
         return area.withSizeKeepingCentre(smallestDimension, smallestDimension);
     }
 
-    class CircleButton : public juce::Button {
+    class BypassButton : public juce::Button {
     public:
-        CircleButton(const juce::String& buttonName);
+        BypassButton(const juce::String& buttonName);
+
+        void paintButton(juce::Graphics& g,
+                         bool shouldDrawButtonAsHighlighted,
+                         bool shouldDrawButtonAsDown) override;
+    };
+
+    class ModulationButton : public juce::Button {
+    public:
+        ModulationButton(const juce::String& buttonName);
 
         void paintButton(juce::Graphics& g,
                          bool shouldDrawButtonAsHighlighted,

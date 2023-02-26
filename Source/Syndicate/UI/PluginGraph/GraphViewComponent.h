@@ -24,4 +24,5 @@ private:
     PluginModulationInterface _pluginModulationInterface;
     std::unique_ptr<UIUtils::LinkedScrollView> _viewPort;
     bool _hasRestoredScroll;
+    std::recursive_mutex _graphMutex;
 };

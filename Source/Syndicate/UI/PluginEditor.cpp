@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 7.0.3
+  Created with Projucer version: 7.0.4
 
   ------------------------------------------------------------------------------
 
@@ -35,13 +35,17 @@
 
 //==============================================================================
 SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProcessor& ownerProcessor)
-    : CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false)
+    : CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false), _previousSplitType(SPLIT_TYPE::SERIES)
 {
     //[Constructor_pre] You can add your own custom stuff here..
     //[/Constructor_pre]
 
 
     //[UserPreSize]
+    _importExportComponent.reset(new ImportExportComponent(_processor, *this));
+    addAndMakeVisible(_importExportComponent.get());
+    _importExportComponent->setName("Import/Export");
+
     _macrosSidebar.reset(new MacrosComponent(this, _processor.macros, _processor.macroNames));
     addAndMakeVisible(_macrosSidebar.get());
     _macrosSidebar->setName("Macros");
@@ -154,7 +158,9 @@ void SyndicateAudioProcessorEditor::resized()
 
     _tooltipLbl->setBounds(availableArea.removeFromBottom(TOOLTIP_HEIGHT));
 
-    _macrosSidebar->setBounds(availableArea.removeFromLeft(SIDEBAR_WIDTH));
+    juce::Rectangle<int> leftArea = availableArea.removeFromLeft(SIDEBAR_WIDTH);
+    _importExportComponent->setBounds(leftArea.removeFromTop(8 + 8 + 4 + 24 + 24));
+    _macrosSidebar->setBounds(leftArea);
 
     juce::Rectangle<int> rightArea = availableArea.removeFromRight(SIDEBAR_WIDTH).withTrimmedTop(SPLITTER_BUTTONS_HEIGHT);
     _headerExtensionComponent->setBounds(rightArea.removeFromTop(80));
@@ -181,6 +187,12 @@ void SyndicateAudioProcessorEditor::needsGraphRebuild() {
     _graphView->onParameterUpdate();
 }
 
+void SyndicateAudioProcessorEditor::needsToRefreshAll() {
+    needsGraphRebuild();
+    _onParameterUpdate();
+    _modulationBar->needsRebuild();
+}
+
 void SyndicateAudioProcessorEditor::_enableDoubleClickToDefault() {
     // TODO
 }
@@ -198,17 +210,21 @@ void SyndicateAudioProcessorEditor::_setSliderRanges() {
 }
 
 void SyndicateAudioProcessorEditor::_onParameterUpdate() {
-    _splitterHeader->onParameterUpdate();
+    {
+        std::scoped_lock lock(_splitterHeaderMutex);
+        _splitterHeader->onParameterUpdate();
+    }
+
     _outputSidebar->onParameterUpdate();
     _macrosSidebar->onParameterUpdate();
 }
 
 void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
-    // Cache the previous value so we don't have recreate the component when nothing has changed
-    static SPLIT_TYPE previousSplitType {0};
+    std::scoped_lock lock(_splitterHeaderMutex);
 
-    if (_processor.getSplitType() != previousSplitType || !_isHeaderInitialised) {
-        previousSplitType = _processor.getSplitType();
+    // Cache the previous value so we don't have recreate the component when nothing has changed
+    if (_processor.getSplitType() != _previousSplitType || !_isHeaderInitialised) {
+        _previousSplitType = _processor.getSplitType();
         _isHeaderInitialised = true;
         const juce::Rectangle<int> bounds = _splitterHeader->getBounds();
 
@@ -271,7 +287,7 @@ BEGIN_JUCER_METADATA
 <JUCER_COMPONENT documentType="Component" className="SyndicateAudioProcessorEditor"
                  componentName="" parentClasses="public WECore::JUCEPlugin::CoreProcessorEditor, public juce::DragAndDropContainer"
                  constructorParams="SyndicateAudioProcessor&amp; ownerProcessor"
-                 variableInitialisers="CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false)"
+                 variableInitialisers="CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false), _previousSplitType(SPLIT_TYPE::SERIES)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
                  fixedSize="1" initialWidth="700" initialHeight="550">
   <BACKGROUND backgroundColour="ff272727"/>

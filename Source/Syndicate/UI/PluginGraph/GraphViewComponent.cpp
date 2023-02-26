@@ -1,6 +1,6 @@
 #include "GraphViewComponent.h"
 #include "UIUtils.h"
-#include "SplitterMutators.hpp"
+#include "SplitterInterface.hpp"
 
 namespace {
     std::vector<int> getChainViewScrollPositions(const std::vector<std::unique_ptr<ChainViewComponent>>& chainViews) {
@@ -47,6 +47,7 @@ GraphViewComponent::~GraphViewComponent() {
 }
 
 void GraphViewComponent::resized() {
+    std::scoped_lock lock(_graphMutex);
     const int scrollPosition {_viewPort->getViewPositionX()};
 
     _viewPort->setBounds(getLocalBounds());
@@ -72,60 +73,31 @@ void GraphViewComponent::resized() {
 }
 
 void GraphViewComponent::onParameterUpdate() {
-
     // Lock here because we're in onParameterUpdate, so the UI thread could change something while
     // we're here
-    WECore::AudioSpinLock lock(_processor.pluginSplitterMutex);
+    std::scoped_lock lock(_graphMutex);
 
     // Store the scroll positions of each chain
     std::vector<int> chainScrollPositions = getChainViewScrollPositions(_chainViews);
 
     _chainViews.clear();
 
-    if (_processor.getSplitType() == SPLIT_TYPE::SERIES) {
-        _chainViews.push_back(std::make_unique<ChainViewComponent>(0, _pluginSelectionInterface, _pluginModulationInterface));
-        _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[0].get());
+    const int totalNumChains {static_cast<int>(SplitterInterface::getNumChains(_processor.splitter))};
 
-        if (_processor.pluginSplitter != nullptr) {
-            _chainViews[0]->setPlugins(_processor.pluginSplitter->chains[0].chain);
+    const int numChainsToDisplay {
+        _processor.getSplitType() == SPLIT_TYPE::SERIES ? 1 :
+        _processor.getSplitType() == SPLIT_TYPE::PARALLEL ? totalNumChains :
+        _processor.getSplitType() == SPLIT_TYPE::MULTIBAND ? std::min(WECore::MONSTR::Parameters::NUM_BANDS.maxValue, totalNumChains) :
+        _processor.getSplitType() == SPLIT_TYPE::LEFTRIGHT || _processor.getSplitType() == SPLIT_TYPE::MIDSIDE ? 2 : 1
+    };
+
+    SplitterInterface::forEachChain(_processor.splitter, [&](int chainNumber, std::shared_ptr<PluginChain> chain) {
+        if (chainNumber < numChainsToDisplay) {
+            _chainViews.push_back(std::make_unique<ChainViewComponent>(chainNumber, _pluginSelectionInterface, _pluginModulationInterface));
+            _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[chainNumber].get());
+            _chainViews[chainNumber]->setPlugins(chain);
         }
-    } else if (_processor.getSplitType() == SPLIT_TYPE::PARALLEL) {
-        for (size_t index {0}; index < SplitterMutators::getNumChains(_processor.pluginSplitter); index++) {
-            _chainViews.push_back(std::make_unique<ChainViewComponent>(index, _pluginSelectionInterface, _pluginModulationInterface));
-            _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[index].get());
-
-            if (_processor.pluginSplitter != nullptr) {
-                _chainViews[index]->setPlugins(_processor.pluginSplitter->chains[index].chain);
-            }
-        }
-    } else if (_processor.getSplitType() == SPLIT_TYPE::MULTIBAND) {
-        const int numChains {
-            std::min(WECore::MONSTR::Parameters::NUM_BANDS.maxValue, static_cast<int>(SplitterMutators::getNumChains(_processor.pluginSplitter)))
-        };
-        for (size_t index {0}; index < numChains; index++) {
-            _chainViews.push_back(std::make_unique<ChainViewComponent>(index, _pluginSelectionInterface, _pluginModulationInterface));
-            _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[index].get());
-
-            if (_processor.pluginSplitter != nullptr) {
-                _chainViews[index]->setPlugins(_processor.pluginSplitter->chains[index].chain);
-            }
-        }
-    } else if (_processor.getSplitType() == SPLIT_TYPE::LEFTRIGHT ||
-               _processor.getSplitType() == SPLIT_TYPE::MIDSIDE) {
-        _chainViews.push_back(std::make_unique<ChainViewComponent>(0, _pluginSelectionInterface, _pluginModulationInterface));
-        _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[0].get());
-
-        if (_processor.pluginSplitter != nullptr) {
-            _chainViews[0]->setPlugins(_processor.pluginSplitter->chains[0].chain);
-        }
-
-        _chainViews.push_back(std::make_unique<ChainViewComponent>(1, _pluginSelectionInterface, _pluginModulationInterface));
-        _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[1].get());
-
-        if (_processor.pluginSplitter != nullptr) {
-            _chainViews[1]->setPlugins(_processor.pluginSplitter->chains[1].chain);
-        }
-    }
+    });
 
     setChainViewScrollPositions(_chainViews, chainScrollPositions);
 

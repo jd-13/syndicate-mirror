@@ -29,11 +29,10 @@ public:
     bool isPluginSlot(int chainNumber, int slotNumber);
 
     void setGainStageGain(int chainNumber, int slotNumber, float gain);
-    float getGainStageGain(int chainNumber, int slotNumber);
+    std::tuple<float, float> getGainStageGainAndPan(int chainNumber, int slotNumber);
     std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(int chainNumber, int slotNumber);
 
     void setGainStagePan(int chainNumber, int slotNumber, float pan);
-    float getGainStagePan(int chainNumber, int slotNumber);
 
 private:
     SyndicateAudioProcessor& _processor;

@@ -32,15 +32,11 @@ void PluginListSorter::setPluginList(juce::Array<juce::PluginDescription> plugin
 juce::Array<juce::PluginDescription> PluginListSorter::getFilteredPluginList() const {
     juce::Array<juce::PluginDescription> filteredPluginList;
 
-    // Do filtering first if needed
-    if (_isFilterNeeded()) {
-        for (const juce::PluginDescription& thisPlugin : _fullPluginList) {
-            if (_passesFilter(thisPlugin)) {
-                filteredPluginList.add(thisPlugin);
-            }
+    // Apply the user's filters and don't display instruments
+    for (const juce::PluginDescription& thisPlugin : _fullPluginList) {
+        if (_passesFilter(thisPlugin) && !thisPlugin.isInstrument) {
+            filteredPluginList.add(thisPlugin);
         }
-    } else {
-        filteredPluginList = _fullPluginList;
     }
 
     // Now sort the list
@@ -69,10 +65,6 @@ int PluginListSorter::compareElements(juce::PluginDescription first, juce::Plugi
     }
 
     return retVal * (state.sortForwards ? 1 : -1);
-}
-
-bool PluginListSorter::_isFilterNeeded() const {
-    return state.filterString.isNotEmpty() || !state.includeVST || !state.includeVST3 || !state.includeAU;
 }
 
 bool PluginListSorter::_passesFilter(const juce::PluginDescription& plugin) const {

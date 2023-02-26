@@ -15,10 +15,12 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
         _pluginModulationInterface(pluginModulationInterface),
         _isHover(false) {
 
-    _bypassButton.reset(new UIUtils::CircleButton("Bypass Button"));
+    _bypassButton.reset(new UIUtils::BypassButton("Bypass Button"));
     addAndMakeVisible(_bypassButton.get());
     _bypassButton->setTooltip(TRANS("Enable/disable this plugin slot"));
     _bypassButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    _bypassButton->setColour(juce::TextButton::textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
+    _bypassButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     _bypassButton->addMouseListener(this, false);
     _bypassButton->addListener(this);
 
@@ -43,10 +45,12 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
     _deleteButton->addMouseListener(this, false);
     _deleteButton->addListener(this);
 
-    _modulationButton.reset(new UIUtils::CircleButton("Modulation Button"));
+    _modulationButton.reset(new UIUtils::ModulationButton("Modulation Button"));
     addAndMakeVisible(_modulationButton.get());
     _modulationButton->setTooltip(TRANS("Opens the modulation tray for this plugin slot"));
     _modulationButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::PLUGIN_SLOT_MODULATION_ON_COLOUR);
+    _modulationButton->setColour(juce::TextButton::textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
+    _modulationButton->setColour(juce::TextButton::textColourOffId, UIUtils::PLUGIN_SLOT_MODULATION_ON_COLOUR);
     _modulationButton->addMouseListener(this, false);
     _modulationButton->addListener(this);
 
@@ -61,16 +65,14 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
     PluginModulationConfig modulationConfig =
         _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _slotNumber);
 
-    const bool shouldDrawModulation {_shouldDrawModulation()};
-
-    if (shouldDrawModulation) {
+    if (modulationConfig.isActive) {
         _modulationTray.reset(new PluginSlotModulationTray(_pluginModulationInterface, _chainNumber, _slotNumber));
         addAndMakeVisible(_modulationTray.get());
     }
 
     // Set UI state
     _bypassButton->setToggleState(!_pluginSelectionInterface.getPluginBypass(_chainNumber, _slotNumber), juce::dontSendNotification);
-    _modulationButton->setToggleState(shouldDrawModulation, juce::dontSendNotification);
+    _modulationButton->setToggleState(modulationConfig.isActive, juce::dontSendNotification);
 
     _openButton->setVisible(false);
     _replaceButton->setVisible(false);
@@ -157,11 +159,4 @@ void PluginSlotComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
         // Don't update the button - togglePluginModulationActive() will cause the graph to redraw
         _pluginModulationInterface.togglePluginModulationActive(_chainNumber, _slotNumber);
     }
-}
-
-bool PluginSlotComponent::_shouldDrawModulation() const {
-    const PluginModulationConfig modulationConfig =
-        _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _slotNumber);
-
-    return modulationConfig.isActive || modulationConfig.parameterConfigs.size() > 0;
 }
