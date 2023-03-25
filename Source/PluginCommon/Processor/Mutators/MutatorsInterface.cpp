@@ -1,5 +1,7 @@
 #include "MutatorsInterface.hpp"
 
+#include <assert.h>
+
 #include "SplitterMutators.hpp"
 #include "XmlConsts.hpp"
 #include "XmlReader.hpp"
@@ -16,8 +18,8 @@ namespace SplitterInterface {
             if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter.splitter)) {
                 splitter.cachedcrossoverFrequencies = std::vector<float>();
 
-                for (int index {0}; index < multibandSplitter->crossover.getNumBands(); index++) {
-                    splitter.cachedcrossoverFrequencies.value().push_back(multibandSplitter->crossover.getCrossoverFrequency(index));
+                for (int index {0}; index < CrossoverMutators::getNumBands(multibandSplitter->crossover); index++) {
+                    splitter.cachedcrossoverFrequencies.value().push_back(CrossoverMutators::getCrossoverFrequency(multibandSplitter->crossover, index));
                 }
             }
 
@@ -52,7 +54,7 @@ namespace SplitterInterface {
             // Make sure prepareToPlay has been called on the splitter as we don't actually know if the host
             // will call it via the PluginProcessor
             if (splitter.splitter != nullptr) {
-                SplitterProcessor::prepareToPlay(*splitter.splitter.get(), config.sampleRate, config.blockSize, config.layout);
+                SplitterProcessors::prepareToPlay(*splitter.splitter.get(), config.sampleRate, config.blockSize, config.layout);
             }
 
             return true;
@@ -306,16 +308,14 @@ namespace SplitterInterface {
         return false;
     }
 
-    bool addCrossoverBand(Splitter& splitter) {
+    void addCrossoverBand(Splitter& splitter) {
         std::scoped_lock lock(splitter.mutatorsMutex);
         WECore::AudioSpinLock sharedLock(splitter.sharedMutex);
         auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter.splitter);
 
         if (multibandSplitter != nullptr) {
-            return SplitterMutators::addBand(multibandSplitter);
+            SplitterMutators::addBand(multibandSplitter);
         }
-
-        return false;
     }
 
     bool removeCrossoverBand(Splitter& splitter) {
@@ -463,7 +463,7 @@ namespace SplitterInterface {
         // Make sure prepareToPlay has been called on the splitter as we don't actually know if the host
         // will call it via the PluginProcessor
         if (splitter.splitter != nullptr) {
-            SplitterProcessor::prepareToPlay(*splitter.splitter.get(), config.sampleRate, config.blockSize, config.layout);
+            SplitterProcessors::prepareToPlay(*splitter.splitter.get(), config.sampleRate, config.blockSize, config.layout);
         }
     }
 }

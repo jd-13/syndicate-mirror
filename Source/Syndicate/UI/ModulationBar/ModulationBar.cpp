@@ -263,28 +263,60 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
 }
 
 void ModulationBar::_removeModulationSource(ModulationSourceDefinition definition) {
+    // Get the currently selected definition
+    std::optional<ModulationSourceDefinition> selectedDefinition;
+    for (int buttonIndex {0}; buttonIndex < _lfoButtons.size() && !selectedDefinition.has_value(); buttonIndex++) {
+        if (_lfoButtons[buttonIndex]->getIsSelected()) {
+            selectedDefinition = _lfoButtons[buttonIndex]->definition;
+        }
+    }
+
+    for (int buttonIndex {0}; buttonIndex < _envelopeButtons.size() && !selectedDefinition.has_value(); buttonIndex++) {
+        if (_envelopeButtons[buttonIndex]->getIsSelected()) {
+            selectedDefinition = _envelopeButtons[buttonIndex]->definition;
+        }
+    }
+
     // Delete selected component before changing anything in the processor to make sure nothing in
     // it is referring to anything we might change
     _selectedSourceComponent.reset();
 
+    // Remove the modulation source and rebuild the UI
     _processor.removeModulationSource(definition);
     _resetButtons();
 
-    // Update the selected source to one that is still available
-    if (definition.type == MODULATION_TYPE::LFO) {
-        if (_lfoButtons.size() > 0) {
+    // Update the selected ID if we're deleting something ahead of it
+    if (selectedDefinition.value().id > definition.id) {
+        selectedDefinition.value().id--;
+    }
+
+    // Decide which definition should now be selected
+    if (selectedDefinition.value().type == MODULATION_TYPE::LFO) {
+        if (_lfoButtons.size() > selectedDefinition.value().id - 1) {
+            // Select the previously selected definition
+            _selectModulationSource(_lfoButtons[selectedDefinition.value().id - 1].get());
+        } else if (_lfoButtons.size() > 0) {
+            // We deleted the last definition, so select the current last one
             _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
         } else if (_envelopeButtons.size() > 0) {
-            _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
+            // We deleted all the LFOs, so select an envelope follower
+            _selectModulationSource(_envelopeButtons[0].get());
         } else {
+            // We deleted everything, select nothing
             _selectedSourceComponent.reset();
         }
-    } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
-        if (_envelopeButtons.size() > 0) {
-            _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
+    } else if (selectedDefinition.value().type == MODULATION_TYPE::ENVELOPE) {
+        if (_envelopeButtons.size() > selectedDefinition.value().id - 1) {
+            // Restore the previously selected definition
+            _selectModulationSource(_envelopeButtons[selectedDefinition.value().id - 1].get());
+        } else if (_envelopeButtons.size() > 0) {
+            // We deleted the last definition, so select the current last one
+            _selectModulationSource(_envelopeButtons[0].get());
         } else if (_lfoButtons.size() > 0) {
-            _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
+            // We deleted all the envelope followers, so select an LFO
+            _selectModulationSource(_lfoButtons[0].get());
         } else {
+            // We deleted everything, select nothing
             _selectedSourceComponent.reset();
         }
     }

@@ -5,7 +5,9 @@
 #include "ChainMutators.hpp"
 #include "PluginChain.hpp"
 #include "FFTProvider.hpp"
-#include "SplitterCrossover.hpp"
+#include "CrossoverState.hpp"
+#include "CrossoverMutators.hpp"
+#include "CrossoverProcessors.hpp"
 
 /**
  * Stores a plugin chain and any associated data.
@@ -155,49 +157,45 @@ class PluginSplitterMultiband : public PluginSplitter {
 public:
     static constexpr int DEFAULT_NUM_CHAINS {2};
 
-    SplitterCrossover crossover;
+    std::shared_ptr<CrossoverState> crossover;
     FFTProvider fftProvider;
 
     PluginSplitterMultiband(HostConfiguration newConfig,
                             std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
                             std::function<void(int)> latencyChangeCallback)
-                            : PluginSplitter(DEFAULT_NUM_CHAINS, newConfig, getModulationValueCallback, latencyChangeCallback) {
+                            : PluginSplitter(DEFAULT_NUM_CHAINS, newConfig, getModulationValueCallback, latencyChangeCallback),
+                              crossover(createDefaultCrossoverState()) {
         juce::Logger::writeToLog("Constructed PluginSplitterMultiband");
 
-        crossover.setIsStereo(canDoStereoSplitTypes(config.layout));
+        CrossoverProcessors::prepareToPlay(*crossover.get(), config.sampleRate, config.blockSize, config.layout);
     }
 
     PluginSplitterMultiband(std::shared_ptr<PluginSplitter> otherSplitter, std::optional<std::vector<float>> crossoverFrequencies)
-                            : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS) {
+                            : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS),
+                              crossover(createDefaultCrossoverState()) {
         juce::Logger::writeToLog("Converted to PluginSplitterMultiband");
 
         // Set the crossover to have the correct number of bands (this will also default the frequencies)
-        while ((chains.size() < crossover.getNumBands()) &&
-               (crossover.getNumBands() > WECore::MONSTR::Parameters::NUM_BANDS.minValue)) {
-            crossover.removeBand();
-        }
-
-        while ((chains.size() > crossover.getNumBands()) &&
-               (crossover.getNumBands() < WECore::MONSTR::Parameters::NUM_BANDS.maxValue)) {
-            crossover.addBand();
+        while (chains.size() > CrossoverMutators::getNumBands(crossover)) {
+            CrossoverMutators::addBand(crossover);
         }
 
         // Restore the crossover frequencies if there are previous ones
         if (crossoverFrequencies.has_value()) {
-            const size_t numCrossovers {std::min(crossoverFrequencies.value().size(), crossover.getNumBands())};
+            const size_t numCrossovers {std::min(crossoverFrequencies.value().size(), CrossoverMutators::getNumBands(crossover))};
             for (int index {0}; index < numCrossovers; index++) {
-                crossover.setCrossoverFrequency(index, crossoverFrequencies.value()[index]);
+                CrossoverMutators::setCrossoverFrequency(crossover, index, crossoverFrequencies.value()[index]);
             }
         }
 
-        crossover.setIsStereo(canDoStereoSplitTypes(config.layout));
-
         // Set the processors
-        for (size_t bandIndex {0}; bandIndex < crossover.getNumBands(); bandIndex++) {
-            PluginChain* newChain {chains[bandIndex].chain.get()};
-            crossover.setPluginChain(bandIndex, newChain);
-            crossover.setIsSoloed(bandIndex, chains[bandIndex].isSoloed);
+        for (size_t bandIndex {0}; bandIndex < CrossoverMutators::getNumBands(crossover); bandIndex++) {
+            std::shared_ptr<PluginChain> newChain {chains[bandIndex].chain};
+            CrossoverMutators::setPluginChain(crossover, bandIndex, newChain);
+            CrossoverMutators::setIsSoloed(crossover, bandIndex, chains[bandIndex].isSoloed);
         }
+
+        CrossoverProcessors::prepareToPlay(*crossover.get(), config.sampleRate, config.blockSize, config.layout);
     }
 };
 

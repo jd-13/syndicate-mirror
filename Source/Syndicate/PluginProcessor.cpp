@@ -441,12 +441,11 @@ void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
 }
 
 void SyndicateAudioProcessor::addCrossoverBand() {
-    if (SplitterInterface::addCrossoverBand(splitter)) {
-        chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
+    SplitterInterface::addCrossoverBand(splitter);
+    chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
 
-        if (_editor != nullptr) {
-            _editor->needsGraphRebuild();
-        }
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
     }
 }
 

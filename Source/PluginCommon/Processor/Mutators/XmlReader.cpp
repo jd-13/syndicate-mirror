@@ -86,18 +86,18 @@ namespace XmlReader {
                     // Since we deleted all chains at the start to make sure we have a
                     // clean starting point, that can mean the first few crossover bands could still exist
                     // and be pointing at chains that have been deleted. We handle this here.
-                    if (multibandSplitter->chains.size() > multibandSplitter->crossover.getNumBands()) {
+                    if (multibandSplitter->chains.size() > CrossoverMutators::getNumBands(multibandSplitter->crossover)) {
                         // Need to add a new band and chain
-                        multibandSplitter->crossover.addBand();
+                        CrossoverMutators::addBand(multibandSplitter->crossover);
                     } else {
                         // We already have the bands in the crossover
                     }
 
                     // Now assign the chain to the band
-                    multibandSplitter->crossover.setPluginChain(multibandSplitter->chains.size() - 1, thisChain.chain.get());
+                    CrossoverMutators::setPluginChain(multibandSplitter->crossover, multibandSplitter->chains.size() - 1, thisChain.chain);
                 }
 
-                ChainProcessor::prepareToPlay(*thisChain.chain.get(), configuration);
+                ChainProcessors::prepareToPlay(*thisChain.chain.get(), configuration);
 
                 thisChain.chain->latencyListener.setSplitter(splitter.get());
                 SplitterMutators::setChainSolo(splitter, chainNumber, isSoloed);
@@ -195,7 +195,7 @@ namespace XmlReader {
 
                 if (newGainStage != nullptr) {
                     // Call prepareToPlay since some hosts won't call it after restoring
-                    ChainProcessor::prepareToPlay(*newGainStage.get(), configuration);
+                    ChainProcessors::prepareToPlay(*newGainStage.get(), configuration);
                     retVal->chain.push_back(std::move(newGainStage));
                 }
             } else {

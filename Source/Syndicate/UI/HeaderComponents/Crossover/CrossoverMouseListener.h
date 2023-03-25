@@ -21,22 +21,13 @@ public:
     void mouseUp(const juce::MouseEvent& event) override;
 
 private:
-
-    // TODO remove this struct
-    struct FloatParameterInteraction {
-        std::function<void(const juce::MouseEvent&)> dragCallback;
-    };
-
-    std::array<FloatParameterInteraction, WECore::MONSTR::Parameters::_MAX_NUM_BANDS - 1> _crossoverFrequencies;
-
     SyndicateAudioProcessor& _processor;
-
-    FloatParameterInteraction* _dragParameter;
+    std::optional<std::function<void(const juce::MouseEvent&)>> _dragCallback;
 
     /**
      * If the mouse event occured inside a button the function will handle it and return null,
      * if the event occured inside a slider it will return the corresponding
      * FloatParameterInteraction for it to be handled by the appropriate event handlers.
      */
-    FloatParameterInteraction* _resolveParameterInteraction(const juce::MouseEvent& event);
+    void _resolveParameterInteraction(const juce::MouseEvent& event);
 };

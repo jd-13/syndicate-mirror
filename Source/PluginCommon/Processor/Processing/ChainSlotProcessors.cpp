@@ -25,7 +25,7 @@ namespace {
     }
 }
 
-namespace ChainProcessor {
+namespace ChainProcessors {
     void prepareToPlay(ChainSlotGainStage& gainStage, HostConfiguration config) {
         gainStage.numMainChannels = config.layout.getMainInputChannels();
         assert(gainStage.numMainChannels <= 2);

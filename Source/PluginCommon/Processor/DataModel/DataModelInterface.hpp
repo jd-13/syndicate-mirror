@@ -37,7 +37,7 @@ namespace SplitterInterface {
                 new PluginSplitterSeries(config, getModulationValueCallback, latencyChangeCallback)
             );
 
-            SplitterProcessor::prepareToPlay(*splitter.get(), config.sampleRate, config.blockSize, config.layout);
+            SplitterProcessors::prepareToPlay(*splitter.get(), config.sampleRate, config.blockSize, config.layout);
         }
     };
 }

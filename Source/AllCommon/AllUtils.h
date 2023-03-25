@@ -6,11 +6,7 @@ namespace Utils {
     inline const char* PLUGIN_SCAN_SERVER_UID = "pluginScanServer";
 
     inline const char* SCANNED_PLUGINS_FILE_NAME = "ScannedPlugins.txt";
-    inline const char* SCANNED_PLUGINS_BACKUP_FILE_NAME = "ScannedPlugins.txt.bak";
     inline const char* CRASHED_PLUGINS_FILE_NAME = "CrashedPlugins.txt";
-    inline const char* SCAN_IS_ALIVE_FILE_NAME = "ScanAlive.txt";
-    inline const char* STALLING_PLUGINS_FILE_NAME = "StallingPlugins.txt";
-    inline const char* STALLING_PLUGINS_BACKUP_FILE_NAME = "StallingPlugins.txt.bak";
 
     constexpr int PLUGIN_SCANNER_IS_ALIVE_INTERVAL{ 1000 };
 

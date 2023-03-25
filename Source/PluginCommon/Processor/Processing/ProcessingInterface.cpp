@@ -6,21 +6,21 @@ namespace SplitterInterface {
     void prepareToPlay(Splitter& splitter, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
         WECore::AudioSpinLock lock(splitter.sharedMutex);
         if (splitter.splitter != nullptr) {
-            SplitterProcessor::prepareToPlay(*splitter.splitter.get(), sampleRate, samplesPerBlock, layout);
+            SplitterProcessors::prepareToPlay(*splitter.splitter.get(), sampleRate, samplesPerBlock, layout);
         }
     }
 
     void releaseResources(Splitter& splitter) {
         WECore::AudioSpinLock lock(splitter.sharedMutex);
         if (splitter.splitter != nullptr) {
-            SplitterProcessor::releaseResources(*splitter.splitter.get());
+            SplitterProcessors::releaseResources(*splitter.splitter.get());
         }
     }
 
     void reset(Splitter& splitter) {
         WECore::AudioSpinLock lock(splitter.sharedMutex);
         if (splitter.splitter != nullptr) {
-            SplitterProcessor::reset(*splitter.splitter.get());
+            SplitterProcessors::reset(*splitter.splitter.get());
         }
     }
 
@@ -28,7 +28,7 @@ namespace SplitterInterface {
         // Use the try lock on the audio thread
         WECore::AudioSpinTryLock lock(splitter.sharedMutex);
         if (lock.isLocked() && splitter.splitter != nullptr) {
-            SplitterProcessor::processBlock(*splitter.splitter.get(), buffer, midiMessages);
+            SplitterProcessors::processBlock(*splitter.splitter.get(), buffer, midiMessages);
         }
     }
 }

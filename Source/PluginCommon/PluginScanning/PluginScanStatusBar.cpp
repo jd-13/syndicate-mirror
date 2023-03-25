@@ -130,10 +130,7 @@ void PluginScanStatusBar::handleMessage(const juce::Message& message) {
         if (statusMessage->isScanRunning) {
             // Scan currently running
             statusString = "Found " + numPlugins + " plugins, scanning...";
-        } else if (statusMessage->scanStartedByAnotherInstance) {
-            // Another instance started a scan
-            statusString = "Found " + numPlugins + " plugins, scanning (alt)...";
-        } else if (statusMessage->numPluginsScanned == 0 || !statusMessage->hasPreviousScan) {
+        } else if (statusMessage->numPluginsScanned == 0) {
             // Couldn't restore any plugins, no scan currently running
             statusString = "No plugins available - click start scan to begin";
         } else {
@@ -141,15 +138,15 @@ void PluginScanStatusBar::handleMessage(const juce::Message& message) {
             statusString = "Found " + numPlugins + " plugins";
         }
 
-        _updateButtonState(statusMessage->isScanRunning, statusMessage->scanStartedByAnotherInstance);
+        _updateButtonState(statusMessage->isScanRunning);
         statusLbl->setText(statusString, juce::dontSendNotification);
     }
 }
 
-void PluginScanStatusBar::_updateButtonState(bool isScanRunning, bool scanStartedByAnotherInstance) {
-    if (isScanRunning || scanStartedByAnotherInstance) {
+void PluginScanStatusBar::_updateButtonState(bool isScanRunning) {
+    if (isScanRunning) {
         startScanBtn->setEnabled(false);
-        stopScanBtn->setEnabled(!scanStartedByAnotherInstance);
+        stopScanBtn->setEnabled(true);
         rescanAllBtn->setEnabled(false);
         rescanCrashedBtn->setEnabled(false);
         viewCrashedBtn->setEnabled(false);
@@ -172,20 +169,11 @@ void PluginScanStatusBar::_createCrashedPluginsDialogue() {
         crashedPluginsStr = crashedPluginsFile.loadFileAsString();
     }
 
-    juce::File stalledPluginsFile = Utils::DataDirectory.getChildFile(Utils::STALLING_PLUGINS_FILE_NAME);
-    juce::String stalledPluginsStr;
-    if (stalledPluginsFile.existsAsFile()) {
-        stalledPluginsStr = stalledPluginsFile.loadFileAsString();
-    }
-
-    if (!crashedPluginsStr.isEmpty() || !stalledPluginsStr.isEmpty()) {
+    if (!crashedPluginsStr.isEmpty()) {
         bodyText += "The following plugins crashed during validation:\n\n";
 
         if (!crashedPluginsStr.isEmpty()) {
             bodyText += crashedPluginsStr;
-        }
-        if (!stalledPluginsStr.isEmpty()){
-            bodyText += stalledPluginsStr;
         }
     } else {
         bodyText += "No plugins failed validation";

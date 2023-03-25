@@ -79,9 +79,9 @@ namespace SplitterMutators {
 
     void setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val) {
         // The multiband crossover can handle soloed bands, so let it do that first
-       if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
-           multibandSplitter->crossover.setIsSoloed(chainNumber, val);
-       }
+        if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
+            CrossoverMutators::setIsSoloed(multibandSplitter->crossover, chainNumber, val);
+        }
 
         if (chainNumber < splitter->chains.size()) {
             // If the new value is different to the existing one, update it and the counter
@@ -100,7 +100,7 @@ namespace SplitterMutators {
 
     bool getChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber) {
         if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
-            return multibandSplitter->crossover.getIsSoloed(chainNumber);
+            return CrossoverMutators::getIsSoloed(multibandSplitter->crossover, chainNumber);
         }
 
         if (chainNumber < splitter->chains.size()) {
@@ -185,7 +185,7 @@ namespace SplitterMutators {
     void addChain(std::shared_ptr<PluginSplitterParallel> splitter) {
         splitter->chains.emplace_back(std::make_shared<PluginChain>(splitter->getModulationValueCallback), false);
 
-        ChainProcessor::prepareToPlay(*(splitter->chains[splitter->chains.size() - 1].chain.get()), splitter->config);
+        ChainProcessors::prepareToPlay(*(splitter->chains[splitter->chains.size() - 1].chain.get()), splitter->config);
         splitter->chains[splitter->chains.size() - 1].chain->latencyListener.setSplitter(splitter.get());
 
         splitter->onLatencyChange();
@@ -203,28 +203,27 @@ namespace SplitterMutators {
         return false;
     }
 
-    bool addBand(std::shared_ptr<PluginSplitterMultiband> splitter) {
-        if (splitter->crossover.getNumBands() < WECore::MONSTR::Parameters::NUM_BANDS.maxValue) {
-            // Create the chain first, then add the band and set the processor
-            splitter->chains.emplace_back(std::make_unique<PluginChain>(splitter->getModulationValueCallback), false);
-            splitter->crossover.addBand();
+    void addBand(std::shared_ptr<PluginSplitterMultiband> splitter) {
+        // Create the chain first, then add the band and set the processor
+        splitter->chains.emplace_back(std::make_unique<PluginChain>(splitter->getModulationValueCallback), false);
+        CrossoverMutators::addBand(splitter->crossover);
 
-            PluginChain* newChain {splitter->chains[splitter->chains.size() - 1].chain.get()};
-            ChainProcessor::prepareToPlay(*newChain, splitter->config);
-            splitter->crossover.setPluginChain(splitter->crossover.getNumBands() - 1, newChain);
+        std::shared_ptr<PluginChain> newChain {splitter->chains[splitter->chains.size() - 1].chain};
+        ChainProcessors::prepareToPlay(*newChain, splitter->config);
+        CrossoverMutators::setPluginChain(splitter->crossover, CrossoverMutators::getNumBands(splitter->crossover) - 1, newChain);
 
-            newChain->latencyListener.setSplitter(splitter.get());
-            splitter->onLatencyChange();
-            return true;
-        }
+        newChain->latencyListener.setSplitter(splitter.get());
+        splitter->onLatencyChange();
+    }
 
-        return false;
+    size_t getNumBands(std::shared_ptr<PluginSplitterMultiband> splitter) {
+        return CrossoverMutators::getNumBands(splitter->crossover);
     }
 
     bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter) {
-        if (splitter->crossover.getNumBands() > WECore::MONSTR::Parameters::NUM_BANDS.minValue) {
+        if (CrossoverMutators::getNumBands(splitter->crossover) > WECore::MONSTR::Parameters::NUM_BANDS.minValue) {
             // Remove the band first, then the chain
-            splitter->crossover.removeBand();
+            CrossoverMutators::removeBand(splitter->crossover, CrossoverMutators::getNumBands(splitter->crossover) - 1);
             splitter->chains[splitter->chains.size() - 1].chain->latencyListener.removeSplitter();
             splitter->chains.erase(splitter->chains.begin() + splitter->chains.size() - 1);
 
@@ -236,10 +235,10 @@ namespace SplitterMutators {
     }
 
     void setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val) {
-        splitter->crossover.setCrossoverFrequency(index, val);
+        CrossoverMutators::setCrossoverFrequency(splitter->crossover, index, val);
     }
 
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index) {
-        return splitter->crossover.getCrossoverFrequency(index);
+        return CrossoverMutators::getCrossoverFrequency(splitter->crossover, index);
     }
 }

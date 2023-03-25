@@ -37,7 +37,7 @@ namespace SplitterInterface {
     bool addParallelChain(Splitter& splitter);
     bool removeParallelChain(Splitter& splitter, int chainNumber);
 
-    bool addCrossoverBand(Splitter& splitter);
+    void addCrossoverBand(Splitter& splitter);
     bool removeCrossoverBand(Splitter& splitter);
     bool setCrossoverFrequency(Splitter& splitter, size_t index, float val);
     float getCrossoverFrequency(Splitter& splitter, size_t index);

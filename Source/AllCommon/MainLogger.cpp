@@ -44,10 +44,21 @@ void MainLogger::_logEnvironment(const char* appName, const char* appVersion) {
     juce::FileOutputStream output(_logFile);
 
     if (output.openedOk()) {
+        const juce::String archString(
+#if defined(__x86_64__) || defined(_M_AMD64)
+        "x86_64"
+#elif defined(__aarch64__) || defined(_M_ARM64)
+        "arm64"
+#else
+    #error "Unknown arch"
+#endif
+        );
+
         const juce::String outputMessage(
             "******************************************************\n" +
             juce::String(appName) + ": " + juce::String(appVersion) + "\n"
             "OS:   " + juce::SystemStats::getOperatingSystemName() + "\n"
+            "ARCH: " + archString + "\n"
             "CPUs: " + juce::String(juce::SystemStats::getNumPhysicalCpus()) + " (" + juce::String(juce::SystemStats::getNumCpus()) + ")\n"
             "RAM:  " + juce::String(juce::SystemStats::getMemorySizeInMegabytes()) + "MB\n"
             "******************************************************\n\n");

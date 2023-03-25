@@ -4,12 +4,19 @@
 #include "AllUtils.h"
 #include "PluginScanStatusMessage.h"
 
-class PluginScanClient : public juce::Thread,
-                         public juce::Timer {
+enum class ScanState {
+    STOPPED,
+    STARTING,
+    RUNNING,
+    STOPPING
+};
+
+class PluginScanClient : public juce::ChangeListener,
+                         public juce::Thread {
 public:
     PluginScanClient();
 
-    juce::Array<juce::PluginDescription> getPluginTypes() const { return _pluginList.getTypes(); }
+    juce::Array<juce::PluginDescription> getPluginTypes() const;
 
     /**
      * Called to update the internal list of plugins to match what is on disk. Public so that a
@@ -46,40 +53,13 @@ public:
      */
     void run() override;
 
-    /**
-     * Checks if there are any updates from the plugin scan process
-     */
-    void timerCallback() override;
+    void changeListenerCallback(juce::ChangeBroadcaster* changed) override;
 
 private:
-    class PluginScanProcessClient : public juce::ChildProcessMaster {
-    public:
-        PluginScanProcessClient(std::function<void()> onConnectionLost) :
-                _onConnectionLost(onConnectionLost) {
-        }
-
-        void handleMessageFromSlave(const juce::MemoryBlock& /*message*/) override {
-            // Do nothing - we never receive messages
-        }
-
-        void handleConnectionLost() override {
-            _onConnectionLost();
-        }
-
-    private:
-        std::function<void()> _onConnectionLost;
-    };
-
-    std::unique_ptr<PluginScanProcessClient> _processClient;
-    juce::KnownPluginList _pluginList;
+    std::unique_ptr<juce::KnownPluginList> _pluginList;
+    juce::File _scannedPluginsFile;
     std::vector<juce::MessageListener*> _listeners;
     std::mutex _listenersMutex;
-    juce::WaitableEvent _messageEvent;
-    std::queue<std::function<void()>> _callbacksToHandle;
-    juce::File _isAliveFile;
-
-    // True if was able to restore from previous scan
-    bool _hasPreviousScan;
 
     // True if an attempt has been made to restore from previous scan (whether successful or not)
     bool _hasAttemptedRestore;
@@ -87,10 +67,15 @@ private:
     // True if the scan process should be restarted in the event that it exits
     bool _shouldRestart;
 
-    // True if there is a scan process running that is owned by another instance
-    bool _scanStartedByAnotherInstance;
+    std::atomic<bool> _shouldExit;
 
-    juce::Time _lastUpdateTime;
+#ifdef __APPLE__
+    juce::AudioUnitPluginFormat _auFormat;
+#endif
+    juce::VSTPluginFormat _vstFormat;
+    juce::VST3PluginFormat _vst3Format;
+
+    ScanState _state;
 
     void _notifyListener(juce::MessageListener* listener);
 

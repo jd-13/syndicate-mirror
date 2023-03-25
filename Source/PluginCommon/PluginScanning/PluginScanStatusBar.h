@@ -29,7 +29,7 @@ private:
     std::unique_ptr<UIUtils::PopoverComponent> crashedPluginsPopover;
     PluginScanClient& _pluginScanClient;
 
-    void _updateButtonState(bool isScanRunning, bool scanStartedByAnotherInstance);
+    void _updateButtonState(bool isScanRunning);
 
     void _createCrashedPluginsDialogue();
 };

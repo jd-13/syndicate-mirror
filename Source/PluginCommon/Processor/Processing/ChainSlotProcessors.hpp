@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "ChainSlots.hpp"
 
-namespace ChainProcessor {
+namespace ChainProcessors {
     void prepareToPlay(ChainSlotGainStage& gainStage, HostConfiguration config);
     void releaseResources(ChainSlotGainStage& gainStage);
     void reset(ChainSlotGainStage& gainStage);

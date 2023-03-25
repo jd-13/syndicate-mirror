@@ -51,7 +51,7 @@ namespace ChainMutators {
     void insertGainStage(std::shared_ptr<PluginChain> chain, int position, HostConfiguration config) {
         auto gainStage = std::make_shared<ChainSlotGainStage>(1, 0, false, config.layout);
 
-        ChainProcessor::prepareToPlay(*gainStage.get(), config);
+        ChainProcessors::prepareToPlay(*gainStage.get(), config);
 
         if (chain->chain.size() > position) {
             chain->chain.insert(chain->chain.begin() + position, std::move(gainStage));

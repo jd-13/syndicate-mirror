@@ -42,7 +42,7 @@ namespace {
     };
 }
 
-SCENARIO("SplitterProcessor: Silence in = silence out") {
+SCENARIO("SplitterProcessors: Silence in = silence out") {
     GIVEN("A splitter and a buffer of silence") {
         HostConfiguration config;
         config.sampleRate = SAMPLE_RATE;
@@ -127,8 +127,8 @@ SCENARIO("SplitterProcessor: Silence in = silence out") {
                 (splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR || splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR)) {
                 // Skip these - can't use mono for these split types
             } else {
-                SplitterProcessor::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
-                SplitterProcessor::processBlock(*(splitter.get()), buffer, midiBuffer);
+                SplitterProcessors::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
+                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer);
             }
 
 
@@ -145,7 +145,7 @@ SCENARIO("SplitterProcessor: Silence in = silence out") {
     }
 }
 
-SCENARIO("SplitterProcessor: Gain stage and plugin processing is applied correctly") {
+SCENARIO("SplitterProcessors: Gain stage and plugin processing is applied correctly") {
     GIVEN("A splitter and a buffer of 1's") {
         HostConfiguration config;
         config.sampleRate = SAMPLE_RATE;
@@ -230,8 +230,8 @@ SCENARIO("SplitterProcessor: Gain stage and plugin processing is applied correct
                 (splitTypeString == XML_SPLIT_TYPE_LEFTRIGHT_STR || splitTypeString == XML_SPLIT_TYPE_MIDSIDE_STR)) {
                 // Skip these - can't use mono for these split types
             } else {
-                SplitterProcessor::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
-                SplitterProcessor::processBlock(*(splitter.get()), buffer, midiBuffer);
+                SplitterProcessors::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
+                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer);
             }
 
             THEN("The buffer contains silence") {
@@ -282,7 +282,7 @@ SCENARIO("SplitterProcessor: Gain stage and plugin processing is applied correct
     }
 }
 
-SCENARIO("SplitterProcessor: Chain methods are called correctly") {
+SCENARIO("SplitterProcessors: Chain methods are called correctly") {
     GIVEN("A parallel splitter and an empty buffer") {
         HostConfiguration config;
         config.sampleRate = SAMPLE_RATE;
@@ -326,7 +326,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
             splitterParallel->inputBuffer.reset(new juce::AudioBuffer<float>(1, 5));
             splitterParallel->outputBuffer.reset(new juce::AudioBuffer<float>(3, 84));
 
-            SplitterProcessor::prepareToPlay(*(splitterParallel.get()), SAMPLE_RATE, NUM_SAMPLES, config.layout);
+            SplitterProcessors::prepareToPlay(*(splitterParallel.get()), SAMPLE_RATE, NUM_SAMPLES, config.layout);
 
             THEN("Each chain's prepareToPlay is called with the correct arguments") {
                 CHECK(calledPrepareToPlay1);
@@ -346,7 +346,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
                 calledPrepareToPlay2 = false;
 
                 auto splitterSeries = std::make_shared<PluginSplitterSeries>(splitterParallel);
-                SplitterProcessor::prepareToPlay(*(splitterSeries.get()), SAMPLE_RATE, NUM_SAMPLES, config.layout);
+                SplitterProcessors::prepareToPlay(*(splitterSeries.get()), SAMPLE_RATE, NUM_SAMPLES, config.layout);
 
                 THEN("Each chain's prepareToPlay is called with the correct arguments") {
                     CHECK(calledPrepareToPlay1);
@@ -368,7 +368,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
                 calledReleaseResources2 = true;
             };
 
-            SplitterProcessor::releaseResources(*(splitterParallel.get()));
+            SplitterProcessors::releaseResources(*(splitterParallel.get()));
 
             THEN("Each chain's releaseResources is called") {
                 CHECK(calledReleaseResources1);
@@ -380,7 +380,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
                 calledReleaseResources2 = false;
 
                 auto splitterSeries = std::make_shared<PluginSplitterSeries>(splitterParallel);
-                SplitterProcessor::releaseResources(*(splitterSeries.get()));
+                SplitterProcessors::releaseResources(*(splitterSeries.get()));
 
                 THEN("Each chain's releaseResources is called") {
                     CHECK(calledReleaseResources1);
@@ -400,7 +400,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
                 calledReset2 = true;
             };
 
-            SplitterProcessor::reset(*(splitterParallel.get()));
+            SplitterProcessors::reset(*(splitterParallel.get()));
 
             THEN("Each chain's reset is called") {
                 CHECK(calledReset1);
@@ -412,7 +412,7 @@ SCENARIO("SplitterProcessor: Chain methods are called correctly") {
                 calledReset2 = false;
 
                 auto splitterSeries = std::make_shared<PluginSplitterSeries>(splitterParallel);
-                SplitterProcessor::reset(*(splitterSeries.get()));
+                SplitterProcessors::reset(*(splitterSeries.get()));
 
                 THEN("Each chain's releaseResources is called") {
                     CHECK(calledReset1);

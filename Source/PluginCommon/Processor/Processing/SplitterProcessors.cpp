@@ -33,7 +33,7 @@ namespace {
     }
 
     void processBlockSeries(PluginSplitterSeries& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-        ChainProcessor::processBlock(*(splitter.chains[0].chain.get()), buffer, midiMessages);
+        ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), buffer, midiMessages);
     }
 
     void processBlockParallel(PluginSplitterParallel& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
@@ -49,7 +49,7 @@ namespace {
                 copyBuffer(buffer, *(splitter.inputBuffer.get()));
 
                 // Process the newly copied buffer
-                ChainProcessor::processBlock(*(chain.chain.get()), *(splitter.inputBuffer.get()), midiMessages);
+                ChainProcessors::processBlock(*(chain.chain.get()), *(splitter.inputBuffer.get()), midiMessages);
 
                 // Add the output of this chain to the output buffer
                 addBuffers(*(splitter.inputBuffer.get()), *(splitter.outputBuffer.get()));
@@ -62,7 +62,7 @@ namespace {
 
     void processBlockMultiband(PluginSplitterMultiband& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
         splitter.fftProvider.processBlock(buffer);
-        splitter.crossover.processBlock(buffer);
+        CrossoverProcessors::processBlock(*splitter.crossover.get(), buffer);
     }
 
     void processBlockLeftRight(PluginSplitterLeftRight& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
@@ -92,13 +92,13 @@ namespace {
 
         // Process the left chain
         if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
-            ChainProcessor::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages);
             addBuffers(*(splitter.leftBuffer.get()), buffer);
         }
 
         // Process the right chain
         if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
-            ChainProcessor::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages);
             addBuffers(*(splitter.rightBuffer.get()), buffer);
         }
     }
@@ -131,14 +131,14 @@ namespace {
 
         // Process the buffers
         if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
-            ChainProcessor::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages);
         } else {
             // Mute the mid channel if only the other one is soloed
             juce::FloatVectorOperations::fill(midWrite, 0, numSamples);
         }
 
         if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
-            ChainProcessor::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages);
 
         } else {
             // Mute the side channel if only the other one is soloed
@@ -157,7 +157,7 @@ namespace {
     }
 }
 
-namespace SplitterProcessor {
+namespace SplitterProcessors {
     void prepareToPlay(PluginSplitter& splitter, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
         splitter.config.sampleRate = sampleRate;
         splitter.config.blockSize = samplesPerBlock;
@@ -167,9 +167,8 @@ namespace SplitterProcessor {
             parallelSplitter->inputBuffer.reset(new juce::AudioBuffer<float>(getTotalNumInputChannels(layout), samplesPerBlock));
             parallelSplitter->outputBuffer.reset(new juce::AudioBuffer<float>(2, samplesPerBlock)); // stereo main
         } else if (auto multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(&splitter)) {
-            multibandSplitter->crossover.reset();
-            multibandSplitter->crossover.setSampleRate(sampleRate);
-            multibandSplitter->crossover.setIsStereo(canDoStereoSplitTypes(layout));
+            CrossoverProcessors::prepareToPlay(*multibandSplitter->crossover.get(), sampleRate, samplesPerBlock, layout);
+            CrossoverProcessors::reset(*multibandSplitter->crossover.get());
             multibandSplitter->fftProvider.reset();
             multibandSplitter->fftProvider.setSampleRate(sampleRate);
             multibandSplitter->fftProvider.setIsStereo(canDoStereoSplitTypes(layout));
@@ -182,18 +181,18 @@ namespace SplitterProcessor {
         }
 
         for (PluginChainWrapper& chainWrapper : splitter.chains) {
-            ChainProcessor::prepareToPlay(*chainWrapper.chain.get(), splitter.config);
+            ChainProcessors::prepareToPlay(*chainWrapper.chain.get(), splitter.config);
         }
     }
     void releaseResources(PluginSplitter& splitter) {
         for (PluginChainWrapper& chainWrapper : splitter.chains) {
-            ChainProcessor::releaseResources(*chainWrapper.chain.get());
+            ChainProcessors::releaseResources(*chainWrapper.chain.get());
         }
     }
 
     void reset(PluginSplitter& splitter) {
         for (PluginChainWrapper& chainWrapper : splitter.chains) {
-            ChainProcessor::reset(*chainWrapper.chain.get());
+            ChainProcessors::reset(*chainWrapper.chain.get());
         }
     }
 

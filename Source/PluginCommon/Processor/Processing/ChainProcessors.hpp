@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "PluginChain.hpp"
 
-namespace ChainProcessor {
+namespace ChainProcessors {
     void prepareToPlay(PluginChain& chain, HostConfiguration config);
     void releaseResources(PluginChain& chain);
     void reset(PluginChain& chain);

@@ -2,7 +2,7 @@
 
 #include "ChainSlotProcessors.hpp"
 
-namespace ChainProcessor {
+namespace ChainProcessors {
     void prepareToPlay(PluginChain& chain, HostConfiguration config) {
         chain.latencyCompLine->prepare({
             config.sampleRate,
@@ -12,9 +12,9 @@ namespace ChainProcessor {
 
         for (std::shared_ptr<ChainSlotBase> slot : chain.chain) {
             if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
-                ChainProcessor::prepareToPlay(*gainStage.get(), config);
+                ChainProcessors::prepareToPlay(*gainStage.get(), config);
             } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
-                ChainProcessor::prepareToPlay(*pluginSlot.get(), config);
+                ChainProcessors::prepareToPlay(*pluginSlot.get(), config);
             }
         }
     }
@@ -22,9 +22,9 @@ namespace ChainProcessor {
     void releaseResources(PluginChain& chain) {
         for (std::shared_ptr<ChainSlotBase> slot : chain.chain) {
             if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
-                ChainProcessor::releaseResources(*gainStage.get());
+                ChainProcessors::releaseResources(*gainStage.get());
             } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
-                ChainProcessor::releaseResources(*pluginSlot.get());
+                ChainProcessors::releaseResources(*pluginSlot.get());
             }
         }
     }
@@ -32,9 +32,9 @@ namespace ChainProcessor {
     void reset(PluginChain& chain) {
         for (std::shared_ptr<ChainSlotBase> slot : chain.chain) {
             if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
-                ChainProcessor::reset(*gainStage.get());
+                ChainProcessors::reset(*gainStage.get());
             } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
-                ChainProcessor::reset(*pluginSlot.get());
+                ChainProcessors::reset(*pluginSlot.get());
             }
         }
     }
@@ -63,9 +63,9 @@ namespace ChainProcessor {
             // Chain is active - process as normal
             for (std::shared_ptr<ChainSlotBase> slot : chain.chain) {
                 if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
-                    ChainProcessor::processBlock(*gainStage.get(), buffer);
+                    ChainProcessors::processBlock(*gainStage.get(), buffer);
                 } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
-                    ChainProcessor::processBlock(*pluginSlot.get(), buffer, midiMessages);
+                    ChainProcessors::processBlock(*pluginSlot.get(), buffer, midiMessages);
                 }
             }
         }

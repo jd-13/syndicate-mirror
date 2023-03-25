@@ -16,15 +16,9 @@ class PluginScanStatusMessage : public juce::Message {
 public:
     const int numPluginsScanned;
     const bool isScanRunning;
-    const bool scanStartedByAnotherInstance;
-    const bool hasPreviousScan;
 
     PluginScanStatusMessage(int newNumPluginsScanned,
-                            bool newIsScanRunning,
-                            bool newScanStartedByAnotherInstance,
-                            bool newHasPreviousScan) :
+                            bool newIsScanRunning) :
             numPluginsScanned(newNumPluginsScanned),
-            isScanRunning(newIsScanRunning),
-            scanStartedByAnotherInstance(newScanStartedByAnotherInstance),
-            hasPreviousScan(newHasPreviousScan) {}
+            isScanRunning(newIsScanRunning) {}
 };

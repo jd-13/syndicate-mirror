@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "PluginSplitter.hpp"
 
-namespace SplitterProcessor {
+namespace SplitterProcessors {
     void prepareToPlay(PluginSplitter& splitter, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
     void releaseResources(PluginSplitter& splitter);
     void reset(PluginSplitter& splitter);

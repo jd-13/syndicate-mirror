@@ -86,8 +86,7 @@ void GraphViewComponent::onParameterUpdate() {
 
     const int numChainsToDisplay {
         _processor.getSplitType() == SPLIT_TYPE::SERIES ? 1 :
-        _processor.getSplitType() == SPLIT_TYPE::PARALLEL ? totalNumChains :
-        _processor.getSplitType() == SPLIT_TYPE::MULTIBAND ? std::min(WECore::MONSTR::Parameters::NUM_BANDS.maxValue, totalNumChains) :
+        _processor.getSplitType() == SPLIT_TYPE::PARALLEL || _processor.getSplitType() == SPLIT_TYPE::MULTIBAND ? totalNumChains :
         _processor.getSplitType() == SPLIT_TYPE::LEFTRIGHT || _processor.getSplitType() == SPLIT_TYPE::MIDSIDE ? 2 : 1
     };
 

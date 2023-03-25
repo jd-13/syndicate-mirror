@@ -45,7 +45,6 @@ public:
 
     void systemRequestedQuit() override {
         juce::Logger::writeToLog("System Requested Quit");
-        _process->stop();
         quit();
     }
 

@@ -43,7 +43,7 @@ namespace {
     };
 }
 
-SCENARIO("ChainProcessor: Silence in = silence out") {
+SCENARIO("ChainProcessors: Silence in = silence out") {
     GIVEN("Some slots and a buffer of silence") {
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
@@ -100,8 +100,8 @@ SCENARIO("ChainProcessor: Silence in = silence out") {
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
 
-            ChainProcessor::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessor::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
 
             THEN("The buffer contains silence") {
                 const bool expectDidCallPluginProcess {
@@ -121,7 +121,7 @@ SCENARIO("ChainProcessor: Silence in = silence out") {
     }
 }
 
-SCENARIO("ChainProcessor: Gain stage and plugin processing is applied correctly") {
+SCENARIO("ChainProcessors: Gain stage and plugin processing is applied correctly") {
     GIVEN("A gain stage and a buffer of 1's") {
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
@@ -178,8 +178,8 @@ SCENARIO("ChainProcessor: Gain stage and plugin processing is applied correctly"
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
 
-            ChainProcessor::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessor::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
 
             THEN("The buffer contains silence") {
                 for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {
@@ -197,7 +197,7 @@ SCENARIO("ChainProcessor: Gain stage and plugin processing is applied correctly"
     }
 }
 
-SCENARIO("ChainProcessor: Latency is applied correctly") {
+SCENARIO("ChainProcessors: Latency is applied correctly") {
     GIVEN("An empty chain and a buffer with a single value") {
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
@@ -234,12 +234,12 @@ SCENARIO("ChainProcessor: Latency is applied correctly") {
         WHEN("The latency mutex is locked and the buffer is processed") {
             juce::MidiBuffer midiBuffer;
 
-            ChainProcessor::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainMutators::setRequiredLatency(chain, sampleDelay, {layout, SAMPLE_RATE, NUM_SAMPLES});
 
             {
                 WECore::AudioSpinTryLock lock(chain->latencyCompLineMutex);
-                ChainProcessor::processBlock(*(chain.get()), buffer, midiBuffer);
+                ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
             }
 
             THEN("The buffer is unchanged") {
@@ -259,10 +259,10 @@ SCENARIO("ChainProcessor: Latency is applied correctly") {
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
 
-            ChainProcessor::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
                 ChainMutators::setRequiredLatency(chain, sampleDelay, {layout, SAMPLE_RATE, NUM_SAMPLES});
 
-            ChainProcessor::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
 
             THEN("The buffer is delayed correctly") {
                 for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {
@@ -280,7 +280,7 @@ SCENARIO("ChainProcessor: Latency is applied correctly") {
     }
 }
 
-SCENARIO("ChainProcessor: Plugin methods are called correctly") {
+SCENARIO("ChainProcessors: Plugin methods are called correctly") {
     GIVEN("A chain of plugins") {
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
@@ -309,7 +309,7 @@ SCENARIO("ChainProcessor: Plugin methods are called correctly") {
                 CHECK(samplesPerBlock == NUM_SAMPLES);
             };
 
-            ChainProcessor::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
 
             THEN("The plugin's prepareToPlay is called with the correct arguments") {
                 CHECK(calledPrepareToPlay1);
@@ -328,7 +328,7 @@ SCENARIO("ChainProcessor: Plugin methods are called correctly") {
                 calledReleaseResources2 = true;
             };
 
-            ChainProcessor::releaseResources(*(chain.get()));
+            ChainProcessors::releaseResources(*(chain.get()));
 
             THEN("The plugin's releaseResources is called with the correct arguments") {
                 CHECK(calledReleaseResources1);
@@ -347,7 +347,7 @@ SCENARIO("ChainProcessor: Plugin methods are called correctly") {
                 calledReset2 = true;
             };
 
-            ChainProcessor::reset(*(chain.get()));
+            ChainProcessors::reset(*(chain.get()));
 
             THEN("The plugin's reset is called with the correct arguments") {
                 CHECK(calledReset1);
