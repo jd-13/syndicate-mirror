@@ -79,7 +79,7 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _tooltipLbl->setFont(juce::Font (15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
     _tooltipLbl->setJustificationType(juce::Justification::centred);
     _tooltipLbl->setEditable(false, false, false);
-    _tooltipLbl->setColour(juce::Label::textColourId, juce::Colour(0xff929292));
+    _tooltipLbl->setColour(juce::Label::textColourId, UIUtils::tooltipColour);
     _tooltipLbl->setColour(juce::TextEditor::textColourId, juce::Colours::black);
     _tooltipLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     //[/UserPreSize]

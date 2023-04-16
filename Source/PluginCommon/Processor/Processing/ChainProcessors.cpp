@@ -39,7 +39,10 @@ namespace ChainProcessors {
         }
     }
 
-    void processBlock(PluginChain& chain, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlock(PluginChain& chain,
+                      juce::AudioBuffer<float>& buffer,
+                      juce::MidiBuffer& midiMessages,
+                      juce::AudioPlayHead* newPlayHead) {
         // Add the latency compensation
         juce::dsp::AudioBlock<float> bufferBlock(buffer);
         juce::dsp::ProcessContextReplacing<float> context(bufferBlock);
@@ -65,7 +68,7 @@ namespace ChainProcessors {
                 if (auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(slot)) {
                     ChainProcessors::processBlock(*gainStage.get(), buffer);
                 } else if (auto pluginSlot = std::dynamic_pointer_cast<ChainSlotPlugin>(slot)) {
-                    ChainProcessors::processBlock(*pluginSlot.get(), buffer, midiMessages);
+                    ChainProcessors::processBlock(*pluginSlot.get(), buffer, midiMessages, newPlayHead);
                 }
             }
         }

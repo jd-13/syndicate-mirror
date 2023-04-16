@@ -12,5 +12,5 @@ namespace CrossoverMutators {
     size_t getNumBands(std::shared_ptr<CrossoverState> state);
 
     void addBand(std::shared_ptr<CrossoverState> state);
-    void removeBand(std::shared_ptr<CrossoverState> state, size_t crossoverNumber);
+    void removeBand(std::shared_ptr<CrossoverState> state, size_t bandNumber);
 }

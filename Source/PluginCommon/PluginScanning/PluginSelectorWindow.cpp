@@ -22,7 +22,7 @@ PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback
         setBounds(_state.bounds.value());
     } else {
         // Default to the centre
-        constexpr int DEFAULT_WIDTH {800};
+        constexpr int DEFAULT_WIDTH {900};
         constexpr int DEFAULT_HEIGHT {550};
         centreWithSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }

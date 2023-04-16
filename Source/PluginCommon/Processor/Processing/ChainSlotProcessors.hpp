@@ -12,5 +12,8 @@ namespace ChainProcessors {
     void prepareToPlay(ChainSlotPlugin& slot, HostConfiguration config);
     void releaseResources(ChainSlotPlugin& slot);
     void reset(ChainSlotPlugin& slot);
-    void processBlock(ChainSlotPlugin& slot, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages);
+    void processBlock(ChainSlotPlugin& slot,
+                      juce::AudioBuffer<float>& buffer,
+                      juce::MidiBuffer& midiMessages,
+                      juce::AudioPlayHead* newPlayHead);
 }

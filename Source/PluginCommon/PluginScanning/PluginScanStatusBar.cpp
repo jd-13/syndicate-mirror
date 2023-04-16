@@ -51,6 +51,12 @@ PluginScanStatusBar::PluginScanStatusBar(PluginScanClient& pluginScanClient,
     viewCrashedBtn->addListener(this);
     styleButton(viewCrashedBtn);
 
+    configureBtn.reset(new juce::TextButton("Configure Button"));
+    addAndMakeVisible(configureBtn.get());
+    configureBtn->setButtonText(TRANS("Configure"));
+    configureBtn->addListener(this);
+    styleButton(configureBtn);
+
     _pluginScanClient.addListener(this);
 }
 
@@ -64,22 +70,21 @@ PluginScanStatusBar::~PluginScanStatusBar() {
     rescanAllBtn = nullptr;
     rescanCrashedBtn = nullptr;
     viewCrashedBtn = nullptr;
+    configureBtn = nullptr;
     crashedPluginsPopover = nullptr;
 }
 
 void PluginScanStatusBar::resized() {
-    constexpr int SPACER_WIDTH {10};
-    constexpr int NARROW_BUTTON_WIDTH {80};
-    constexpr int WIDE_BUTTON_WIDTH {130};
-    constexpr int ROW_HEIGHT {24};
-
-    constexpr int MAX_BUTTONS_WIDTH {590};
     const int buttonsTotalWidth {
-        getWidth() < MAX_BUTTONS_WIDTH + 120 ? getWidth() - 120 : MAX_BUTTONS_WIDTH
+        getWidth() < MAX_BUTTONS_WIDTH + MIN_STATUS_WIDTH ? getWidth() - MIN_STATUS_WIDTH : MAX_BUTTONS_WIDTH
     };
 
     if (crashedPluginsPopover != nullptr) {
         crashedPluginsPopover->setBounds(getParentComponent()->getLocalBounds());
+    }
+
+    if (configurePopover != nullptr) {
+        configurePopover->setBounds(getParentComponent()->getLocalBounds());
     }
 
     juce::Rectangle<int> availableArea = getLocalBounds();
@@ -90,11 +95,13 @@ void PluginScanStatusBar::resized() {
     flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
     flexBox.alignContent = juce::FlexBox::AlignContent::center;
 
-    flexBox.items.add(juce::FlexItem(*startScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
-    flexBox.items.add(juce::FlexItem(*stopScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
-    flexBox.items.add(juce::FlexItem(*rescanAllBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
-    flexBox.items.add(juce::FlexItem(*rescanCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
-    flexBox.items.add(juce::FlexItem(*viewCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    const juce::FlexItem::Margin margin(0, SPACER_WIDTH, 0, 0);
+    flexBox.items.add(juce::FlexItem(*startScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*stopScanBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*rescanAllBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*rescanCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*viewCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*configureBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
 
     flexBox.performLayout(availableArea.removeFromRight(buttonsTotalWidth).toFloat());
 
@@ -113,6 +120,8 @@ void PluginScanStatusBar::buttonClicked(juce::Button* buttonThatWasClicked) {
         _pluginScanClient.rescanCrashedPlugins();
     } else if (buttonThatWasClicked == viewCrashedBtn.get()) {
         _createCrashedPluginsDialogue();
+    } else if (buttonThatWasClicked == configureBtn.get()) {
+        _createConfigureDialogue();
     }
 }
 
@@ -150,12 +159,14 @@ void PluginScanStatusBar::_updateButtonState(bool isScanRunning) {
         rescanAllBtn->setEnabled(false);
         rescanCrashedBtn->setEnabled(false);
         viewCrashedBtn->setEnabled(false);
+        configureBtn->setEnabled(false);
     } else {
         startScanBtn->setEnabled(true);
         stopScanBtn->setEnabled(false);
         rescanAllBtn->setEnabled(true);
         rescanCrashedBtn->setEnabled(true);
         viewCrashedBtn->setEnabled(true);
+        configureBtn->setEnabled(true);
     }
 }
 
@@ -182,4 +193,17 @@ void PluginScanStatusBar::_createCrashedPluginsDialogue() {
     crashedPluginsPopover.reset(new UIUtils::PopoverComponent("Crashed plugins", bodyText, [&]() {crashedPluginsPopover.reset(); }));
     getParentComponent()->addAndMakeVisible(crashedPluginsPopover.get());
     crashedPluginsPopover->setBounds(getParentComponent()->getLocalBounds());
+}
+
+void PluginScanStatusBar::_createConfigureDialogue() {
+    // Restore before opening the component
+    _pluginScanClient.config.restoreFromXml();
+
+    configurePopover.reset(new ConfigurePopover(_pluginScanClient.config, [&]() {
+        _pluginScanClient.config.writeToXml();
+        configurePopover.reset();
+    }));
+
+    getParentComponent()->addAndMakeVisible(configurePopover.get());
+    configurePopover->setBounds(getParentComponent()->getLocalBounds());
 }

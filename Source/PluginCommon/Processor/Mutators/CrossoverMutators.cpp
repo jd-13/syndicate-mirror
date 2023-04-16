@@ -119,19 +119,19 @@ namespace CrossoverMutators {
         CrossoverProcessors::reset(*state.get());
     }
 
-    void removeBand(std::shared_ptr<CrossoverState> state, size_t crossoverNumber) {
-        if (state->lowpassFilters.size() > crossoverNumber && state->lowpassFilters.size() > 1) {
-            state->lowpassFilters.erase(state->lowpassFilters.begin() + crossoverNumber);
-            state->highpassFilters.erase(state->highpassFilters.begin() + crossoverNumber);
+    void removeBand(std::shared_ptr<CrossoverState> state, size_t bandNumber) {
+        if (state->lowpassFilters.size() > bandNumber - 1 && state->lowpassFilters.size() > 1) {
+            state->lowpassFilters.erase(state->lowpassFilters.begin() + bandNumber - 1);
+            state->highpassFilters.erase(state->highpassFilters.begin() + bandNumber - 1);
 
             // We might also have an allpass filter to delete
-            if (state->allpassFilters.size() > crossoverNumber - 1) {
-                state->allpassFilters.erase(state->allpassFilters.begin() + crossoverNumber - 1);
+            if (state->allpassFilters.size() > bandNumber - 2) {
+                state->allpassFilters.erase(state->allpassFilters.begin() + bandNumber - 2);
             }
 
-            state->buffers.erase(state->buffers.begin() + crossoverNumber);
+            state->buffers.erase(state->buffers.begin() + bandNumber - 1);
 
-            state->bands.erase(state->bands.begin() + crossoverNumber);
+            state->bands.erase(state->bands.begin() + bandNumber);
 
             CrossoverProcessors::reset(*state.get());
         }

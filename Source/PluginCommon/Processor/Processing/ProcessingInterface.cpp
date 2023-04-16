@@ -24,11 +24,11 @@ namespace SplitterInterface {
         }
     }
 
-    void processBlock(Splitter& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlock(Splitter& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         // Use the try lock on the audio thread
         WECore::AudioSpinTryLock lock(splitter.sharedMutex);
         if (lock.isLocked() && splitter.splitter != nullptr) {
-            SplitterProcessors::processBlock(*splitter.splitter.get(), buffer, midiMessages);
+            SplitterProcessors::processBlock(*splitter.splitter.get(), buffer, midiMessages, newPlayHead);
         }
     }
 }

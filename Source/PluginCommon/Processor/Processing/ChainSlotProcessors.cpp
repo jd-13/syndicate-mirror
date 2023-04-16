@@ -81,7 +81,14 @@ namespace ChainProcessors {
         slot.plugin->reset();
     }
 
-    void processBlock(ChainSlotPlugin& slot, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlock(ChainSlotPlugin& slot,
+                      juce::AudioBuffer<float>& buffer,
+                      juce::MidiBuffer& midiMessages,
+                      juce::AudioPlayHead* newPlayHead) {
+        if (newPlayHead != nullptr) {
+            slot.plugin->setPlayHead(newPlayHead);
+        }
+
         if (!slot.isBypassed) {
             // Apply parameter modulation
             if (slot.modulationConfig->isActive) {

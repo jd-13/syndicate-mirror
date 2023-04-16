@@ -7,6 +7,7 @@ namespace Utils {
 
     inline const char* SCANNED_PLUGINS_FILE_NAME = "ScannedPlugins.txt";
     inline const char* CRASHED_PLUGINS_FILE_NAME = "CrashedPlugins.txt";
+    inline const char* SCAN_CONFIGURATION_FILE_NAME = "ScanConfiguration.txt";
 
     constexpr int PLUGIN_SCANNER_IS_ALIVE_INTERVAL{ 1000 };
 

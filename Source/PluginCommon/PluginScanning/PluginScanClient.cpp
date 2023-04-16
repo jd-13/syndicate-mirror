@@ -65,6 +65,9 @@ void PluginScanClient::startScan() {
         restore();
     }
 
+    // Just in case the config has been changed via another plugin instance, restore it here
+    config.restoreFromXml();
+
     startThread();
 }
 
@@ -159,39 +162,12 @@ void PluginScanClient::run() {
         }
     }
 
-    auto scanForFormat = [&](juce::AudioPluginFormat& format) {
-        juce::File deadMansPedalFile = Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME);
-        deadMansPedalFile.create();
-
-        juce::PluginDirectoryScanner scanner(*_pluginList.get(),
-                                             format,
-                                             format.getDefaultLocationsToSearch(),
-                                             true,
-                                             deadMansPedalFile,
-                                             true);
-        bool isFinished {false};
-
-        while (!_shouldExit && !isFinished) {
-            // Prevent the plugin scanning itself or a plugin that previously stalled a scan
-            if (scanner.getNextPluginFileThatWillBeScanned() == "Syndicate") {
-                if (!scanner.skipNextFile()) {
-                    return;
-                }
-            }
-
-            // Scan the plugin
-            juce::Logger::writeToLog("[" + format.getName() + "] plugin #" + juce::String(_pluginList->getNumTypes()) + ": " + scanner.getNextPluginFileThatWillBeScanned());
-            juce::String currentPluginName;
-            isFinished = !scanner.scanNextFile(true, currentPluginName);
-        }
-    };
-
     #ifdef __APPLE__
-        scanForFormat(_auFormat);
+        _scanForFormat(config.auFormat, config.getAUPaths());
     #endif
 
-    scanForFormat(_vstFormat);
-    scanForFormat(_vst3Format);
+    _scanForFormat(config.vstFormat, config.getVSTPaths());
+    _scanForFormat(config.vst3Format, config.getVST3Paths());
 
     {
         const juce::MessageManagerLock mml(juce::Thread::getCurrentThread());
@@ -213,6 +189,35 @@ void PluginScanClient::run() {
     juce::Logger::writeToLog("All plugin scan jobs finished");
 }
 
+
+void PluginScanClient::_scanForFormat(juce::AudioPluginFormat& format, juce::FileSearchPath searchPaths) {
+    juce::Logger::writeToLog("[" + format.getName() + "] Scanning with paths: " + searchPaths.toString());
+
+    juce::File deadMansPedalFile = Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME);
+    deadMansPedalFile.create();
+
+    juce::PluginDirectoryScanner scanner(*_pluginList.get(),
+                                         format,
+                                         searchPaths,
+                                         true,
+                                         deadMansPedalFile,
+                                         true);
+    bool isFinished {false};
+
+    while (!_shouldExit && !isFinished) {
+        // Prevent the plugin scanning itself or a plugin that previously stalled a scan
+        if (scanner.getNextPluginFileThatWillBeScanned() == "Syndicate") {
+            if (!scanner.skipNextFile()) {
+                return;
+            }
+        }
+
+        // Scan the plugin
+        juce::Logger::writeToLog("[" + format.getName() + "] plugin #" + juce::String(_pluginList->getNumTypes()) + ": " + scanner.getNextPluginFileThatWillBeScanned());
+        juce::String currentPluginName;
+        isFinished = !scanner.scanNextFile(true, currentPluginName);
+    }
+}
 
 void PluginScanClient::changeListenerCallback(juce::ChangeBroadcaster* changed) {
     if (changed == _pluginList.get()) {

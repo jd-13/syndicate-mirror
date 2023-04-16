@@ -95,7 +95,9 @@ void PluginSelectorComponent::resized() {
     availableArea.removeFromTop(MARGIN_SIZE);
 
     // Status bar
-    statusBar->setBounds(availableArea.removeFromBottom(ROW_HEIGHT));
+    constexpr int STATUS_BAR_THRESHOLD_WIDTH {PluginScanStatusBar::MIN_STATUS_WIDTH + PluginScanStatusBar::MAX_BUTTONS_WIDTH};
+    const int statusBarHeight {availableArea.getWidth() < STATUS_BAR_THRESHOLD_WIDTH ? ROW_HEIGHT * 2 : ROW_HEIGHT};
+    statusBar->setBounds(availableArea.removeFromBottom(statusBarHeight));
     availableArea.removeFromBottom(MARGIN_SIZE);
 
     // Table

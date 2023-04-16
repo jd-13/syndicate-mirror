@@ -159,6 +159,8 @@ namespace UIUtils {
 
     const juce::Colour backgroundColour = juce::Colour(0xff272727);
 
+    const juce::Colour tooltipColour = juce::Colour(0xff929292);
+
     void setDefaultLabelStyle(std::unique_ptr<juce::Label>& label);
 
     class SafeAnimatedComponent : public juce::Component,

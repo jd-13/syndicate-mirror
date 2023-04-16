@@ -309,8 +309,8 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     }
 
 
-    // Pass the audio through the splitter
-    SplitterInterface::processBlock(splitter, buffer, midiMessages);
+    // Pass the audio through the splitter (this is also the only safe place to pass the playhead through)
+    SplitterInterface::processBlock(splitter, buffer, midiMessages, getPlayHead());
 
     // Apply the output gain
     for (int channel {0}; channel < getMainBusNumInputChannels(); channel++)
@@ -773,7 +773,6 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
 
         juce::XmlElement* pluginParameterSelectorElement = element->createNewChildElement(XML_PLUGIN_PARAMETER_SELECTOR_STATE_STR);
         _processor->pluginParameterSelectorState.writeToXml(pluginParameterSelectorElement);
-
     } else {
         juce::Logger::writeToLog("Writing failed - no processor");
     }

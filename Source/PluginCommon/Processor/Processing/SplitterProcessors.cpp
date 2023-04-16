@@ -32,11 +32,11 @@ namespace {
         }
     }
 
-    void processBlockSeries(PluginSplitterSeries& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-        ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), buffer, midiMessages);
+    void processBlockSeries(PluginSplitterSeries& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
+        ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), buffer, midiMessages, newPlayHead);
     }
 
-    void processBlockParallel(PluginSplitterParallel& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlockParallel(PluginSplitterParallel& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         splitter.outputBuffer->clear();
 
         for (PluginChainWrapper& chain : splitter.chains) {
@@ -49,7 +49,7 @@ namespace {
                 copyBuffer(buffer, *(splitter.inputBuffer.get()));
 
                 // Process the newly copied buffer
-                ChainProcessors::processBlock(*(chain.chain.get()), *(splitter.inputBuffer.get()), midiMessages);
+                ChainProcessors::processBlock(*(chain.chain.get()), *(splitter.inputBuffer.get()), midiMessages, newPlayHead);
 
                 // Add the output of this chain to the output buffer
                 addBuffers(*(splitter.inputBuffer.get()), *(splitter.outputBuffer.get()));
@@ -60,12 +60,12 @@ namespace {
         copyBuffer(*(splitter.outputBuffer.get()), buffer);
     }
 
-    void processBlockMultiband(PluginSplitterMultiband& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlockMultiband(PluginSplitterMultiband& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         splitter.fftProvider.processBlock(buffer);
-        CrossoverProcessors::processBlock(*splitter.crossover.get(), buffer);
+        CrossoverProcessors::processBlock(*splitter.crossover.get(), buffer, newPlayHead);
     }
 
-    void processBlockLeftRight(PluginSplitterLeftRight& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlockLeftRight(PluginSplitterLeftRight& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         // TODO: maybe this should be done using mono buffers? (depends if plugins can handle it reliably)
 
         // Make sure to clear the buffers each time, as on a previous call the plugins may have left
@@ -92,18 +92,18 @@ namespace {
 
         // Process the left chain
         if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages, newPlayHead);
             addBuffers(*(splitter.leftBuffer.get()), buffer);
         }
 
         // Process the right chain
         if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages, newPlayHead);
             addBuffers(*(splitter.rightBuffer.get()), buffer);
         }
     }
 
-    void processBlockMidSide(PluginSplitterMidSide& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlockMidSide(PluginSplitterMidSide& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         // TODO: check if this can be done using mono buffers that refer to the original buffer rather
         // than copying to new ones (guest plugins don't seem to like mono buffers)
 
@@ -131,14 +131,14 @@ namespace {
 
         // Process the buffers
         if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages, newPlayHead);
         } else {
             // Mute the mid channel if only the other one is soloed
             juce::FloatVectorOperations::fill(midWrite, 0, numSamples);
         }
 
         if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages);
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages, newPlayHead);
 
         } else {
             // Mute the side channel if only the other one is soloed
@@ -196,17 +196,20 @@ namespace SplitterProcessors {
         }
     }
 
-    void processBlock(PluginSplitter& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+    void processBlock(PluginSplitter& splitter,
+                      juce::AudioBuffer<float>& buffer,
+                      juce::MidiBuffer& midiMessages,
+                      juce::AudioPlayHead* newPlayHead) {
         if (auto seriesSplitter = dynamic_cast<PluginSplitterSeries*>(&splitter)) {
-            processBlockSeries(*seriesSplitter, buffer, midiMessages);
+            processBlockSeries(*seriesSplitter, buffer, midiMessages, newPlayHead);
         } else if (auto parallelSplitter = dynamic_cast<PluginSplitterParallel*>(&splitter)) {
-            processBlockParallel(*parallelSplitter, buffer, midiMessages);
+            processBlockParallel(*parallelSplitter, buffer, midiMessages, newPlayHead);
         } else if (auto multibandSplitter = dynamic_cast<PluginSplitterMultiband*>(&splitter)) {
-            processBlockMultiband(*multibandSplitter, buffer, midiMessages);
+            processBlockMultiband(*multibandSplitter, buffer, midiMessages, newPlayHead);
         } else if (auto leftRightSplitter = dynamic_cast<PluginSplitterLeftRight*>(&splitter)) {
-            processBlockLeftRight(*leftRightSplitter, buffer, midiMessages);
+            processBlockLeftRight(*leftRightSplitter, buffer, midiMessages, newPlayHead);
         } else if (auto midSideSplitter = dynamic_cast<PluginSplitterMidSide*>(&splitter)) {
-            processBlockMidSide(*midSideSplitter, buffer, midiMessages);
+            processBlockMidSide(*midSideSplitter, buffer, midiMessages, newPlayHead);
         }
     }
 }

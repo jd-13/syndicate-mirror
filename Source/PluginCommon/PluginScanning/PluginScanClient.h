@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "AllUtils.h"
 #include "PluginScanStatusMessage.h"
+#include "ScanConfiguration.hpp"
 
 enum class ScanState {
     STOPPED,
@@ -14,6 +15,8 @@ enum class ScanState {
 class PluginScanClient : public juce::ChangeListener,
                          public juce::Thread {
 public:
+    ScanConfiguration config;
+
     PluginScanClient();
 
     juce::Array<juce::PluginDescription> getPluginTypes() const;
@@ -69,12 +72,6 @@ private:
 
     std::atomic<bool> _shouldExit;
 
-#ifdef __APPLE__
-    juce::AudioUnitPluginFormat _auFormat;
-#endif
-    juce::VSTPluginFormat _vstFormat;
-    juce::VST3PluginFormat _vst3Format;
-
     ScanState _state;
 
     void _notifyListener(juce::MessageListener* listener);
@@ -82,4 +79,6 @@ private:
     void _onConnectionLost();
 
     void _readScannerFilesForUpdates();
+
+    void _scanForFormat(juce::AudioPluginFormat& format, juce::FileSearchPath searchPaths);
 };
