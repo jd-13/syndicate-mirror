@@ -21,6 +21,10 @@ namespace CrossoverMutators {
     }
 
     void setCrossoverFrequency(std::shared_ptr<CrossoverState> state, size_t crossoverNumber, double val) {
+        if (val > MAX_FREQ) {
+            return;
+        }
+
         if (state->lowpassFilters.size() > crossoverNumber) {
             state->lowpassFilters[crossoverNumber].setCutoffFrequency(val);
             state->highpassFilters[crossoverNumber].setCutoffFrequency(val);
