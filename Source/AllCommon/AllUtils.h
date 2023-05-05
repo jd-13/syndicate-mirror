@@ -9,8 +9,6 @@ namespace Utils {
     inline const char* CRASHED_PLUGINS_FILE_NAME = "CrashedPlugins.txt";
     inline const char* SCAN_CONFIGURATION_FILE_NAME = "ScanConfiguration.txt";
 
-    constexpr int PLUGIN_SCANNER_IS_ALIVE_INTERVAL{ 1000 };
-
 #ifdef __APPLE__
     const juce::File DataDirectory(juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("WhiteElephantAudio/Syndicate"));
     const juce::File PluginLogDirectory(juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("Library/Logs/WhiteElephantAudio/Syndicate/Syndicate"));

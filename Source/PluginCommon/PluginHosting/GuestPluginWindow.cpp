@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-
-    GuestPluginWindow.cpp
-    Created: 31 May 2021 6:04:24pm
-    Author:  Jack Devlin
-
-  ==============================================================================
-*/
-
 #include "GuestPluginWindow.h"
 
 namespace {
@@ -31,6 +21,8 @@ GuestPluginWindow::GuestPluginWindow(std::function<void()> onCloseCallback,
     if (editor != nullptr) {
         setContentOwned(editor, true);
         setResizable(editor->isResizable(), true);
+    } else {
+        juce::Logger::writeToLog("GuestPluginWindow failed to create editor");
     }
 
     // Attempt to restore the previous editor bounds
@@ -56,7 +48,15 @@ GuestPluginWindow::GuestPluginWindow(std::function<void()> onCloseCallback,
     // for some reason
 
     setVisible(true);
+
+#if defined(__APPLE__) || defined(_WIN32)
     setAlwaysOnTop(true);
+#elif __linux__
+    // TODO find a way to make this work on Linux
+    setAlwaysOnTop(false);
+#else
+    #error Unsupported OS
+#endif
 
     juce::Logger::writeToLog("Created GuestPluginWindow");
 }
