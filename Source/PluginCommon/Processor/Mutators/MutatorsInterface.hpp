@@ -38,11 +38,11 @@ namespace SplitterInterface {
     bool removeParallelChain(Splitter& splitter, int chainNumber);
 
     void addCrossoverBand(Splitter& splitter);
-    bool removeCrossoverBand(Splitter& splitter);
+    bool removeCrossoverBand(Splitter& splitter, int bandNumber);
     bool setCrossoverFrequency(Splitter& splitter, size_t index, float val);
     float getCrossoverFrequency(Splitter& splitter, size_t index);
 
-    std::array<float, FFTProvider::NUM_OUTPUTS> getFFTOutputs(Splitter& splitter);
+    std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(Splitter& splitter);
 
     std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(Splitter& splitter, int chainNumber, int positionInChain);
 

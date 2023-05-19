@@ -267,6 +267,7 @@ namespace UIUtils {
         virtual ~LinkedScrollView() = default;
 
         void setOtherView(juce::Viewport* otherView);
+        void removeOtherView(juce::Viewport* otherView);
 
         void scrollBarMoved(juce::ScrollBar* scrollBar, double newRangeStart) override;
 

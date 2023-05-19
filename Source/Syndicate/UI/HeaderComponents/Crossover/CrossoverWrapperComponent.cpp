@@ -4,6 +4,7 @@ CrossoverWrapperComponent::CrossoverWrapperComponent(SyndicateAudioProcessor& pr
 
     _parameterComponent.reset(new CrossoverParameterComponent(processor));
     addAndMakeVisible(_parameterComponent.get());
+    _parameterComponent->setTooltip("Drag the handles to change each band's crossover point - right click a band to remove it");
 
     _imagerComponent.reset(new CrossoverImagerComponent(processor));
     addAndMakeVisible(_imagerComponent.get());

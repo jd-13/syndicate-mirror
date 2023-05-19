@@ -220,12 +220,13 @@ namespace SplitterMutators {
         return CrossoverMutators::getNumBands(splitter->crossover);
     }
 
-    bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter) {
-        if (CrossoverMutators::getNumBands(splitter->crossover) > WECore::MONSTR::Parameters::NUM_BANDS.minValue) {
+    bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter, int bandNumber) {
+        if (CrossoverMutators::getNumBands(splitter->crossover) > WECore::MONSTR::Parameters::NUM_BANDS.minValue &&
+            CrossoverMutators::getNumBands(splitter->crossover) > bandNumber) {
             // Remove the band first, then the chain
-            CrossoverMutators::removeBand(splitter->crossover, CrossoverMutators::getNumBands(splitter->crossover) - 1);
-            splitter->chains[splitter->chains.size() - 1].chain->latencyListener.removeSplitter();
-            splitter->chains.erase(splitter->chains.begin() + splitter->chains.size() - 1);
+            CrossoverMutators::removeBand(splitter->crossover, bandNumber);
+            splitter->chains[bandNumber].chain->latencyListener.removeSplitter();
+            splitter->chains.erase(splitter->chains.begin() + bandNumber);
 
             splitter->onLatencyChange();
             return true;

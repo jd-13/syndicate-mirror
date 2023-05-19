@@ -318,13 +318,13 @@ namespace SplitterInterface {
         }
     }
 
-    bool removeCrossoverBand(Splitter& splitter) {
+    bool removeCrossoverBand(Splitter& splitter, int bandNumber) {
         std::scoped_lock lock(splitter.mutatorsMutex);
         WECore::AudioSpinLock sharedLock(splitter.sharedMutex);
         auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter.splitter);
 
         if (multibandSplitter != nullptr) {
-            return SplitterMutators::removeBand(multibandSplitter);
+            return SplitterMutators::removeBand(multibandSplitter, bandNumber);
         }
 
         return false;
@@ -357,23 +357,23 @@ namespace SplitterInterface {
         return 0.0f;
     }
 
-    std::array<float, FFTProvider::NUM_OUTPUTS> getFFTOutputs(Splitter& splitter) {
+    std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(Splitter& splitter) {
         std::scoped_lock lock(splitter.mutatorsMutex);
         auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter.splitter);
 
         if (multibandSplitter != nullptr) {
-            std::array<float, FFTProvider::NUM_OUTPUTS> retVal;
+            std::array<float, FFTProvider::NUM_OUTPUTS> bins;
             const float* outputs = multibandSplitter->fftProvider.getOutputs();
 
-            std::copy(outputs, outputs + FFTProvider::NUM_OUTPUTS, retVal.begin());
+            std::copy(outputs, outputs + FFTProvider::NUM_OUTPUTS, bins.begin());
 
-            return retVal;
+            return std::make_pair(bins, multibandSplitter->fftProvider.getBinWidth());
         }
 
-        std::array<float, FFTProvider::NUM_OUTPUTS> retVal;
-        std::fill(retVal.begin(), retVal.end(), 0.0f);
+        std::array<float, FFTProvider::NUM_OUTPUTS> bins;
+        std::fill(bins.begin(), bins.end(), 0.0f);
 
-        return retVal;
+        return std::make_pair(bins, 0);
     }
 
     std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(Splitter& splitter, int chainNumber, int positionInChain) {

@@ -30,7 +30,7 @@ ParallelSplitterSubComponent::ParallelSplitterSubComponent(SyndicateAudioProcess
 
 ParallelSplitterSubComponent::~ParallelSplitterSubComponent() {
     addChainBtn->setLookAndFeel(nullptr);
-    _graphView->setOtherView(nullptr);
+    _graphView->removeOtherView(_viewPort.get());
 
     addChainBtn = nullptr;
 }

@@ -13,7 +13,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     seriesBtn->addListener(this);
     seriesBtn->setLookAndFeel(_buttonLookAndFeel.get());
     seriesBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    seriesBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    seriesBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     seriesBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     seriesBtn->setTooltip("A single chain of plugins routed in series");
 
@@ -23,7 +23,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     parallelBtn->addListener(this);
     parallelBtn->setLookAndFeel(_buttonLookAndFeel.get());
     parallelBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    parallelBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    parallelBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     parallelBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     parallelBtn->setTooltip("Multiple chains of plugins routed in parallel");
 
@@ -33,7 +33,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     multibandBtn->addListener(this);
     multibandBtn->setLookAndFeel(_buttonLookAndFeel.get());
     multibandBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    multibandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    multibandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     multibandBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     multibandBtn->setTooltip("Multiple chains of plugins processing different frequency bands");
 
@@ -43,7 +43,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     leftrightBtn->addListener(this);
     leftrightBtn->setLookAndFeel(_buttonLookAndFeel.get());
     leftrightBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    leftrightBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    leftrightBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     leftrightBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     leftrightBtn->setTooltip("Two chains of plugins to process the left and right channels separately");
 
@@ -53,7 +53,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     midsideBtn->addListener(this);
     midsideBtn->setLookAndFeel(_buttonLookAndFeel.get());
     midsideBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    midsideBtn->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    midsideBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     midsideBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
     midsideBtn->setTooltip("Two chains of plugins to process the mid and side channels separately");
 

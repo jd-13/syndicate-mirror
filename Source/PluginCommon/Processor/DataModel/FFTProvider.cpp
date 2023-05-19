@@ -3,7 +3,8 @@
 FFTProvider::FFTProvider() : _buffer(nullptr),
                              _outputs(nullptr),
                              _fft(FFT_ORDER),
-                             _isStereo(false) {
+                             _isStereo(false),
+                             _binWidth(0) {
     _buffer = new float[FFT_SIZE];
     _outputs = new float[NUM_OUTPUTS];
 
@@ -12,7 +13,7 @@ FFTProvider::FFTProvider() : _buffer(nullptr),
 
     for (auto& env : _envs) {
         env.setAttackTimeMs(0.1);
-        env.setReleaseTimeMs(2);
+        env.setReleaseTimeMs(0.5);
         env.setFilterEnabled(false);
     }
 }
@@ -24,6 +25,8 @@ FFTProvider::~FFTProvider() {
 }
 
 void FFTProvider::setSampleRate(double sampleRate) {
+    _binWidth = (sampleRate / 2) / NUM_OUTPUTS;
+
     for (auto& env : _envs) {
         env.setSampleRate(sampleRate);
     }

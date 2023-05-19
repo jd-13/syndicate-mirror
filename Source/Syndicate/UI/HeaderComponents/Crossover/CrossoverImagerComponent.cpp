@@ -1,5 +1,6 @@
 #include "CrossoverImagerComponent.h"
 #include "UIUtils.h"
+#include "UIUtilsCrossover.h"
 #include "SplitterInterface.hpp"
 
 namespace {
@@ -9,13 +10,6 @@ namespace {
         constexpr float range = MAX_DB - MIN_DB;
 
         return crossoverHeight - std::max(((std::min(dBValue, MAX_DB) - MIN_DB) / range) * crossoverHeight, 0.0f);
-    }
-
-    int indexToXPos(int pointIndex, int numPoints, int crossoverWidth) {
-        const float thisIndexLog {static_cast<float>(std::log10(pointIndex))};
-        const float maxLog {static_cast<float>(std::log10(numPoints - 1))};
-
-        return (thisIndexLog / maxLog)  * crossoverWidth;
     }
 }
 
@@ -29,19 +23,19 @@ void CrossoverImagerComponent::paint(juce::Graphics& g) {
 
     g.fillAll(UIUtils::backgroundColour);
 
-    auto fftBuffer = SplitterInterface::getFFTOutputs(_processor.splitter);
+    auto [fftBuffer, binWidth] = SplitterInterface::getFFTOutputs(_processor.splitter);
 
     // Draw a line to each point in the FFT
     juce::Path p;
 
-    for (int index {1}; index < fftBuffer.size(); index++) {
-        // TODO scale X and Y positions correctly
-        const int XPos {indexToXPos(index, fftBuffer.size(), getWidth())};
+    for (int index {0}; index < fftBuffer.size(); index++) {
+        const float binCentreFreq {binWidth * index + binWidth / 2};
+        const int XPos {static_cast<int>(UIUtils::Crossover::sliderValueToXPos(binCentreFreq, getWidth()))};
 
         const float leveldB {static_cast<float>(WECore::CoreMath::linearTodB(fftBuffer[index]))};
         const int YPos {dBToYPos(leveldB, getHeight())};
 
-        if (index == 1) {
+        if (index == 0) {
             p.startNewSubPath(XPos, YPos);
         } else {
             p.lineTo(XPos, YPos);

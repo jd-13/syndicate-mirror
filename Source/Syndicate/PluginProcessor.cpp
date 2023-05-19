@@ -449,9 +449,9 @@ void SyndicateAudioProcessor::addCrossoverBand() {
     }
 }
 
-void SyndicateAudioProcessor::removeCrossoverBand() {
-    if (SplitterInterface::removeCrossoverBand(splitter)) {
-        chainParameters.erase(chainParameters.begin() + chainParameters.size() - 1);
+void SyndicateAudioProcessor::removeCrossoverBand(int bandNumber) {
+    if (SplitterInterface::removeCrossoverBand(splitter, bandNumber)) {
+        chainParameters.erase(chainParameters.begin() + bandNumber);
 
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();

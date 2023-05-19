@@ -10,7 +10,8 @@
 /**
  * Draws the clickable parts of the crossover component.
  */
-class CrossoverParameterComponent : public juce::Component {
+class CrossoverParameterComponent : public juce::Component,
+                                    public juce::SettableTooltipClient {
 public:
 
     CrossoverParameterComponent(SyndicateAudioProcessor& processor);
@@ -25,5 +26,5 @@ private:
 
     void _drawFrequencyText(juce::Graphics& g);
 
-    void _drawBandButtons(juce::Graphics& g);
+    void _drawBandText(juce::Graphics& g);
 };

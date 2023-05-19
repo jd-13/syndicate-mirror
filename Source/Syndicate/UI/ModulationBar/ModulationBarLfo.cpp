@@ -65,7 +65,7 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
     tempoSyncButton->setButtonText(TRANS("Tempo"));
     tempoSyncButton->setLookAndFeel(&_buttonLookAndFeel);
     tempoSyncButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    tempoSyncButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    tempoSyncButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     tempoSyncButton->setColour(juce::TextButton::textColourOffId, baseColour);
     tempoSyncButton->addListener(this);
 
@@ -125,7 +125,7 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
     invertButton->setButtonText(TRANS("Invert"));
     invertButton->setLookAndFeel(&_buttonLookAndFeel);
     invertButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    invertButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    invertButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     invertButton->setColour(juce::TextButton::textColourOffId, baseColour);
     invertButton->addListener(this);
 

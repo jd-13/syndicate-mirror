@@ -11,7 +11,7 @@
  */
 class FFTProvider {
 public:
-    static constexpr int FFT_ORDER {7};
+    static constexpr int FFT_ORDER {9};
     static constexpr int FFT_SIZE {(1 << FFT_ORDER) * 2};
     static constexpr int NUM_OUTPUTS { FFT_SIZE / 4 };
 
@@ -28,6 +28,8 @@ public:
 
     void setIsStereo(bool val) { _isStereo = val; }
 
+    float getBinWidth() const { return _binWidth; }
+
 private:
     float* _buffer;
     float* _outputs;
@@ -35,4 +37,5 @@ private:
     std::array<WECore::AREnv::AREnvelopeFollowerSquareLaw, NUM_OUTPUTS> _envs;
     WECore::AudioSpinMutex _fftMutex;
     bool _isStereo;
+    float _binWidth;
 };

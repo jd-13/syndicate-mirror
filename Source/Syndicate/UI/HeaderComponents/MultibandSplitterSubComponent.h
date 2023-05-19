@@ -3,11 +3,14 @@
 #include <JuceHeader.h>
 #include "SplitterHeaderComponent.h"
 #include "CrossoverWrapperComponent.h"
+#include "ChainButtonsComponent.h"
 
 class MultibandSplitterSubComponent : public SplitterHeaderComponent,
                                       public juce::Button::Listener {
 public:
-    MultibandSplitterSubComponent(SyndicateAudioProcessor& processor, juce::Component* extensionComponent);
+    MultibandSplitterSubComponent(SyndicateAudioProcessor& processor,
+                                  juce::Component* extensionComponent,
+                                  UIUtils::LinkedScrollView* graphView);
     ~MultibandSplitterSubComponent() override;
 
     void onParameterUpdate() override;
@@ -16,12 +19,16 @@ public:
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
 private:
+    std::vector<std::unique_ptr<ChainButtonsComponent>> _chainButtons;
     SyndicateAudioProcessor& _processor;
     UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
 
     std::unique_ptr<juce::TextButton> addBandBtn;
-    std::unique_ptr<juce::TextButton> removeBandBtn;
     std::unique_ptr<CrossoverWrapperComponent> crossoverComponent;
+    std::unique_ptr<UIUtils::LinkedScrollView> _viewPort;
+    UIUtils::LinkedScrollView* _graphView;
+
+    void _rebuildHeader();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MultibandSplitterSubComponent)
 };

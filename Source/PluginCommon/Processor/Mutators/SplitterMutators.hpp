@@ -41,7 +41,7 @@ namespace SplitterMutators {
 
     // PluginSplitterMultiband
     void addBand(std::shared_ptr<PluginSplitterMultiband> splitter);
-    bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter);
+    bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter, int bandNumber);
     size_t getNumBands(std::shared_ptr<PluginSplitterMultiband> splitter);
     void setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val);
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index);

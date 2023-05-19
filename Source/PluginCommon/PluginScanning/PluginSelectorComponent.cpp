@@ -167,7 +167,7 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     vstBtn->addListener(this);
     vstBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     vstBtn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    vstBtn->setColour(juce::TextButton::textColourOnId, style.neutralColour);
+    vstBtn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
     vstBtn->setColour(juce::TextButton::textColourOffId, style.controlColour);
 
     vst3Btn.reset(new juce::TextButton ("VST3 Button"));
@@ -176,7 +176,7 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     vst3Btn->addListener(this);
     vst3Btn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     vst3Btn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    vst3Btn->setColour(juce::TextButton::textColourOnId, style.neutralColour);
+    vst3Btn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
     vst3Btn->setColour(juce::TextButton::textColourOffId, style.controlColour);
 
     auBtn.reset(new juce::TextButton("AU Button"));
@@ -185,7 +185,7 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     auBtn->addListener(this);
     auBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     auBtn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    auBtn->setColour(juce::TextButton::textColourOnId, style.neutralColour);
+    auBtn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
     auBtn->setColour(juce::TextButton::textColourOffId, style.controlColour);
 }
 

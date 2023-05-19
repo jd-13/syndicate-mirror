@@ -63,7 +63,6 @@ void CrossoverMouseListener::mouseUp(const juce::MouseEvent& /*event*/) {
 
 void CrossoverMouseListener::_resolveParameterInteraction(const juce::MouseEvent& event) {
     const int mouseDownX {event.getMouseDownX()};
-    const int mouseDownY {event.getMouseDownY()};
 
     // For each available band, check if the cursor landed on a crossover frequency handle or on
     // the gaps in between
@@ -75,24 +74,11 @@ void CrossoverMouseListener::_resolveParameterInteraction(const juce::MouseEvent
             event.eventComponent->getWidth()
         };
 
-        ChainParameters& thisChainParameter = _processor.chainParameters[bandIndex];
-        if (UIUtils::Crossover::getButtonBounds(crossoverXPos, 0).contains(mouseDownX, mouseDownY)) {
-            // Landed on the bypass button
-            thisChainParameter.setBypass(!thisChainParameter.getBypass());
-            break;
-
-        } else if (UIUtils::Crossover::getButtonBounds(crossoverXPos, 1).contains(mouseDownX, mouseDownY)) {
-            // Landed on the mute button
-            thisChainParameter.setMute(!thisChainParameter.getMute());
-            break;
-
-        } else if (UIUtils::Crossover::getButtonBounds(crossoverXPos, 2).contains(mouseDownX, mouseDownY)) {
-            // Landed on the solo button
-            thisChainParameter.setSolo(!thisChainParameter.getSolo());
-            break;
-
-        } else if (mouseDownX < crossoverXPos - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH) {
-            // Click landed below a crossover handle but outside a button - do nothing
+        if (mouseDownX < crossoverXPos - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH) {
+            // Click landed below a crossover handle
+            if (event.mods.isRightButtonDown()) {
+                _processor.removeCrossoverBand(bandIndex);
+            }
             break;
 
         } else if (mouseDownX < crossoverXPos + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH) {

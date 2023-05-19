@@ -113,7 +113,7 @@ public:
 
     // Multiband Split
     void addCrossoverBand();
-    void removeCrossoverBand();
+    void removeCrossoverBand(int bandNumber);
     void setCrossoverFrequency(size_t index, float val);
 
     // Plugin events

@@ -25,7 +25,7 @@ ModulationButton::ModulationButton(ModulationSourceDefinition newDefinition,
     selectButton->setLookAndFeel(_buttonLookAndFeel.get());
     selectButton->setColour(juce::TextButton::buttonColourId, UIUtils::getColourForModulationType(definition.type));
     selectButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(definition.type));
-    selectButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    selectButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     selectButton->setTooltip(tooltipString);
 
     // Set up the drag handle

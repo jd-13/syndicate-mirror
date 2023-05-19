@@ -99,7 +99,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(EnvelopeFollowerWrapper& envelope) 
     filterButton->setTooltip(TRANS("Enable low/high pass filters on the envelope follower input"));
     filterButton->setLookAndFeel(&_buttonLookAndFeel);
     filterButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    filterButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    filterButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     filterButton->setColour(juce::TextButton::textColourOffId, baseColour);
     filterButton->addListener(this);
 
@@ -121,7 +121,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(EnvelopeFollowerWrapper& envelope) 
     scInButton->setButtonText(TRANS("SC In"));
     scInButton->setLookAndFeel(&_buttonLookAndFeel);
     scInButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    scInButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralHighlightColour);
+    scInButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     scInButton->setColour(juce::TextButton::textColourOffId, baseColour);
     scInButton->addListener(this);
 

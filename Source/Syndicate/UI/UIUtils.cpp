@@ -527,6 +527,12 @@ namespace UIUtils {
         _otherView = otherView;
     }
 
+    void LinkedScrollView::removeOtherView(juce::Viewport* otherView) {
+        if (_otherView == otherView) {
+            _otherView = nullptr;
+        }
+    }
+
     void LinkedScrollView::scrollBarMoved(juce::ScrollBar* scrollBar, double newRangeStart) {
         juce::Viewport::scrollBarMoved(scrollBar, newRangeStart);
 
