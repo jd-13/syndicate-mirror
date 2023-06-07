@@ -4,9 +4,9 @@
 
 ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor, SyndicateAudioProcessorEditor& editor)
         : _processor(processor), _editor(editor) {
-    _exportButton.reset(new juce::TextButton("Export Button"));
+    _exportButton.reset(new juce::TextButton("Save Button"));
     addAndMakeVisible(_exportButton.get());
-    _exportButton->setButtonText(TRANS("Export"));
+    _exportButton->setButtonText(TRANS("Save"));
     _exportButton->setTooltip("Saves the current settings to a file");
     _exportButton->setLookAndFeel(&_buttonLookAndFeel);
     _exportButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
@@ -20,9 +20,9 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
         });
     };
 
-    _importButton.reset(new juce::TextButton("Import Button"));
+    _importButton.reset(new juce::TextButton("Load Button"));
     addAndMakeVisible(_importButton.get());
-    _importButton->setButtonText(TRANS("Import"));
+    _importButton->setButtonText(TRANS("Load"));
     _importButton->setTooltip("Loads settings from a previously saved file");
     _importButton->setLookAndFeel(&_buttonLookAndFeel);
     _importButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);

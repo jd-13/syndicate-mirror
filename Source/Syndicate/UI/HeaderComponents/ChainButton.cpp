@@ -1,47 +1,46 @@
 #include "ChainButton.h"
+#include "UIUtils.h"
 
 void ChainButtonLookAndFeel::drawButtonBackground(juce::Graphics& g,
                                                   juce::Button& button,
                                                   const juce::Colour& /*backgroundColour*/,
                                                   bool /*shouldDrawButtonAsHighlighted*/,
                                                   bool /*shouldDrawButtonAsDown*/) {
-    constexpr int CORNER_RADIUS {2};
-    constexpr int LINE_THICKNESS {1};
+    const juce::Rectangle<float> area = button.getLocalBounds().reduced(1, 1).toFloat();
 
-    // Draw translucent background
-    const juce::Colour buttonBackground(static_cast<uint8_t>(0), 0, 0, 0.5f);
-    g.setColour(buttonBackground);
-    g.fillRoundedRectangle(0, 0, button.getWidth(), button.getHeight(), CORNER_RADIUS);
+    // Draw the outline
+    g.setColour(button.findColour(ChainButton::buttonOnColourId));
+    g.drawEllipse(area, 1.0f);
 
-    // Draw button outline
-    g.setColour(button.findColour(button.getToggleState() ? ChainButton::buttonOnColourId : ChainButton::buttonColourId));
-    g.drawRoundedRectangle(0, 0, button.getWidth(), button.getHeight(), CORNER_RADIUS, LINE_THICKNESS);
+    // Fill if needed
+    if (button.getToggleState()) {
+        g.fillEllipse(area);
+    }
 }
 
 void ChainButtonLookAndFeel::drawButtonText(juce::Graphics& g,
                                             juce::TextButton& button,
                                             bool /*shouldDrawButtonAsHighlighted*/,
                                             bool /*shouldDrawButtonAsDown*/) {
-    g.setColour(button.findColour(button.getToggleState() ? ChainButton::buttonOnColourId : ChainButton::buttonColourId));
-    g.drawText(button.getButtonText(), 0, 0, button.getWidth(), button.getHeight(), juce::Justification::centred);
+    g.setColour(button.findColour(button.getToggleState() ? ChainButton::textColourOnId : ChainButton::textColourOffId));
+    g.drawText(button.getButtonText(), button.getLocalBounds().reduced(2), juce::Justification::centred, false);
 }
 
 ChainButton::ChainButton(CHAIN_BUTTON_TYPE type) {
     setLookAndFeel(&_lookAndFeel);
 
-    setColour(buttonColourId, juce::Colour(200, 200, 200));
+    setColour(buttonOnColourId, UIUtils::neutralControlColour);
+    setColour(textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
+    setColour(textColourOffId, UIUtils::neutralControlColour);
 
     switch (type) {
         case CHAIN_BUTTON_TYPE::BYPASS:
-            setColour(buttonOnColourId, juce::Colour(252, 252, 22));
             setButtonText("B");
             break;
         case CHAIN_BUTTON_TYPE::MUTE:
-            setColour(buttonOnColourId, juce::Colour(252, 0, 0));
             setButtonText("M");
             break;
         case CHAIN_BUTTON_TYPE::SOLO:
-            setColour(buttonOnColourId, juce::Colour(252, 137, 22));
             setButtonText("S");
             break;
     }

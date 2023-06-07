@@ -136,7 +136,9 @@ void PluginScanStatusBar::handleMessage(const juce::Message& message) {
         juce::String statusString;
         const juce::String numPlugins(statusMessage->numPluginsScanned);
 
-        if (statusMessage->isScanRunning) {
+        if (statusMessage->errorText != "") {
+            statusString = statusMessage->errorText;
+        } else if (statusMessage->isScanRunning) {
             // Scan currently running
             statusString = "Found " + numPlugins + " plugins, scanning...";
         } else if (statusMessage->numPluginsScanned == 0) {

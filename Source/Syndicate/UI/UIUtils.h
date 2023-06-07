@@ -12,7 +12,7 @@
 namespace UIUtils {
     // Chains/plugin slots
     constexpr int CHAIN_WIDTH {200};
-    constexpr int BAND_BUTTON_WIDTH {17};
+    constexpr int BAND_BUTTON_WIDTH {21};
     constexpr int PLUGIN_SLOT_HEIGHT {30};
     constexpr int PLUGIN_SLOT_CORNER_RADIUS {PLUGIN_SLOT_HEIGHT / 2};
     constexpr int SLOT_DRAG_HANDLE_WIDTH {PLUGIN_SLOT_HEIGHT};

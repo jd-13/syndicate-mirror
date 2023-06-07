@@ -44,7 +44,7 @@ namespace CrossoverProcessors {
         }
     }
 
-    void processBlock(CrossoverState& state, juce::AudioBuffer<float>& buffer, juce::AudioPlayHead* newPlayHead) {
+    void processBlock(CrossoverState& state, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         const int numFilterChannels {canDoStereoSplitTypes(state.config.layout) ? 2 : 1};
         const size_t numCrossovers {state.bands.size() - 1};
 
@@ -62,9 +62,7 @@ namespace CrossoverProcessors {
                 juce::dsp::ProcessContextReplacing context(block);
                 state.lowpassFilters[crossoverNumber].process(context);
 
-                // TODO support midi buffers
-                juce::MidiBuffer midiBuffer;
-                ChainProcessors::processBlock(*state.bands[crossoverNumber].chain.get(), lowBuffer, midiBuffer, newPlayHead);
+                ChainProcessors::processBlock(*state.bands[crossoverNumber].chain.get(), lowBuffer, midiMessages, newPlayHead);
             }
 
             {
@@ -74,9 +72,7 @@ namespace CrossoverProcessors {
 
                 // If this is the last band we need to apply the processing
                 if (crossoverNumber + 1 == numCrossovers) {
-                    // TODO support midi buffers
-                    juce::MidiBuffer midiBuffer;
-                    ChainProcessors::processBlock(*state.bands[crossoverNumber + 1].chain.get(), highBuffer, midiBuffer, newPlayHead);
+                    ChainProcessors::processBlock(*state.bands[crossoverNumber + 1].chain.get(), highBuffer, midiMessages, newPlayHead);
                 }
             }
         }

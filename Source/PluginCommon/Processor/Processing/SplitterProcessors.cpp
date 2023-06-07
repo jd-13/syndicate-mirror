@@ -62,7 +62,7 @@ namespace {
 
     void processBlockMultiband(PluginSplitterMultiband& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         splitter.fftProvider.processBlock(buffer);
-        CrossoverProcessors::processBlock(*splitter.crossover.get(), buffer, newPlayHead);
+        CrossoverProcessors::processBlock(*splitter.crossover.get(), buffer, midiMessages, newPlayHead);
     }
 
     void processBlockLeftRight(PluginSplitterLeftRight& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
@@ -74,14 +74,21 @@ namespace {
         splitter.leftBuffer->clear();
         splitter.rightBuffer->clear();
 
+        // We only need to check the first two chains
+        // (otherwise if the user is in parallel/multiband and soloes a chain above the first two
+        // and then switches to left/right, the output will be muted)
+        const bool isAnythingSoloed {splitter.chains[0].isSoloed || splitter.chains[1].isSoloed};
+        const bool processLeftChain {!isAnythingSoloed || splitter.chains[0].isSoloed};
+        const bool processRightChain {!isAnythingSoloed || splitter.chains[1].isSoloed};
+
         // Copy the left and right channels to separate buffers
-        if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
+        if (processLeftChain) {
             const float* leftRead {buffer.getReadPointer(0)};
             float* leftWrite {splitter.leftBuffer->getWritePointer(0)};
             juce::FloatVectorOperations::copy(leftWrite, leftRead, buffer.getNumSamples());
         }
 
-        if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
+        if (processRightChain) {
             const float* rightRead {buffer.getReadPointer(1)};
             float* rightWrite {splitter.rightBuffer->getWritePointer(1)};
             juce::FloatVectorOperations::copy(rightWrite, rightRead, buffer.getNumSamples());
@@ -91,13 +98,13 @@ namespace {
         buffer.clear();
 
         // Process the left chain
-        if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
+        if (processLeftChain) {
             ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages, newPlayHead);
             addBuffers(*(splitter.leftBuffer.get()), buffer);
         }
 
         // Process the right chain
-        if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
+        if (processRightChain) {
             ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages, newPlayHead);
             addBuffers(*(splitter.rightBuffer.get()), buffer);
         }
@@ -129,17 +136,21 @@ namespace {
         juce::FloatVectorOperations::multiply(midWrite, 0.5, numSamples);
         juce::FloatVectorOperations::multiply(sideWrite, 0.5, numSamples);
 
+        // We only need to check the first two chains
+        // (otherwise if the user is in parallel/multiband and soloes a chain above the first two
+        // and then switches to mid/side, the output will be muted)
+        const bool isAnythingSoloed {splitter.chains[0].isSoloed || splitter.chains[1].isSoloed};
+
         // Process the buffers
-        if (splitter.numChainsSoloed == 0 || splitter.chains[0].isSoloed) {
+        if (!isAnythingSoloed || splitter.chains[0].isSoloed) {
             ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages, newPlayHead);
         } else {
             // Mute the mid channel if only the other one is soloed
             juce::FloatVectorOperations::fill(midWrite, 0, numSamples);
         }
 
-        if (splitter.numChainsSoloed == 0 || splitter.chains[1].isSoloed) {
+        if (!isAnythingSoloed || splitter.chains[1].isSoloed) {
             ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages, newPlayHead);
-
         } else {
             // Mute the side channel if only the other one is soloed
             juce::FloatVectorOperations::fill(sideWrite, 0, numSamples);

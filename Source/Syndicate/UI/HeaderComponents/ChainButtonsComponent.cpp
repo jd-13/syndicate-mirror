@@ -52,7 +52,7 @@ ChainButtonsComponent::~ChainButtonsComponent() {
 
 void ChainButtonsComponent::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
-    const int margin {5};
+    const int margin {4};
     availableArea = availableArea.reduced(margin);
 
     const juce::Rectangle<int> topArea = availableArea.removeFromTop(availableArea.getHeight() / 2);

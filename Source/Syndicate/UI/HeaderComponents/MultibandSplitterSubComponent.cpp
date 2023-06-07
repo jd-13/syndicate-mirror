@@ -41,7 +41,6 @@ MultibandSplitterSubComponent::~MultibandSplitterSubComponent() {
 
 void MultibandSplitterSubComponent::resized() {
     juce::Rectangle<int> headerArea = getLocalBounds();
-    headerArea.reduce(8, 8);
 
     juce::Rectangle<int> extensionArea = addBandBtn->getParentComponent()->getLocalBounds();
     constexpr int BUTTON_HEIGHT {24};

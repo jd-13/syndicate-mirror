@@ -74,6 +74,10 @@ private:
 
     ScanState _state;
 
+    juce::String _errorMessage;
+
+    void _notifyAllListeners();
+
     void _notifyListener(juce::MessageListener* listener);
 
     void _onConnectionLost();

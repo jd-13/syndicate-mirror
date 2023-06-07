@@ -59,6 +59,19 @@ void PluginScanClient::startScan() {
         return;
     }
 
+    // Check the scanner binary exists
+    if (Utils::PluginScanServerBinary.existsAsFile()) {
+        _errorMessage = "";
+    } else {
+        juce::Logger::writeToLog("PluginScanServer binary is missing");
+        _errorMessage = "Unable to find plugin scanner - please reinstall";
+
+        // Notify the listeners
+        _notifyAllListeners();
+
+        return;
+    }
+
     _state = ScanState::STARTING;
 
     if (!_hasAttemptedRestore) {
@@ -148,12 +161,7 @@ void PluginScanClient::run() {
     _state = ScanState::RUNNING;
 
     // We need to force an update after changing state
-    {
-        std::scoped_lock lock(_listenersMutex);
-        for (juce::MessageListener* listener : _listeners) {
-            _notifyListener(listener);
-        }
-    }
+    _notifyAllListeners();
 
     {
         const juce::MessageManagerLock mml(juce::Thread::getCurrentThread());
@@ -179,12 +187,7 @@ void PluginScanClient::run() {
     _state = ScanState::STOPPED;
 
     // We need to force an update after changing state
-    {
-        std::scoped_lock lock(_listenersMutex);
-        for (juce::MessageListener* listener : _listeners) {
-            _notifyListener(listener);
-        }
-    }
+    _notifyAllListeners();
 
     juce::Logger::writeToLog("All plugin scan jobs finished");
 }
@@ -236,14 +239,18 @@ void PluginScanClient::changeListenerCallback(juce::ChangeBroadcaster* changed) 
             }
         }
 
-        std::scoped_lock lock(_listenersMutex);
-        for (juce::MessageListener* listener : _listeners) {
-            _notifyListener(listener);
-        }
+        _notifyAllListeners();
+    }
+}
+
+void PluginScanClient::_notifyAllListeners() {
+    std::scoped_lock lock(_listenersMutex);
+    for (juce::MessageListener* listener : _listeners) {
+        _notifyListener(listener);
     }
 }
 
 void PluginScanClient::_notifyListener(juce::MessageListener* listener) {
     listener->postMessage(new PluginScanStatusMessage(
-        _pluginList->getNumTypes(), _state == ScanState::RUNNING));
+        _pluginList->getNumTypes(), _state == ScanState::RUNNING, _errorMessage));
 }

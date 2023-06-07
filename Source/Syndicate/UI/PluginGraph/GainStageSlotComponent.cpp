@@ -110,7 +110,7 @@ GainStageSlotComponent::GainStageSlotComponent(
 
     removeBtn.reset(new UIUtils::CrossButton("Remove Button"));
     addAndMakeVisible(removeBtn.get());
-    removeBtn->setTooltip(TRANS("Removes this gain stage"));
+    removeBtn->setTooltip(TRANS("Remove this gain stage"));
     removeBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     removeBtn->addListener(this);
 

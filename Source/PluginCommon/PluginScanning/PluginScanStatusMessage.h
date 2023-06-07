@@ -16,9 +16,12 @@ class PluginScanStatusMessage : public juce::Message {
 public:
     const int numPluginsScanned;
     const bool isScanRunning;
+    const juce::String errorText;
 
     PluginScanStatusMessage(int newNumPluginsScanned,
-                            bool newIsScanRunning) :
+                            bool newIsScanRunning,
+                            juce::String newErrorText) :
             numPluginsScanned(newNumPluginsScanned),
-            isScanRunning(newIsScanRunning) {}
+            isScanRunning(newIsScanRunning),
+            errorText(newErrorText) {}
 };
