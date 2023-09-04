@@ -164,7 +164,7 @@ public:
                             std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
                             std::function<void(int)> latencyChangeCallback)
                             : PluginSplitter(DEFAULT_NUM_CHAINS, newConfig, getModulationValueCallback, latencyChangeCallback),
-                              crossover(createDefaultCrossoverState()) {
+                              crossover(createDefaultCrossoverState(config)) {
         juce::Logger::writeToLog("Constructed PluginSplitterMultiband");
 
         CrossoverProcessors::prepareToPlay(*crossover.get(), config.sampleRate, config.blockSize, config.layout);
@@ -172,7 +172,7 @@ public:
 
     PluginSplitterMultiband(std::shared_ptr<PluginSplitter> otherSplitter, std::optional<std::vector<float>> crossoverFrequencies)
                             : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS),
-                              crossover(createDefaultCrossoverState()) {
+                              crossover(createDefaultCrossoverState(config)) {
         juce::Logger::writeToLog("Converted to PluginSplitterMultiband");
 
         // Set the crossover to have the correct number of bands (this will also default the frequencies)

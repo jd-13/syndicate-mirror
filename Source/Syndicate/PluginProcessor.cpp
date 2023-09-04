@@ -19,28 +19,6 @@ namespace {
     // Modulation sources
     const char* XML_MODULATION_SOURCES_STR {"ModulationSources"};
 
-    const char* XML_LFOS_STR {"LFOs"};
-    const char* XML_LFO_BYPASS_STR {"lfoBypass"};
-    const char* XML_LFO_PHASE_SYNC_STR {"lfoPhaseSync"};
-    const char* XML_LFO_TEMPO_SYNC_STR {"lfoTempoSync"};
-    const char* XML_LFO_INVERT_STR {"lfoInvert"};
-    const char* XML_LFO_WAVE_STR {"lfoWave"};
-    const char* XML_LFO_TEMPO_NUMER_STR {"lfoTempoNumer"};
-    const char* XML_LFO_TEMPO_DENOM_STR {"lfoTempoDenom"};
-    const char* XML_LFO_FREQ_STR {"lfoFreq"};
-    const char* XML_LFO_FREQ_MOD_STR {"lfoFreqMod"};
-    const char* XML_LFO_DEPTH_STR {"lfoDepth"};
-    const char* XML_LFO_DEPTH_MOD_STR {"lfoDepthMod"};
-    const char* XML_LFO_MANUAL_PHASE_STR {"lfoManualPhase"};
-
-    const char* XML_ENVELOPES_STR {"Envelopes"};
-    const char* XML_ENV_ATTACK_TIME_STR {"envelopeAttack"};
-    const char* XML_ENV_RELEASE_TIME_STR {"envelopeRelease"};
-    const char* XML_ENV_FILTER_ENABLED_STR {"envelopeFilterEnabled"};
-    const char* XML_ENV_LOW_CUT_STR {"envelopeLowCut"};
-    const char* XML_ENV_HIGH_CUT_STR {"envelopeHighCut"};
-    const char* XML_ENV_AMOUNT_STR {"envelopeAmount"};
-
     const char* XML_MACRO_NAMES_STR {"MacroNames"};
 
     const char* XML_MAIN_WINDOW_STATE_STR {"MainWindowState"};
@@ -50,18 +28,6 @@ namespace {
     const char* XML_LFO_BUTTONS_POSITION_STR {"LfoButtonsScrollPosition"};
     const char* XML_ENV_BUTTONS_POSITION_STR {"EnvButtonsScrollPosition"};
     const char* XML_SELECTED_SOURCE_STR {"SelectedSource"};
-
-    std::string getLfoXMLName(int lfoNumber) {
-        std::string retVal("LFO_");
-        retVal += std::to_string(lfoNumber);
-        return retVal;
-    }
-
-    std::string getEnvelopeXMLName(int envelopeNumber) {
-        std::string retVal("Envelope_");
-        retVal += std::to_string(envelopeNumber);
-        return retVal;
-    }
 
     juce::String getMacroNameXMLName(int macroNumber) {
         juce::String retVal("MacroName_");
@@ -106,8 +72,8 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
     registerParameter(outputPan, OUTPUTPAN_STR, &OUTPUTPAN, OUTPUTPAN.defaultValue, PRECISION);
 
     // Add a default LFO and envelope
-    addLfo();
-    addEnvelope();
+    ModulationInterface::addLfo(modulationSources);
+    ModulationInterface::addEnvelope(modulationSources);
 
     // Make sure everything is initialised
     _splitterParameters->setProcessor(this);
@@ -206,13 +172,7 @@ void SyndicateAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // initialisation that you need..
 
     // Update the modulation sources
-    for (std::shared_ptr<WECore::Richter::RichterLFO> lfo : lfos) {
-        lfo->setSampleRate(sampleRate);
-    }
-
-    for (EnvelopeFollowerWrapper& env : envelopes) {
-        env.envelope->setSampleRate(sampleRate);
-    }
+    ModulationInterface::prepareToPlay(modulationSources, sampleRate, samplesPerBlock, getBusesLayout());
 
     for (auto& env : meterEnvelopes) {
         env.setSampleRate(sampleRate);
@@ -227,11 +187,11 @@ void SyndicateAudioProcessor::releaseResources()
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
     SplitterInterface::releaseResources(splitter);
-    _resetModulationSources();
+    ModulationInterface::reset(modulationSources);
 }
 
 void SyndicateAudioProcessor::reset() {
-    _resetModulationSources();
+    ModulationInterface::reset(modulationSources);
 
     for (auto& env : meterEnvelopes) {
         env.reset();
@@ -270,44 +230,10 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     // Send tempo and playhead information to the LFOs
     juce::AudioPlayHead::CurrentPositionInfo mTempoInfo;
     getPlayHead()->getCurrentPosition(mTempoInfo);
-    for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : lfos) {
-        lfo->prepareForNextBuffer(mTempoInfo.bpm, mTempoInfo.timeInSeconds);
-    }
 
     // Advance the modulation sources
     // (the envelopes need to be done now before we overwrite the buffer)
-    for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : lfos) {
-        for (int sampleIndex {0}; sampleIndex < buffer.getNumSamples(); sampleIndex++) {
-            lfo->getNextOutput(0);
-        }
-    }
-
-    // TODO this could be faster
-    for (EnvelopeFollowerWrapper& env : envelopes) {
-        // Figure out which channels we need to be looking at
-        int startChannel {0};
-        int endChannel {0};
-
-        if (env.useSidechainInput) {
-            startChannel = getMainBusNumInputChannels();
-            endChannel = totalNumInputChannels;
-        } else {
-            startChannel = 0;
-            endChannel = getMainBusNumInputChannels();
-        }
-
-        for (int sampleIndex {0}; sampleIndex < buffer.getNumSamples(); sampleIndex++) {
-            // Average the samples across all channels
-            float averageSample {0};
-            for (int channelIndex {startChannel}; channelIndex < endChannel; channelIndex++) {
-                averageSample += buffer.getReadPointer(channelIndex)[sampleIndex];
-            }
-            averageSample /= totalNumInputChannels;
-
-            env.envelope->getNextOutput(averageSample);
-        }
-    }
-
+    ModulationInterface::processBlock(modulationSources, buffer, mTempoInfo);
 
     // Pass the audio through the splitter (this is also the only safe place to pass the playhead through)
     SplitterInterface::processBlock(splitter, buffer, midiMessages, getPlayHead());
@@ -347,56 +273,22 @@ juce::AudioProcessorEditor* SyndicateAudioProcessor::createEditor()
 
 float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TYPE type) {
     // TODO This method may be called multiple times for each buffer, could be optimised
-    const int index {id - 1};
-
-    switch (type) {
-        case MODULATION_TYPE::MACRO:
-            if (index < macros.size()) {
-                return macros[index]->get();
-            }
-            break;
-        case MODULATION_TYPE::LFO:
-            if (index < lfos.size()) {
-                return lfos[index]->getLastOutput();
-            }
-            break;
-        case MODULATION_TYPE::ENVELOPE:
-            if (index < envelopes.size()) {
-                return envelopes[index].envelope->getLastOutput() * envelopes[index].amount;
-            }
-            break;
-    };
+    if (type == MODULATION_TYPE::MACRO) {
+        const int index {id - 1};
+        if (index < macros.size()) {
+            return macros[index]->get();
+        }
+    } else if (type == MODULATION_TYPE::LFO) {
+        return ModulationInterface::getLfoModulationValue(modulationSources, id);
+    } else if (type == MODULATION_TYPE::ENVELOPE) {
+        return ModulationInterface::getEnvelopeModulationValue(modulationSources, id);
+    }
 
     return 0.0f;
 }
 
-void SyndicateAudioProcessor::addLfo() {
-    std::shared_ptr<WECore::Richter::RichterLFO> newLfo {new WECore::Richter::RichterLFO()};
-    newLfo->setBypassSwitch(true);
-    newLfo->setSampleRate(getSampleRate());
-    lfos.push_back(newLfo);
-}
-
-void SyndicateAudioProcessor::addEnvelope() {
-    std::shared_ptr<WECore::AREnv::AREnvelopeFollowerSquareLaw> newEnv {new WECore::AREnv::AREnvelopeFollowerSquareLaw()};
-    newEnv->setSampleRate(getSampleRate());
-    envelopes.push_back({newEnv, 0, false});
-}
-
 void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition definition) {
-    // Remove the source from the processor
-    if (definition.type == MODULATION_TYPE::LFO) {
-        const int index {definition.id - 1};
-        if (lfos.size() > index) {
-            lfos.erase(lfos.begin() + index);
-        }
-    } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
-        const int index {definition.id - 1};
-        if (envelopes.size() > index) {
-            envelopes.erase(envelopes.begin() + index);
-        }
-    }
-
+    ModulationInterface::removeModulationSource(modulationSources, definition);
     SplitterInterface::removeModulationSource(splitter, definition);
 
     // Make sure any changes to assigned sources are reflected in the UI
@@ -672,16 +564,6 @@ void SyndicateAudioProcessor::_onParameterUpdate() {
     }
 }
 
-void SyndicateAudioProcessor::_resetModulationSources() {
-    for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : lfos) {
-        lfo->reset();
-    }
-
-    for (EnvelopeFollowerWrapper& env : envelopes) {
-        env.envelope->reset();
-    }
-}
-
 void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElement* element) {
 #ifdef DEMO_BUILD
     juce::Logger::writeToLog("Not restoring state - demo build");
@@ -813,83 +695,11 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreChainParameters() {
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreModulationSourcesFromXml(juce::XmlElement* element) {
-    // LFOs
-    juce::XmlElement* lfosElement = element->getChildByName(XML_LFOS_STR);
-    if (lfosElement != nullptr) {
-        const int numLfos {lfosElement->getNumChildElements()};
-
-        for (int index {0}; index < numLfos; index++) {
-            juce::Logger::writeToLog("Restoring LFO " + juce::String(index));
-
-            const juce::String lfoElementName = getLfoXMLName(index);
-            juce::XmlElement* thisLfoElement = lfosElement->getChildByName(lfoElementName);
-
-            if (thisLfoElement == nullptr) {
-                juce::Logger::writeToLog("Failed to get element " + lfoElementName);
-                continue;
-            }
-
-            std::shared_ptr<WECore::Richter::RichterLFO> newLfo {new WECore::Richter::RichterLFO()};
-            newLfo->setBypassSwitch(thisLfoElement->getBoolAttribute(XML_LFO_BYPASS_STR));
-            newLfo->setPhaseSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_PHASE_SYNC_STR));
-            newLfo->setTempoSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR));
-            newLfo->setInvertSwitch(thisLfoElement->getBoolAttribute(XML_LFO_INVERT_STR));
-            newLfo->setWave(thisLfoElement->getIntAttribute(XML_LFO_WAVE_STR));
-            newLfo->setTempoNumer(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR));
-            newLfo->setTempoDenom (thisLfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR));
-            newLfo->setFreq(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_STR));
-            newLfo->setFreqMod(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_MOD_STR));
-            newLfo->setDepth(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_STR));
-            newLfo->setDepthMod(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_MOD_STR));
-            newLfo->setManualPhase(thisLfoElement->getDoubleAttribute(XML_LFO_MANUAL_PHASE_STR));
-            // newLfo->setSampleRate(thisLfoElement->getDoubleAttribute()); // TODO make sure sample rate is set some other way after restoring
-
-            if (_processor->lfos.size() > index) {
-                // Replace an existing (default) LFO
-                _processor->lfos[index] = newLfo;
-            } else {
-                // Add a new LFO
-                _processor->lfos.push_back(newLfo);
-            }
-        }
-    } else {
-        juce::Logger::writeToLog("Missing element " + juce::String(XML_LFOS_STR));
-    }
-
-    // Envelopes
-    juce::XmlElement* envelopesElement = element->getChildByName(XML_ENVELOPES_STR);
-    if (envelopesElement != nullptr) {
-        const int numEnvelopes {envelopesElement->getNumChildElements()};
-
-        for (int index {0}; index < numEnvelopes; index++) {
-            juce::Logger::writeToLog("Restoring envelope " + juce::String(index));
-
-            const juce::String envelopeElementName = getEnvelopeXMLName(index);
-            juce::XmlElement* thisEnvelopeElement = envelopesElement->getChildByName(envelopeElementName);
-
-            if (thisEnvelopeElement == nullptr) {
-                juce::Logger::writeToLog("Failed to get element " + envelopeElementName);
-                continue;
-            }
-
-            std::shared_ptr<WECore::AREnv::AREnvelopeFollowerSquareLaw> newEnv {new WECore::AREnv::AREnvelopeFollowerSquareLaw()};
-            newEnv->setAttackTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR));
-            newEnv->setReleaseTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR));
-            newEnv->setFilterEnabled(thisEnvelopeElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR));
-            newEnv->setLowCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR));
-            newEnv->setHighCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR));
-
-            if (_processor->envelopes.size() > index) {
-                // Replace an existing (default) envelope
-                _processor->envelopes[index] = {newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR)), false};
-            } else {
-                // Add a new envelope
-                _processor->envelopes.push_back({newEnv, static_cast<float>(thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR)), false});
-            }
-        }
-    } else {
-        juce::Logger::writeToLog("Missing element " + juce::String(XML_ENVELOPES_STR));
-    }
+    ModulationInterface::restoreFromXml(
+        _processor->modulationSources,
+        element,
+        {_processor->getBusesLayout(), _processor->getSampleRate(), _processor->getBlockSize()}
+    );
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreMacroNamesFromXml(juce::XmlElement* element) {
@@ -956,39 +766,7 @@ void SyndicateAudioProcessor::SplitterParameters::_writeSplitterToXml(juce::XmlE
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeModulationSourcesToXml(juce::XmlElement* element) {
-    // LFOs
-    juce::XmlElement* lfosElement = element->createNewChildElement(XML_LFOS_STR);
-    for (int index {0}; index < _processor->lfos.size(); index++) {
-        juce::XmlElement* thisLfoElement = lfosElement->createNewChildElement(getLfoXMLName(index));
-        std::shared_ptr<WECore::Richter::RichterLFO> thisLfo = _processor->lfos[index];
-
-        thisLfoElement->setAttribute(XML_LFO_BYPASS_STR, thisLfo->getBypassSwitch());
-        thisLfoElement->setAttribute(XML_LFO_PHASE_SYNC_STR, thisLfo->getPhaseSyncSwitch());
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_SYNC_STR, thisLfo->getTempoSyncSwitch());
-        thisLfoElement->setAttribute(XML_LFO_INVERT_STR, thisLfo->getInvertSwitch());
-        thisLfoElement->setAttribute(XML_LFO_WAVE_STR, thisLfo->getWave());
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, thisLfo->getTempoNumer());
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, thisLfo->getTempoDenom());
-        thisLfoElement->setAttribute(XML_LFO_FREQ_STR, thisLfo->getFreq());
-        thisLfoElement->setAttribute(XML_LFO_FREQ_MOD_STR, thisLfo->getFreqMod());
-        thisLfoElement->setAttribute(XML_LFO_DEPTH_STR, thisLfo->getDepth());
-        thisLfoElement->setAttribute(XML_LFO_DEPTH_MOD_STR, thisLfo->getDepthMod());
-        thisLfoElement->setAttribute(XML_LFO_MANUAL_PHASE_STR, thisLfo->getManualPhase());
-    }
-
-    // Envelopes
-    juce::XmlElement* envelopesElement = element->createNewChildElement(XML_ENVELOPES_STR);
-    for (int index {0}; index < _processor->envelopes.size(); index++) {
-        juce::XmlElement* thisEnvelopeElement = envelopesElement->createNewChildElement(getEnvelopeXMLName(index));
-        EnvelopeFollowerWrapper thisEnvelope = _processor->envelopes[index];
-
-        thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, thisEnvelope.envelope->getAttackTimeMs());
-        thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, thisEnvelope.envelope->getReleaseTimeMs());
-        thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, thisEnvelope.envelope->getFilterEnabled());
-        thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, thisEnvelope.envelope->getLowCutHz());
-        thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, thisEnvelope.envelope->getHighCutHz());
-        thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, thisEnvelope.amount);
-    }
+    ModulationInterface::writeToXml(_processor->modulationSources, element);
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeMacroNamesToXml(juce::XmlElement* element) {

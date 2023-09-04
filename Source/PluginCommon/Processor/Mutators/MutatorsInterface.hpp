@@ -60,3 +60,18 @@ namespace SplitterInterface {
         const PluginConfigurator& pluginConfigurator,
         std::function<void(juce::String)> onErrorCallback);
 }
+
+namespace ModulationInterface {
+    void addLfo(ModulationSourcesState& state);
+    void addEnvelope(ModulationSourcesState& state);
+    void removeModulationSource(ModulationSourcesState& state, ModulationSourceDefinition definition);
+
+    std::shared_ptr<WECore::Richter::RichterLFO> getLfo(ModulationSourcesState& state, int lfoNumber);
+    std::shared_ptr<EnvelopeWrapper> getEnvelope(ModulationSourcesState& state, int envelopeNumber);
+
+    void forEachLfo(ModulationSourcesState& state, std::function<void(int)> callback);
+    void forEachEnvelope(ModulationSourcesState& state, std::function<void(int)> callback);
+
+    void writeToXml(ModulationSourcesState& state, juce::XmlElement* element);
+    void restoreFromXml(ModulationSourcesState& state, juce::XmlElement* element, HostConfiguration config);
+}

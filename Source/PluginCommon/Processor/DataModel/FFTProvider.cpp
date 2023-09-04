@@ -1,14 +1,17 @@
 #include "FFTProvider.hpp"
 
-FFTProvider::FFTProvider() : _buffer(nullptr),
+FFTProvider::FFTProvider() : _inputBuffer(nullptr),
+                             _fftBuffer(nullptr),
                              _outputs(nullptr),
                              _fft(FFT_ORDER),
                              _isStereo(false),
                              _binWidth(0) {
-    _buffer = new float[FFT_SIZE];
+    _inputBuffer = new float[FFT_SIZE];
+    _fftBuffer = new float[FFT_SIZE];
     _outputs = new float[NUM_OUTPUTS];
 
-    juce::FloatVectorOperations::fill(_buffer, 0, NUM_OUTPUTS);
+    juce::FloatVectorOperations::fill(_inputBuffer, 0, NUM_OUTPUTS);
+    juce::FloatVectorOperations::fill(_fftBuffer, 0, NUM_OUTPUTS);
     juce::FloatVectorOperations::fill(_outputs, 0, NUM_OUTPUTS);
 
     for (auto& env : _envs) {
@@ -20,7 +23,8 @@ FFTProvider::FFTProvider() : _buffer(nullptr),
 
 FFTProvider::~FFTProvider() {
     WECore::AudioSpinLock lock(_fftMutex);
-    delete[] _buffer;
+    delete[] _inputBuffer;
+    delete[] _fftBuffer;
     delete[] _outputs;
 }
 
@@ -55,11 +59,11 @@ void FFTProvider::processBlock(juce::AudioBuffer<float>& buffer) {
             // The input buffer size might be smaller than the FFT buffer size, so then we need to
             // append the the existing FFT buffer by shifting it back and adding the new samples to
             // the end
-            float* const fillStart {_buffer + FFT_SIZE - numSamplesToCopy};
-            juce::FloatVectorOperations::copy(_buffer, fillStart, numSamplesToCopy);
+            juce::FloatVectorOperations::copy(_inputBuffer, _inputBuffer + numSamplesToCopy, FFT_SIZE - numSamplesToCopy);
 
-            // Add the left and right buffers
+            float* const fillStart {_inputBuffer + FFT_SIZE - numSamplesToCopy};
             if (_isStereo) {
+                // Add the left and right buffers
                 const float* const leftBufferInputStart {buffer.getReadPointer(0) + bufferNumber * FFT_SIZE};
                 const float* const rightBufferInputStart {buffer.getReadPointer(1) + bufferNumber * FFT_SIZE};
                 juce::FloatVectorOperations::add(fillStart, leftBufferInputStart, rightBufferInputStart, numSamplesToCopy);
@@ -70,12 +74,13 @@ void FFTProvider::processBlock(juce::AudioBuffer<float>& buffer) {
             }
 
             // Perform the FFT
-            _fft.performFrequencyOnlyForwardTransform(_buffer);
+            juce::FloatVectorOperations::copy(_fftBuffer, _inputBuffer, FFT_SIZE);
+            _fft.performFrequencyOnlyForwardTransform(_fftBuffer);
 
             // Run each FFT output bin through an envelope follower so that it is smoothed when
             // displayed on the UI
             for (int index {0}; index < NUM_OUTPUTS; index++) {
-                _outputs[index] = _envs[index].getNextOutput(_buffer[index]);
+                _outputs[index] = _envs[index].getNextOutput(_fftBuffer[index]);
             }
         }
     }

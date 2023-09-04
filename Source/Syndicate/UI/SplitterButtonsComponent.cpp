@@ -12,6 +12,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     seriesBtn->setButtonText(TRANS("Series"));
     seriesBtn->addListener(this);
     seriesBtn->setLookAndFeel(_buttonLookAndFeel.get());
+    seriesBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
     seriesBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     seriesBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     seriesBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
@@ -22,6 +23,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     parallelBtn->setButtonText(TRANS("Parallel"));
     parallelBtn->addListener(this);
     parallelBtn->setLookAndFeel(_buttonLookAndFeel.get());
+    parallelBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
     parallelBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     parallelBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     parallelBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
@@ -32,6 +34,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     multibandBtn->setButtonText(TRANS("Multiband"));
     multibandBtn->addListener(this);
     multibandBtn->setLookAndFeel(_buttonLookAndFeel.get());
+    multibandBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
     multibandBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     multibandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     multibandBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
@@ -42,6 +45,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     leftrightBtn->setButtonText(TRANS("Left/Right"));
     leftrightBtn->addListener(this);
     leftrightBtn->setLookAndFeel(_buttonLookAndFeel.get());
+    leftrightBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
     leftrightBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     leftrightBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     leftrightBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
@@ -52,6 +56,7 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     midsideBtn->setButtonText(TRANS("Mid/Side"));
     midsideBtn->addListener(this);
     midsideBtn->setLookAndFeel(_buttonLookAndFeel.get());
+    midsideBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
     midsideBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
     midsideBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     midsideBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);

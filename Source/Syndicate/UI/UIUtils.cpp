@@ -32,7 +32,7 @@ namespace UIUtils {
         if (button.isEnabled()) {
             g.setColour(button.findColour(juce::TextButton::buttonOnColourId));
         } else {
-            g.setColour(button.findColour(juce::TextButton::textColourOnId));
+            g.setColour(button.findColour(juce::TextButton::buttonColourId));
         }
 
         g.strokePath(p, pStroke);
@@ -52,7 +52,7 @@ namespace UIUtils {
         g.setFont(font);
 
         if (!textButton.isEnabled()) {
-            g.setColour(textButton.findColour(juce::TextButton::textColourOnId));
+            g.setColour(textButton.findColour(juce::TextButton::buttonColourId));
         } else if (textButton.getToggleState()) {
             g.setColour(textButton.findColour(juce::TextButton::textColourOnId));
         } else {

@@ -1,5 +1,4 @@
 #include "ModulationBar.h"
-#include "EnvelopeFollowerWrapper.h"
 #include "UIUtils.h"
 
 ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
@@ -118,11 +117,11 @@ void ModulationBar::resized() {
 
 void ModulationBar::buttonClicked(juce::Button* buttonThatWasClicked) {
     if (buttonThatWasClicked == _addLfoButton.get()) {
-        _processor.addLfo();
+        ModulationInterface::addLfo(_processor.modulationSources);
         _resetButtons();
         _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
     } else if (buttonThatWasClicked == _addEnvelopeButton.get()) {
-        _processor.addEnvelope();
+        ModulationInterface::addEnvelope(_processor.modulationSources);
         _resetButtons();
         _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
     }
@@ -140,9 +139,9 @@ void ModulationBar::needsRebuild() {
 
 void ModulationBar::AddButtonLookAndFeel::drawButtonBackground(juce::Graphics& g,
                                                                juce::Button& button,
-                                                               const juce::Colour& backgroundColour,
-                                                               bool shouldDrawButtonAsHighlighted,
-                                                               bool shouldDrawButtonAsDown) {
+                                                               const juce::Colour& /*backgroundColour*/,
+                                                               bool /*shouldDrawButtonAsHighlighted*/,
+                                                               bool /*shouldDrawButtonAsDown*/) {
 
     constexpr int MARGIN {1};
     juce::Rectangle<int> area = juce::Rectangle<int>(button.getWidth(), button.getHeight()).reduced(MARGIN, MARGIN);
@@ -177,9 +176,9 @@ void ModulationBar::AddButtonLookAndFeel::drawButtonBackground(juce::Graphics& g
 void ModulationBar::_resetButtons() {
     // Add the LFO buttons
     _lfoButtons.clear();
-    for (int index {0}; index < _processor.lfos.size(); index++) {
-        _createModulationSourceButton(ModulationSourceDefinition(index + 1, MODULATION_TYPE::LFO));
-    }
+    ModulationInterface::forEachLfo(_processor.modulationSources, [&](int lfoNumber) {
+        _createModulationSourceButton(ModulationSourceDefinition(lfoNumber, MODULATION_TYPE::LFO));
+    });
 
     // And the add button
     _addLfoButton.reset(new juce::TextButton("Add LFO Button"));
@@ -193,9 +192,9 @@ void ModulationBar::_resetButtons() {
 
     // Add the envelope buttons
     _envelopeButtons.clear();
-    for (int index {0}; index < _processor.envelopes.size(); index++) {
-        _createModulationSourceButton(ModulationSourceDefinition(index + 1, MODULATION_TYPE::ENVELOPE));
-    }
+    ModulationInterface::forEachEnvelope(_processor.modulationSources, [&](int envelopeNumber) {
+        _createModulationSourceButton(ModulationSourceDefinition(envelopeNumber, MODULATION_TYPE::ENVELOPE));
+    });
 
     // And the add button
     _addEnvelopeButton.reset(new juce::TextButton("Add Envelope Button"));
@@ -251,11 +250,19 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
 
     // Draw the modulaton source UI
     if (selectedButton->definition.type == MODULATION_TYPE::LFO) {
-        std::shared_ptr<WECore::Richter::RichterLFO> thisLfo(_processor.lfos[selectedButton->definition.id - 1]);
-        _selectedSourceComponent.reset(new ModulationBarLfo(thisLfo));
+        std::shared_ptr<WECore::Richter::RichterLFO> thisLfo =
+            ModulationInterface::getLfo(_processor.modulationSources, selectedButton->definition.id);
+
+        if (thisLfo != nullptr) {
+            _selectedSourceComponent.reset(new ModulationBarLfo(thisLfo));
+        }
     } else if (selectedButton->definition.type == MODULATION_TYPE::ENVELOPE) {
-        EnvelopeFollowerWrapper& thisEnvelope(_processor.envelopes[selectedButton->definition.id - 1]);
-        _selectedSourceComponent.reset(new ModulationBarEnvelope(thisEnvelope));
+        std::shared_ptr<ModulationInterface::EnvelopeWrapper> thisEnvelope =
+            ModulationInterface::getEnvelope(_processor.modulationSources, selectedButton->definition.id);
+
+        if (thisEnvelope != nullptr) {
+            _selectedSourceComponent.reset(new ModulationBarEnvelope(thisEnvelope));
+        }
     }
 
     addAndMakeVisible(_selectedSourceComponent.get());

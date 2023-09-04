@@ -40,6 +40,29 @@ inline const char* XML_SPLIT_TYPE_MIDSIDE_STR {"midside"};
 inline const char* XML_CROSSOVERS_STR {"Crossovers"};
 inline const char* XML_CACHED_CROSSOVER_FREQUENCIES_STR {"CrossoverFrequencies"};
 
+inline const char* XML_LFOS_STR {"LFOs"};
+inline const char* XML_LFO_BYPASS_STR {"lfoBypass"};
+inline const char* XML_LFO_PHASE_SYNC_STR {"lfoPhaseSync"};
+inline const char* XML_LFO_TEMPO_SYNC_STR {"lfoTempoSync"};
+inline const char* XML_LFO_INVERT_STR {"lfoInvert"};
+inline const char* XML_LFO_WAVE_STR {"lfoWave"};
+inline const char* XML_LFO_TEMPO_NUMER_STR {"lfoTempoNumer"};
+inline const char* XML_LFO_TEMPO_DENOM_STR {"lfoTempoDenom"};
+inline const char* XML_LFO_FREQ_STR {"lfoFreq"};
+inline const char* XML_LFO_FREQ_MOD_STR {"lfoFreqMod"};
+inline const char* XML_LFO_DEPTH_STR {"lfoDepth"};
+inline const char* XML_LFO_DEPTH_MOD_STR {"lfoDepthMod"};
+inline const char* XML_LFO_MANUAL_PHASE_STR {"lfoManualPhase"};
+
+inline const char* XML_ENVELOPES_STR {"Envelopes"};
+inline const char* XML_ENV_ATTACK_TIME_STR {"envelopeAttack"};
+inline const char* XML_ENV_RELEASE_TIME_STR {"envelopeRelease"};
+inline const char* XML_ENV_FILTER_ENABLED_STR {"envelopeFilterEnabled"};
+inline const char* XML_ENV_LOW_CUT_STR {"envelopeLowCut"};
+inline const char* XML_ENV_HIGH_CUT_STR {"envelopeHighCut"};
+inline const char* XML_ENV_AMOUNT_STR {"envelopeAmount"};
+inline const char* XML_ENV_USE_SIDECHAIN_INPUT_STR {"envelopeUseSidechainInput"};
+
 inline std::string getParameterModulationConfigXmlName(int configNumber) {
     std::string retVal("ParamConfig_");
     retVal += std::to_string(configNumber);
@@ -104,5 +127,17 @@ inline juce::String getCrossoverXMLName(int crossoverNumber) {
 inline juce::String getCachedCrossoverFreqXMLName(int crossoverNumber) {
     juce::String retVal("Crossover_");
     retVal += juce::String(crossoverNumber);
+    return retVal;
+}
+
+inline std::string getLfoXMLName(int lfoNumber) {
+    std::string retVal("LFO_");
+    retVal += std::to_string(lfoNumber);
+    return retVal;
+}
+
+inline std::string getEnvelopeXMLName(int envelopeNumber) {
+    std::string retVal("Envelope_");
+    retVal += std::to_string(envelopeNumber);
     return retVal;
 }

@@ -19,7 +19,7 @@ void OutputMeter::paint(juce::Graphics& g) {
         return std::max(((std::min(dBValue, MAX_DB) - MIN_DB) / meterRange) * getHeight(), 0.0f);
     };
 
-    const int zeroLineHeight = dBToHeight(0);
+    const int zeroLineHeight = static_cast<int>(dBToHeight(0));
 
     // Draw the meter for each channel
     const int numChannels {canDoStereoSplitTypes(_processor.getBusesLayout()) ? 2 : 1};
@@ -31,7 +31,7 @@ void OutputMeter::paint(juce::Graphics& g) {
 
     for (int channel {0}; channel < numChannels; channel++) {
         const float gaindB = WECore::CoreMath::linearTodB(_processor.meterEnvelopes[channel].getLastOutput());
-        const int meterHeight = dBToHeight(gaindB);
+        const int meterHeight = static_cast<int>(dBToHeight(gaindB));
 
         availableArea.removeFromLeft(MARGIN);
         juce::Rectangle<int> meterArea = availableArea.removeFromLeft(channelWidth).withTrimmedTop(availableArea.getHeight() - meterHeight);
@@ -62,6 +62,7 @@ OutputComponent::OutputComponent(SyndicateAudioProcessor& processor) : _processo
     panSlider->addListener(this);
     panSlider->setLookAndFeel(&_panSliderLookAndFeel);
     panSlider->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::neutralControlColour);
+    panSlider->setColour(juce::Slider::rotarySliderOutlineColourId, UIUtils::neutralDeactivatedColour);
     panSlider->setTooltip("Balance applied to the output (if in stereo)");
 
     panLabel.reset(new juce::Label("Balance Label", TRANS("Balance")));

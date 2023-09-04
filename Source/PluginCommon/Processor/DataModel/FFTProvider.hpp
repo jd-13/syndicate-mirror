@@ -31,7 +31,8 @@ public:
     float getBinWidth() const { return _binWidth; }
 
 private:
-    float* _buffer;
+    float* _inputBuffer;
+    float* _fftBuffer;
     float* _outputs;
     juce::dsp::FFT _fft;
     std::array<WECore::AREnv::AREnvelopeFollowerSquareLaw, NUM_OUTPUTS> _envs;

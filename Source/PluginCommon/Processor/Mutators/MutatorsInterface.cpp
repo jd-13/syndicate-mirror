@@ -3,6 +3,7 @@
 #include <assert.h>
 
 #include "SplitterMutators.hpp"
+#include "ModulationMutators.hpp"
 #include "XmlConsts.hpp"
 #include "XmlReader.hpp"
 #include "XmlWriter.hpp"
@@ -465,5 +466,73 @@ namespace SplitterInterface {
         if (splitter.splitter != nullptr) {
             SplitterProcessors::prepareToPlay(*splitter.splitter.get(), config.sampleRate, config.blockSize, config.layout);
         }
+    }
+}
+
+namespace ModulationInterface {
+    void addLfo(ModulationSourcesState& state) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(state.sharedMutex);
+        ModulationMutators::addLfo(state);
+    }
+
+    void addEnvelope(ModulationSourcesState& state) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(state.sharedMutex);
+        ModulationMutators::addEnvelope(state);
+    }
+
+    void removeModulationSource(ModulationSourcesState& state, ModulationSourceDefinition definition) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(state.sharedMutex);
+        ModulationMutators::removeModulationSource(state, definition);
+    }
+
+    std::shared_ptr<WECore::Richter::RichterLFO> getLfo(ModulationSourcesState& state, int lfoNumber) {
+        std::scoped_lock lock(state.mutatorsMutex);
+
+        const int index {lfoNumber - 1};
+        if (state.lfos.size() > index) {
+            return state.lfos[index];
+        }
+
+        return nullptr;
+    }
+
+    std::shared_ptr<EnvelopeWrapper> getEnvelope(ModulationSourcesState& state, int envelopeNumber) {
+        std::scoped_lock lock(state.mutatorsMutex);
+
+        const int index {envelopeNumber - 1};
+        if (state.envelopes.size() > index) {
+            return state.envelopes[index];
+        }
+
+        return nullptr;
+    }
+
+    void forEachLfo(ModulationSourcesState& state, std::function<void(int)> callback) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        for (int lfoIndex {0}; lfoIndex < state.lfos.size(); lfoIndex++) {
+            callback(lfoIndex + 1);
+        }
+    }
+
+    void forEachEnvelope(ModulationSourcesState& state, std::function<void(int)> callback) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        for (int envIndex {0}; envIndex < state.envelopes.size(); envIndex++) {
+            callback(envIndex + 1);
+        }
+    }
+
+    void writeToXml(ModulationSourcesState& state, juce::XmlElement* element) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        XmlWriter::write(state, element);
+    }
+
+    void restoreFromXml(ModulationSourcesState& state, juce::XmlElement* element, HostConfiguration config) {
+        std::scoped_lock lock(state.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(state.sharedMutex);
+
+        XmlReader::restoreModulationSourcesFromXml(state, element, config);
     }
 }

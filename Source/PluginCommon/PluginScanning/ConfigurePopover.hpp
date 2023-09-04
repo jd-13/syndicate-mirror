@@ -12,7 +12,7 @@ public:
 
     void resized() override;
 
-    void mouseDown(const juce::MouseEvent& event);
+    void mouseDown(const juce::MouseEvent& event) override;
 
     int getRequiredHeight() const;
 

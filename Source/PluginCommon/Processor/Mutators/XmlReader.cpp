@@ -4,6 +4,7 @@
 #include "ChainProcessors.hpp"
 #include "SplitterMutators.hpp"
 #include "SplitTypes.hpp"
+#include "RichterLFO/RichterLFO.h"
 
 namespace XmlReader {
     std::shared_ptr<PluginSplitter> restoreSplitterFromXml(
@@ -407,5 +408,84 @@ namespace XmlReader {
         }
 
         return std::make_unique<PluginParameterModulationSource>(definition, modulationAmount);
+    }
+
+    void restoreModulationSourcesFromXml(ModulationInterface::ModulationSourcesState& state,
+                                         juce::XmlElement* element,
+                                         HostConfiguration configuration) {
+
+        // Clear existing state
+        state.lfos.clear();
+        state.envelopes.clear();
+
+        // LFOs
+        juce::XmlElement* lfosElement = element->getChildByName(XML_LFOS_STR);
+        if (lfosElement != nullptr) {
+            const int numLfos {lfosElement->getNumChildElements()};
+
+            for (int index {0}; index < numLfos; index++) {
+                juce::Logger::writeToLog("Restoring LFO " + juce::String(index));
+
+                const juce::String lfoElementName = getLfoXMLName(index);
+                juce::XmlElement* thisLfoElement = lfosElement->getChildByName(lfoElementName);
+
+                if (thisLfoElement == nullptr) {
+                    juce::Logger::writeToLog("Failed to get element " + lfoElementName);
+                    continue;
+                }
+
+                std::shared_ptr<WECore::Richter::RichterLFO> newLfo {new WECore::Richter::RichterLFO()};
+                newLfo->setBypassSwitch(thisLfoElement->getBoolAttribute(XML_LFO_BYPASS_STR));
+                newLfo->setPhaseSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_PHASE_SYNC_STR));
+                newLfo->setTempoSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR));
+                newLfo->setInvertSwitch(thisLfoElement->getBoolAttribute(XML_LFO_INVERT_STR));
+                newLfo->setWave(thisLfoElement->getIntAttribute(XML_LFO_WAVE_STR));
+                newLfo->setTempoNumer(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR));
+                newLfo->setTempoDenom(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR));
+                newLfo->setFreq(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_STR));
+                newLfo->setFreqMod(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_MOD_STR));
+                newLfo->setDepth(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_STR));
+                newLfo->setDepthMod(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_MOD_STR));
+                newLfo->setManualPhase(thisLfoElement->getDoubleAttribute(XML_LFO_MANUAL_PHASE_STR));
+                newLfo->setSampleRate(configuration.sampleRate);
+
+                state.lfos.push_back(newLfo);
+            }
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_LFOS_STR));
+        }
+
+        // Envelopes
+        juce::XmlElement* envelopesElement = element->getChildByName(XML_ENVELOPES_STR);
+        if (envelopesElement != nullptr) {
+            const int numEnvelopes {envelopesElement->getNumChildElements()};
+
+            for (int index {0}; index < numEnvelopes; index++) {
+                juce::Logger::writeToLog("Restoring envelope " + juce::String(index));
+
+                const juce::String envelopeElementName = getEnvelopeXMLName(index);
+                juce::XmlElement* thisEnvelopeElement = envelopesElement->getChildByName(envelopeElementName);
+
+                if (thisEnvelopeElement == nullptr) {
+                    juce::Logger::writeToLog("Failed to get element " + envelopeElementName);
+                    continue;
+                }
+
+                std::shared_ptr<ModulationInterface::EnvelopeWrapper> newEnv {new ModulationInterface::EnvelopeWrapper()};
+                newEnv->envelope.setAttackTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR));
+                newEnv->envelope.setReleaseTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR));
+                newEnv->envelope.setFilterEnabled(thisEnvelopeElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR));
+                newEnv->envelope.setLowCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR));
+                newEnv->envelope.setHighCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR));
+                newEnv->envelope.setSampleRate(configuration.sampleRate);
+
+                newEnv->amount = thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR);
+                newEnv->useSidechainInput = thisEnvelopeElement->getBoolAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR);
+
+                state.envelopes.push_back(newEnv);
+            }
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_ENVELOPES_STR));
+        }
     }
 }

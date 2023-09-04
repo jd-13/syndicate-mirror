@@ -33,7 +33,7 @@ public:
     CrossoverState() : numBandsSoloed(0) {}
 };
 
-inline std::shared_ptr<CrossoverState> createDefaultCrossoverState() {
+inline std::shared_ptr<CrossoverState> createDefaultCrossoverState(HostConfiguration newConfig) {
     auto state = std::make_shared<CrossoverState>();
 
     // Initialise configuration for two bands
@@ -51,6 +51,8 @@ inline std::shared_ptr<CrossoverState> createDefaultCrossoverState() {
 
     state->bands.emplace_back();
     state->bands.emplace_back();
+
+    state->config = newConfig;
 
     return state;
 }

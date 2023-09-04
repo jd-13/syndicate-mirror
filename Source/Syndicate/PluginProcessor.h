@@ -18,8 +18,6 @@
 #include "PluginParameterSelectorState.h"
 #include "ChainParameters.h"
 #include "ParameterData.h"
-#include "RichterLFO/RichterLFO.h"
-#include "EnvelopeFollowerWrapper.h"
 #include "PluginConfigurator.hpp"
 #include "SplitterInterface.hpp"
 
@@ -49,9 +47,8 @@ public:
     PluginSelectorState pluginSelectorState; // TODO convert this to a custom parameter
     PluginParameterSelectorState pluginParameterSelectorState;
     SplitterInterface::Splitter splitter;
+    ModulationInterface::ModulationSourcesState modulationSources;
     std::vector<ChainParameters> chainParameters;
-    std::vector<std::shared_ptr<WECore::Richter::RichterLFO>> lfos;
-    std::vector<EnvelopeFollowerWrapper> envelopes;
     PluginConfigurator pluginConfigurator;
     std::array<juce::String, NUM_MACROS> macroNames;
     std::array<WECore::AREnv::AREnvelopeFollowerSquareLaw, 2> meterEnvelopes;
@@ -100,8 +97,6 @@ public:
     void removeEditor() { _editor = nullptr; }
 
     float getModulationValueForSource(int id, MODULATION_TYPE type);
-    void addLfo();
-    void addEnvelope();
     void removeModulationSource(ModulationSourceDefinition definition);
 
     void setSplitType(SPLIT_TYPE splitType);
@@ -178,8 +173,6 @@ private:
     void _migrateParamValues(std::vector<float>& paramValues) override;
 
     void _onParameterUpdate() override;
-
-    void _resetModulationSources();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SyndicateAudioProcessor)

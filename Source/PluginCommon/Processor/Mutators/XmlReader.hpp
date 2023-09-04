@@ -4,6 +4,7 @@
 #include "ChainSlots.hpp"
 #include "PluginChain.hpp"
 #include "PluginSplitter.hpp"
+#include "DataModelInterface.hpp"
 
 // TODO lock on entry so UI can't make changes
 
@@ -43,4 +44,9 @@ namespace XmlReader {
     std::unique_ptr<PluginModulationConfig> restorePluginModulationConfig(juce::XmlElement* element);
     std::unique_ptr<PluginParameterModulationConfig> restorePluginParameterModulationConfig(juce::XmlElement* element);
     std::unique_ptr<PluginParameterModulationSource> restorePluginParameterModulationSource(juce::XmlElement* element);
+
+    void restoreModulationSourcesFromXml(
+        ModulationInterface::ModulationSourcesState& state,
+        juce::XmlElement* element,
+        HostConfiguration configuration);
 }
