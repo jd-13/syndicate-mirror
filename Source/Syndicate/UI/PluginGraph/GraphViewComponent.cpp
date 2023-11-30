@@ -33,7 +33,7 @@ GraphViewComponent::GraphViewComponent(SyndicateAudioProcessor& processor)
     _viewPort->setViewedComponent(new juce::Component());
     _viewPort->setScrollBarsShown(false, true);
     _viewPort->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-    _viewPort->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _viewPort->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _viewPort->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
     addAndMakeVisible(_viewPort.get());
 }

@@ -98,9 +98,9 @@ ModulationBarEnvelope::ModulationBarEnvelope(std::shared_ptr<ModulationInterface
     filterButton->setButtonText(TRANS("Filter"));
     filterButton->setTooltip(TRANS("Enable low/high pass filters on the envelope follower input"));
     filterButton->setLookAndFeel(&_buttonLookAndFeel);
-    filterButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    filterButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    filterButton->setColour(juce::TextButton::textColourOffId, baseColour);
+    filterButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    filterButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
+    filterButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     filterButton->addListener(this);
 
     filterSlider.reset(new FilterSlider());
@@ -113,16 +113,16 @@ ModulationBarEnvelope::ModulationBarEnvelope(std::shared_ptr<ModulationInterface
     filterSlider->addListener(this);
     filterSlider->setLookAndFeel(&_filterSliderLookAndFeel);
     filterSlider->setColour(juce::Slider::thumbColourId, baseColour);
-    filterSlider->setColour(juce::Slider::backgroundColourId, UIUtils::neutralDeactivatedColour);
+    filterSlider->setColour(juce::Slider::backgroundColourId, UIUtils::deactivatedColour);
 
     scInButton.reset(new juce::TextButton("ENV SC In Button"));
     addAndMakeVisible(scInButton.get());
     scInButton->setTooltip(TRANS("Use the sidechain input to trigger this envelope follower"));
     scInButton->setButtonText(TRANS("SC In"));
     scInButton->setLookAndFeel(&_buttonLookAndFeel);
-    scInButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    scInButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    scInButton->setColour(juce::TextButton::textColourOffId, baseColour);
+    scInButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    scInButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
+    scInButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     scInButton->addListener(this);
 
     _envView.reset(new EnvelopeViewer(_envelope));

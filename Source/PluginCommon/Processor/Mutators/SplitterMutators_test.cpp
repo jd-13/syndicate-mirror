@@ -285,6 +285,619 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
     juce::MessageManager::deleteInstance();
 }
 
+SCENARIO("SplitterMutators: Slots can be moved") {
+    auto messageManager = juce::MessageManager::getInstance();
+
+    GIVEN("A splitter with a single plugin in a single chain") {
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        int latencyCalled {false};
+        int receivedLatency {0};
+        auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
+            latencyCalled = true;
+            receivedLatency = latency;
+        };
+
+        auto splitterSeries = std::make_shared<PluginSplitterSeries>(config, modulationCallback, latencyCallback);
+
+        auto plugin = std::make_shared<MutatorTestPluginInstance>();
+        plugin->setLatencySamples(10);
+
+        auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterSeries);
+        bool isSuccess = SplitterMutators::insertPlugin(splitter, plugin, 0, 0);
+
+        REQUIRE(isSuccess);
+        REQUIRE(splitterSeries->chains[0].chain->latencyListener.calculatedTotalPluginLatency == 10);
+        REQUIRE(splitterSeries->chains.size() == 1);
+        REQUIRE(splitterSeries->chains[0].chain->chain.size() == 1);
+        REQUIRE(SplitterMutators::getPlugin(splitter, 0, 0) == plugin);
+        REQUIRE(latencyCalled);
+        REQUIRE(receivedLatency == 10);
+
+        // Reset
+        latencyCalled = false;
+        receivedLatency = 0;
+
+        WHEN("The slot is moved to the same position") {
+            SplitterMutators::moveSlot(splitter, 0, 0, 0, 0);
+
+            THEN("Nothing changes") {
+                CHECK(splitterSeries->chains.size() == 1);
+                CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
+                CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
+                CHECK(splitterSeries->chains[0].isSoloed == false);
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 10);
+            }
+        }
+
+        WHEN("The slot is moved to a position > chain.size()") {
+            SplitterMutators::moveSlot(splitter, 0, 0, 0, 10);
+
+            THEN("Nothing changes") {
+                CHECK(splitterSeries->chains.size() == 1);
+                CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
+                CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
+                CHECK(splitterSeries->chains[0].isSoloed == false);
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 10);
+            }
+        }
+    }
+
+    GIVEN("A parallel splitter with a two chains") {
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        int latencyCalled {false};
+        int receivedLatency {0};
+        auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
+            latencyCalled = true;
+            receivedLatency = latency;
+        };
+
+        auto splitterParallel = std::make_shared<PluginSplitterParallel>(config, modulationCallback, latencyCallback);
+        auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterParallel);
+
+        // Add one more chain/band
+        SplitterMutators::addChain(splitterParallel);
+
+        // Add three plugins and a gain stage to each chain
+        std::vector<std::vector<std::shared_ptr<MutatorTestPluginInstance>>> plugins;
+        for (int chainNumber {0}; chainNumber < splitterParallel->chains.size(); chainNumber++) {
+            plugins.push_back(std::vector<std::shared_ptr<MutatorTestPluginInstance>>());
+            int totalLatency {0};
+
+            for (int pluginNumber {0}; pluginNumber < 3; pluginNumber++) {
+                auto thisPlugin = std::make_shared<MutatorTestPluginInstance>();
+                const int latency {10 * (pluginNumber + 1)};
+                totalLatency += latency;
+                thisPlugin->setLatencySamples(latency);
+                plugins[chainNumber].push_back(thisPlugin);
+
+                bool isSuccess = SplitterMutators::insertPlugin(splitter, thisPlugin, chainNumber, pluginNumber);
+                REQUIRE(splitterParallel->chains[chainNumber].chain->latencyListener.calculatedTotalPluginLatency == totalLatency);
+                REQUIRE(splitterParallel->chains[chainNumber].chain->chain.size() == pluginNumber + 1);
+                REQUIRE(SplitterMutators::getPlugin(splitter, chainNumber, pluginNumber) == thisPlugin);
+                REQUIRE(latencyCalled);
+                REQUIRE(receivedLatency == (chainNumber == 0 ? totalLatency : 60));
+            }
+
+            bool isSuccess = SplitterMutators::insertGainStage(splitter, chainNumber, 3);
+            REQUIRE(splitterParallel->chains[chainNumber].chain->chain.size() == 4);
+            REQUIRE(SplitterMutators::getPlugin(splitter, chainNumber, 3) == nullptr);
+        }
+
+        REQUIRE(splitterParallel->chains.size() == 2);
+
+        // Reset
+        latencyCalled = false;
+        receivedLatency = 0;
+
+        WHEN("The middle slot is moved to the same position") {
+            PluginModulationConfig config;
+            config.isActive = true;
+
+            auto paramConfig = std::make_shared<PluginParameterModulationConfig>();
+            paramConfig->targetParameterName = "testParam";
+            config.parameterConfigs.push_back(paramConfig);
+
+            SplitterMutators::setSlotBypass(splitter, 0, 1, true);
+            SplitterMutators::setPluginModulationConfig(splitter, config, 0, 1);
+            SplitterMutators::moveSlot(splitter, 0, 1, 0, 1);
+
+            THEN("Nothing changes") {
+                REQUIRE(splitterParallel->chains.size() == 2);
+
+                for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
+                    CHECK(splitterParallel->chains[chainNumber].chain->chain.size() == 4);
+                }
+
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 60);
+
+                // Check bypass
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 1) == true);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 2) == false);
+
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 1) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 2) == false);
+
+                // Check the slots
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 0) == plugins[0][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 1) == plugins[0][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 2) == plugins[0][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 3) == nullptr);
+
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 0) == plugins[1][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 1) == plugins[1][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 2) == plugins[1][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 3) == nullptr);
+
+                // Check the modulation config
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).isActive == true);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).parameterConfigs[0]->targetParameterName == "testParam");
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 2).isActive == false);
+
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 1).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 2).isActive == false);
+            }
+        }
+
+        WHEN("A slot is moved from a lower to the next position up in the same chain") {
+            PluginModulationConfig config;
+            config.isActive = true;
+
+            auto paramConfig = std::make_shared<PluginParameterModulationConfig>();
+            paramConfig->targetParameterName = "testParam";
+            config.parameterConfigs.push_back(paramConfig);
+
+            SplitterMutators::setSlotBypass(splitter, 0, 1, true);
+            SplitterMutators::setPluginModulationConfig(splitter, config, 0, 1);
+            SplitterMutators::moveSlot(splitter, 0, 1, 0, 2);
+
+            THEN("Nothing changes") { // Not immediately obvious, but this is correct as the chain is already in the right place
+                REQUIRE(splitterParallel->chains.size() == 2);
+
+                for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
+                    CHECK(splitterParallel->chains[chainNumber].chain->chain.size() == 4);
+                }
+
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 60);
+
+                // Check bypass
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 1) == true);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 2) == false);
+
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 1) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 2) == false);
+
+                // Check the slots
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 0) == plugins[0][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 1) == plugins[0][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 2) == plugins[0][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 3) == nullptr);
+
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 0) == plugins[1][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 1) == plugins[1][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 2) == plugins[1][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 3) == nullptr);
+
+                // Check the modulation config
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).isActive == true);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).parameterConfigs[0]->targetParameterName == "testParam");
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 2).isActive == false);
+
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 1).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 2).isActive == false);
+            }
+        }
+
+        WHEN("A slot is moved from a lower to a higher position in the same chain") {
+            PluginModulationConfig config;
+            config.isActive = true;
+
+            auto paramConfig = std::make_shared<PluginParameterModulationConfig>();
+            paramConfig->targetParameterName = "testParam";
+            config.parameterConfigs.push_back(paramConfig);
+
+            SplitterMutators::setSlotBypass(splitter, 0, 0, true);
+            SplitterMutators::setPluginModulationConfig(splitter, config, 0, 0);
+            SplitterMutators::moveSlot(splitter, 0, 0, 0, 2);
+
+            THEN("The slot is moved to the new position") {
+                REQUIRE(splitterParallel->chains.size() == 2);
+
+                for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
+                    CHECK(splitterParallel->chains[chainNumber].chain->chain.size() == 4);
+                }
+
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 60);
+
+                // Check bypass
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 1) == true);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 0, 2) == false);
+
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 0) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 1) == false);
+                CHECK(SplitterMutators::getSlotBypass(splitter, 1, 2) == false);
+
+                // Check the slots
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 0) == plugins[0][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 1) == plugins[0][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 2) == plugins[0][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 3) == nullptr);
+
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 0) == plugins[1][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 1) == plugins[1][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 2) == plugins[1][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 3) == nullptr);
+
+                // Check the modulation config
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).isActive == true);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 1).parameterConfigs[0]->targetParameterName == "testParam");
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 0, 2).isActive == false);
+
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 0).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 1).isActive == false);
+                CHECK(SplitterMutators::getPluginModulationConfig(splitter, 1, 2).isActive == false);
+            }
+        }
+
+        WHEN("A slot is moved from a higher to a lower position") {
+            SplitterMutators::setGainLinear(splitter, 0, 3, 0.1f);
+            SplitterMutators::setPan(splitter, 0, 3, 0.2f);
+            SplitterMutators::moveSlot(splitter, 0, 3, 0, 0);
+
+            THEN("The slot is moved to the new position") {
+                REQUIRE(splitterParallel->chains.size() == 2);
+
+                for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
+                    CHECK(splitterParallel->chains[chainNumber].chain->chain.size() == 4);
+                }
+
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 60);
+
+                // Check gain and pan
+                CHECK(SplitterMutators::getGainLinear(splitter, 0, 0) == 0.1f);
+                CHECK(SplitterMutators::getPan(splitter, 0, 0) == 0.2f);
+
+                // Check the slots
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 0) == nullptr);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 1) == plugins[0][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 2) == plugins[0][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 3) == plugins[0][2]);
+
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 0) == plugins[1][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 1) == plugins[1][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 2) == plugins[1][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 3) == nullptr);
+            }
+        }
+
+        WHEN("A slot is moved from one chain to another") {
+            SplitterMutators::setGainLinear(splitter, 0, 3, 0.1f);
+            SplitterMutators::setPan(splitter, 0, 3, 0.2f);
+            SplitterMutators::moveSlot(splitter, 0, 3, 1, 0);
+
+            THEN("The slot is moved to the new position") {
+                REQUIRE(splitterParallel->chains.size() == 2);
+                CHECK(splitterParallel->chains[0].chain->chain.size() == 3);
+                CHECK(splitterParallel->chains[1].chain->chain.size() == 5);
+
+                CHECK(latencyCalled);
+                CHECK(receivedLatency == 60);
+
+                // Check gain and pan
+                CHECK(SplitterMutators::getGainLinear(splitter, 1, 0) == 0.1f);
+                CHECK(SplitterMutators::getPan(splitter, 1, 0) == 0.2f);
+
+                // Check the slots
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 0) == plugins[0][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 1) == plugins[0][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 0, 2) == plugins[0][2]);
+
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 0) == nullptr);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 1) == plugins[1][0]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 2) == plugins[1][1]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 3) == plugins[1][2]);
+                CHECK(SplitterMutators::getPlugin(splitter, 1, 4) == nullptr);
+            }
+        }
+    }
+
+    juce::MessageManager::deleteInstance();
+}
+
+SCENARIO("SplitterMutators: Chains can be moved") {
+    auto messageManager = juce::MessageManager::getInstance();
+
+    GIVEN("A splitter with a single plugin in a single chain") {
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        int latencyCalled {false};
+        int receivedLatency {0};
+        auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
+            latencyCalled = true;
+            receivedLatency = latency;
+        };
+
+        auto splitterSeries = std::make_shared<PluginSplitterSeries>(config, modulationCallback, latencyCallback);
+
+        auto plugin = std::make_shared<MutatorTestPluginInstance>();
+        plugin->setLatencySamples(10);
+
+        auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterSeries);
+        bool isSuccess = SplitterMutators::insertPlugin(splitter, plugin, 0, 0);
+
+        REQUIRE(isSuccess);
+        REQUIRE(splitterSeries->chains[0].chain->latencyListener.calculatedTotalPluginLatency == 10);
+        REQUIRE(splitterSeries->chains.size() == 1);
+        REQUIRE(splitterSeries->chains[0].chain->chain.size() == 1);
+        REQUIRE(SplitterMutators::getPlugin(splitter, 0, 0) == plugin);
+        REQUIRE(latencyCalled);
+        REQUIRE(receivedLatency == 10);
+
+        // Reset
+        latencyCalled = false;
+        receivedLatency = 0;
+
+        WHEN("The chain is moved to the same position") {
+            SplitterMutators::moveChain(splitter, 0, 0);
+
+            THEN("Nothing changes") {
+                CHECK(splitterSeries->chains.size() == 1);
+                CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
+                CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
+                CHECK(splitterSeries->chains[0].isSoloed == false);
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+            }
+        }
+
+        WHEN("The chain is moved to a position > chains.size()") {
+            SplitterMutators::moveChain(splitter, 0, 10);
+
+            THEN("Nothing changes") {
+                CHECK(splitterSeries->chains.size() == 1);
+                CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
+                CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
+                CHECK(splitterSeries->chains[0].isSoloed == false);
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+            }
+        }
+    }
+
+    GIVEN("A multiband splitter with a three chains") {
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        int latencyCalled {false};
+        int receivedLatency {0};
+        auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
+            latencyCalled = true;
+            receivedLatency = latency;
+        };
+
+        auto splitterMultiband = std::make_shared<PluginSplitterMultiband>(config, modulationCallback, latencyCallback);
+        auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterMultiband);
+
+        // Add one more chain/band
+        SplitterMutators::addBand(splitterMultiband);
+
+        // Add a plugin to each chain
+        std::vector<std::shared_ptr<MutatorTestPluginInstance>> plugins;
+        for (int pluginNumber {0}; pluginNumber < splitterMultiband->chains.size(); pluginNumber++) {
+            auto thisPlugin = std::make_shared<MutatorTestPluginInstance>();
+            const int latency {10 * (pluginNumber + 1)};
+            thisPlugin->setLatencySamples(latency);
+            plugins.push_back(thisPlugin);
+
+            bool isSuccess = SplitterMutators::insertPlugin(splitter, thisPlugin, pluginNumber, 0);
+            REQUIRE(splitterMultiband->chains[pluginNumber].chain->latencyListener.calculatedTotalPluginLatency == latency);
+            REQUIRE(splitterMultiband->chains[pluginNumber].chain->chain.size() == 1);
+            REQUIRE(SplitterMutators::getPlugin(splitter, pluginNumber, 0) == thisPlugin);
+            REQUIRE(latencyCalled);
+            REQUIRE(receivedLatency == latency);
+        }
+
+        REQUIRE(splitterMultiband->chains.size() == 3);
+
+        // Reset
+        latencyCalled = false;
+        receivedLatency = 0;
+
+        WHEN("The middle chain is moved to the same position") {
+            SplitterMutators::setChainSolo(splitter, 1, true);
+            SplitterMutators::moveChain(splitter, 1, 1);
+
+            THEN("Nothing changes") {
+                CHECK(splitterMultiband->chains.size() == 3);
+
+                for (int chainNumber {0}; chainNumber < 3; chainNumber++) {
+                    CHECK(splitterMultiband->chains[chainNumber].chain->chain.size() == 1);
+                    CHECK(splitterMultiband->crossover->bands[chainNumber].chain == splitterMultiband->chains[chainNumber].chain);
+                }
+
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+
+                // Check is soloed as it has to be copied with the wrapper
+                CHECK(splitterMultiband->chains[0].isSoloed == false);
+                CHECK(splitterMultiband->chains[1].isSoloed == true);
+                CHECK(splitterMultiband->chains[2].isSoloed == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1) == true);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 2) == false);
+
+                // Check the plugins to see which chains have moved
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 0, 0) == plugins[0]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 1, 0) == plugins[1]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 2, 0) == plugins[2]);
+            }
+        }
+
+        WHEN("A chain is moved from a lower to the next position up") {
+            SplitterMutators::setChainSolo(splitter, 0, true);
+            SplitterMutators::moveChain(splitter, 0, 1);
+
+            THEN("Nothing changes") { // Not immediately obvious, but this is correct as the chain is already in the right place
+                CHECK(splitterMultiband->chains.size() == 3);
+
+                for (int chainNumber {0}; chainNumber < 3; chainNumber++) {
+                    CHECK(splitterMultiband->chains[chainNumber].chain->chain.size() == 1);
+                    CHECK(splitterMultiband->crossover->bands[chainNumber].chain == splitterMultiband->chains[chainNumber].chain);
+                }
+
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+
+                // Check is soloed as it has to be copied with the wrapper
+                CHECK(splitterMultiband->chains[0].isSoloed == true);
+                CHECK(splitterMultiband->chains[1].isSoloed == false);
+                CHECK(splitterMultiband->chains[2].isSoloed == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0) == true);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 2) == false);
+
+                // Check the plugins to see which chains have moved
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 0, 0) == plugins[0]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 1, 0) == plugins[1]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 2, 0) == plugins[2]);
+            }
+        }
+
+        WHEN("The middle chain is moved to a position > chains.size()") {
+            SplitterMutators::setChainSolo(splitter, 1, true);
+            SplitterMutators::moveChain(splitter, 1, 10);
+
+            THEN("The chain is moved to the end") {
+                CHECK(splitterMultiband->chains.size() == 3);
+
+                for (int chainNumber {0}; chainNumber < 3; chainNumber++) {
+                    CHECK(splitterMultiband->chains[chainNumber].chain->chain.size() == 1);
+                    CHECK(splitterMultiband->crossover->bands[chainNumber].chain == splitterMultiband->chains[chainNumber].chain);
+                }
+
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+
+                // Check is soloed as it has to be copied with the wrapper
+                CHECK(splitterMultiband->chains[0].isSoloed == false);
+                CHECK(splitterMultiband->chains[1].isSoloed == false);
+                CHECK(splitterMultiband->chains[2].isSoloed == true);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 2) == true);
+
+                // Check the plugins to see which chains have moved
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 0, 0) == plugins[0]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 1, 0) == plugins[2]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 2, 0) == plugins[1]);
+            }
+        }
+
+        WHEN("A chain is moved from a lower to a higher position") {
+            SplitterMutators::setChainSolo(splitter, 0, true);
+            SplitterMutators::moveChain(splitter, 0, 2);
+
+            THEN("The chain is moved to the new position") {
+                CHECK(splitterMultiband->chains.size() == 3);
+
+                for (int chainNumber {0}; chainNumber < 3; chainNumber++) {
+                    CHECK(splitterMultiband->chains[chainNumber].chain->chain.size() == 1);
+                    CHECK(splitterMultiband->crossover->bands[chainNumber].chain == splitterMultiband->chains[chainNumber].chain);
+                }
+
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+
+                // Check is soloed as it has to be copied with the wrapper
+                CHECK(splitterMultiband->chains[0].isSoloed == false);
+                CHECK(splitterMultiband->chains[1].isSoloed == true);
+                CHECK(splitterMultiband->chains[2].isSoloed == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1) == true);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 2) == false);
+
+
+                // Check the plugins to see which chains have moved
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 0, 0) == plugins[1]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 1, 0) == plugins[0]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 2, 0) == plugins[2]);
+            }
+        }
+
+        WHEN("A chain is moved from a higher to a lower position") {
+            SplitterMutators::setChainSolo(splitter, 2, true);
+            SplitterMutators::moveChain(splitter, 2, 0);
+
+            THEN("The chain is moved to the new position") {
+                CHECK(splitterMultiband->chains.size() == 3);
+
+                for (int chainNumber {0}; chainNumber < 3; chainNumber++) {
+                    CHECK(splitterMultiband->chains[chainNumber].chain->chain.size() == 1);
+                    CHECK(splitterMultiband->crossover->bands[chainNumber].chain == splitterMultiband->chains[chainNumber].chain);
+                }
+
+                CHECK(!latencyCalled);
+                CHECK(receivedLatency == 0);
+
+                // Check is soloed as it has to be copied with the wrapper
+                CHECK(splitterMultiband->chains[0].isSoloed == true);
+                CHECK(splitterMultiband->chains[1].isSoloed == false);
+                CHECK(splitterMultiband->chains[2].isSoloed == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0) == true);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1) == false);
+                CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 2) == false);
+
+                // Check the plugins to see which chains have moved
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 0, 0) == plugins[2]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 1, 0) == plugins[0]);
+                CHECK(SplitterMutators::getPlugin(splitterMultiband, 2, 0) == plugins[1]);
+            }
+        }
+    }
+
+    juce::MessageManager::deleteInstance();
+}
+
 SCENARIO("SplitterMutators: Modulation config can be set and retrieved") {
     GIVEN("A parallel splitter with two chains") {
         HostConfiguration config;
@@ -486,8 +1099,8 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
                     // Make sure the crossover state matches
                     auto splitterMultiband = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter);
                     REQUIRE(splitterMultiband != nullptr);
-                    CHECK(splitterMultiband->crossover.getIsSoloed(0));
-                    CHECK(!splitterMultiband->crossover.getIsSoloed(1));
+                    CHECK(CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 0));
+                    CHECK(!CrossoverMutators::getIsSoloed(splitterMultiband->crossover, 1));
                 }
             }
         }
@@ -557,7 +1170,7 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
                 SplitterMutators::setCrossoverFrequency(splitterMultiband, 4, 4000);
 
                 THEN("The default value is unchanged") {
-                    CHECK(SplitterMutators::getCrossoverFrequency(splitterMultiband, 0) == 100);
+                    CHECK(SplitterMutators::getCrossoverFrequency(splitterMultiband, 0) == 1000);
                 }
             }
         }

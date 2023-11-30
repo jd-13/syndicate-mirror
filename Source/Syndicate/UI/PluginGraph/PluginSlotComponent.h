@@ -18,6 +18,7 @@ public:
     void mouseMove(const juce::MouseEvent& event) override;
     void mouseExit(const juce::MouseEvent& event) override;
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
+    void paint(juce::Graphics& g) override;
 
 private:
     PluginSelectionInterface& _pluginSelectionInterface;

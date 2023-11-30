@@ -6,16 +6,12 @@
 
 class MidsideSplitterSubComponent : public SplitterHeaderComponent {
 public:
-    MidsideSplitterSubComponent(ChainParameters& midChainParams, ChainParameters& sideChainParams);
-    ~MidsideSplitterSubComponent() override;
-
-    void onParameterUpdate() override;
-
-    void resized() override;
+    MidsideSplitterSubComponent(SyndicateAudioProcessor& processor,
+                                ChainParameters& midChainParams,
+                                ChainParameters& sideChainParams,
+                                UIUtils::LinkedScrollView* graphView);
+    ~MidsideSplitterSubComponent() = default;
 
 private:
-    std::unique_ptr<ChainButtonsComponent> _midChainbuttons;
-    std::unique_ptr<ChainButtonsComponent> _sideChainbuttons;
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MidsideSplitterSubComponent)
 };

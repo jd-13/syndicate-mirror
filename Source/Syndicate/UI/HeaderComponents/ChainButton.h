@@ -11,6 +11,12 @@ enum class CHAIN_BUTTON_TYPE {
 
 class ChainButtonLookAndFeel : public WECore::LookAndFeelMixins::WEV2LookAndFeel {
 public:
+    enum ColourIds {
+        backgroundColour,
+        highlightColour,
+        disabledColour
+    };
+
     ChainButtonLookAndFeel() = default;
     virtual ~ChainButtonLookAndFeel() = default;
 

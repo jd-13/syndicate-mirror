@@ -275,6 +275,55 @@ namespace SplitterInterface {
         return false;
     }
 
+    void moveSlot(Splitter& splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
+        std::scoped_lock lock(splitter.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(splitter.sharedMutex);
+        if (splitter.splitter != nullptr) {
+            SplitterMutators::moveSlot(splitter.splitter, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
+        }
+    }
+
+    void copySlot(Splitter& splitter,
+                  std::function<void()> onSuccess,
+                  juce::AudioPluginFormatManager& formatManager,
+                  int fromChainNumber,
+                  int fromSlotNumber,
+                  int toChainNumber,
+                  int toSlotNumber) {
+        std::scoped_lock lock(splitter.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(splitter.sharedMutex);
+
+        if (splitter.splitter != nullptr) {
+            auto insertPlugin = [&splitter, onSuccess, toChainNumber, toSlotNumber](std::shared_ptr<juce::AudioPluginInstance> sharedPlugin, juce::MemoryBlock sourceState, bool isBypassed, PluginModulationConfig sourceConfig) {
+                // Hand the plugin over to the splitter
+                if (SplitterInterface::insertPlugin(splitter, sharedPlugin, toChainNumber, toSlotNumber)) {
+                    // Apply plugin state
+                    sharedPlugin->setStateInformation(sourceState.getData(), sourceState.getSize());
+
+                    // Apply bypass
+                    SplitterInterface::setSlotBypass(splitter, toChainNumber, toSlotNumber, isBypassed);
+
+                    // Apply modulation
+                    SplitterInterface::setPluginModulationConfig(splitter, sourceConfig, toChainNumber, toSlotNumber);
+
+                    onSuccess();
+                } else {
+                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to insert plugin");
+                }
+            };
+
+            SplitterMutators::copySlot(splitter.splitter, insertPlugin, onSuccess, formatManager, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
+        }
+    }
+
+    void moveChain(Splitter& splitter, int fromChainNumber, int toChainNumber) {
+        std::scoped_lock lock(splitter.mutatorsMutex);
+        WECore::AudioSpinLock sharedLock(splitter.sharedMutex);
+        if (splitter.splitter != nullptr) {
+            SplitterMutators::moveChain(splitter.splitter, fromChainNumber, toChainNumber);
+        }
+    }
+
     size_t getNumChains(Splitter& splitter) {
         std::scoped_lock lock(splitter.mutatorsMutex);
         if (splitter.splitter != nullptr) {

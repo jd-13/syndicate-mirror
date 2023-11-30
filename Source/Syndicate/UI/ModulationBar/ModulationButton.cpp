@@ -25,7 +25,7 @@ ModulationButton::ModulationButton(ModulationSourceDefinition newDefinition,
     selectButton->setLookAndFeel(_buttonLookAndFeel.get());
     selectButton->setColour(juce::TextButton::buttonColourId, UIUtils::getColourForModulationType(definition.type));
     selectButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(definition.type));
-    selectButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
+    selectButton->setColour(juce::TextButton::textColourOnId, UIUtils::slotBackgroundColour);
     selectButton->setTooltip(tooltipString);
 
     // Set up the drag handle
@@ -83,9 +83,8 @@ void ModulationButton::paint(juce::Graphics& g) {
                     WECore::CoreMath::DOUBLE_PI);
     p.lineTo(area.getX(), area.getHeight() + area.getY());
 
-    g.setColour(UIUtils::getColourForModulationType(definition.type));
-
-    g.strokePath(p, juce::PathStrokeType(1.0f));
+    g.setColour(UIUtils::slotBackgroundColour);
+    g.fillPath(p);
 }
 
 void ModulationButton::buttonClicked(juce::Button* buttonThatWasClicked) {
@@ -124,15 +123,15 @@ void ModulationButton::ButtonLookAndFeel::drawButtonBackground(juce::Graphics& g
                     -WECore::CoreMath::DOUBLE_PI);
     p.lineTo(button.getWidth(), area.getHeight() + area.getY());
 
-    g.setColour(button.findColour(juce::TextButton::buttonColourId));
-
-    g.strokePath(p, juce::PathStrokeType(1.0f));
-
     if (button.getToggleState()) {
-        // Fill the select button
-        p.closeSubPath();
-        g.fillPath(p);
+        g.setColour(button.findColour(juce::TextButton::buttonColourId));
+    } else {
+        g.setColour(button.findColour(juce::TextButton::textColourOnId));
     }
+
+    p.closeSubPath();
+    g.fillPath(p);
+
 }
 
 void ModulationButton::ModulationSelectButton::mouseDown(const juce::MouseEvent& event) {

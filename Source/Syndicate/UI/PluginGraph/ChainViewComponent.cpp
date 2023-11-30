@@ -36,7 +36,7 @@ ChainViewComponent::ChainViewComponent(int chainNumber,
     _viewPort->setViewedComponent(new juce::Component());
     _viewPort->setScrollBarsShown(true, false);
     _viewPort->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-    _viewPort->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _viewPort->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _viewPort->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
     addAndMakeVisible(_viewPort.get());
     _viewPort->setBounds(getLocalBounds());
@@ -124,7 +124,7 @@ void ChainViewComponent::resized() {
 
 void ChainViewComponent::paint(juce::Graphics& g) {
     if (_shouldDrawDragHint) {
-        g.setColour(UIUtils::neutralHighlightColour);
+        g.setColour(UIUtils::neutralColour);
         const int hintYPos {_dragHintSlotNumber < _pluginSlots.size() ?
             _pluginSlots[_dragHintSlotNumber]->getY() - _viewPort->getViewPositionY() : 0
         };
@@ -172,18 +172,10 @@ void ChainViewComponent::itemDropped(const SourceDetails& dragSourceDetails) {
     auto [isValid, fromChainNumber, fromSlotNumber, isCopy] = slotDetailsFromVariant(dragSourceDetails.description);
 
     if (isValid) {
-        int targetSlot {_dragHintSlotNumber};
-
-        if (fromChainNumber == _chainNumber && _dragHintSlotNumber > fromSlotNumber) {
-            // We're dragging a slot from one position in a chain to a later position in the same
-            // chain, so we need to subtract from the target otherwise we'll overshoot
-            targetSlot--;
-        }
-
         if (isCopy) {
-            _pluginSelectionInterface.copySlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
+            _pluginSelectionInterface.copySlot(fromChainNumber, fromSlotNumber, _chainNumber, _dragHintSlotNumber);
         } else {
-            _pluginSelectionInterface.moveSlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
+            _pluginSelectionInterface.moveSlot(fromChainNumber, fromSlotNumber, _chainNumber, _dragHintSlotNumber);
         }
     }
 }

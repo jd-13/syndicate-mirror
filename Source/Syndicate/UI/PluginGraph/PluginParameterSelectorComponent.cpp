@@ -19,25 +19,25 @@ PluginParameterSelectorComponent::PluginParameterSelectorComponent(
     _searchTextEditor->setWantsKeyboardFocus(true);
     _searchTextEditor->addListener(this);
     _searchTextEditor->setLookAndFeel(&_searchBarLookAndFeel);
-    _searchTextEditor->setColour(juce::TextEditor::outlineColourId, UIUtils::neutralControlColour);
+    _searchTextEditor->setColour(juce::TextEditor::outlineColourId, UIUtils::highlightColour);
     _searchTextEditor->setColour(juce::TextEditor::backgroundColourId, UIUtils::backgroundColour);
-    _searchTextEditor->setColour(juce::TextEditor::textColourId, UIUtils::neutralControlColour);
-    _searchTextEditor->setColour(juce::TextEditor::highlightColourId, UIUtils::neutralControlColour);
-    _searchTextEditor->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralHighlightColour);
-    _searchTextEditor->setColour(juce::CaretComponent::caretColourId, UIUtils::neutralControlColour);
+    _searchTextEditor->setColour(juce::TextEditor::textColourId, UIUtils::highlightColour);
+    _searchTextEditor->setColour(juce::TextEditor::highlightColourId, UIUtils::highlightColour);
+    _searchTextEditor->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralColour);
+    _searchTextEditor->setColour(juce::CaretComponent::caretColourId, UIUtils::highlightColour);
 
     _parameterTableListBox.reset(new PluginParameterSelectorTableListBox(selectorListParameters));
     addAndMakeVisible(_parameterTableListBox.get());
     _parameterTableListBox->setName("Plugin Parameter Table List Box");
     _parameterTableListBox->getHeader().setLookAndFeel(&_tableHeaderLookAndFeel);
-    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, UIUtils::neutralControlColour);
-    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, UIUtils::neutralControlColour);
+    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, UIUtils::highlightColour);
+    _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, UIUtils::highlightColour);
     _parameterTableListBox->getHeader().setColour(juce::TableHeaderComponent::backgroundColourId, UIUtils::backgroundColour);
     _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-    _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _parameterTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-    _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
 
     // Recall UI from state

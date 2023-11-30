@@ -49,15 +49,4 @@ namespace UIUtils::Crossover {
 
         return WECore::MONSTR::Parameters::CROSSOVER_FREQUENCY.NormalisedToInternal(sliderValueToInternalLog(std::max(XPos - MARGIN_PX, 0.0) / realRange));
     }
-
-    /**
-     * Returns a rectangle representing the position of a button for the given crossover position
-     * and index.
-     */
-    inline juce::Rectangle<float> getButtonBounds(double crossoverXPos, int index) {
-        return juce::Rectangle<float>(crossoverXPos - UIUtils::BAND_BUTTON_WIDTH - SLIDER_THUMB_RADIUS,
-                                BAND_BUTTON_PADDING + index * (BAND_BUTTON_PADDING + UIUtils::BAND_BUTTON_WIDTH),
-                                UIUtils::BAND_BUTTON_WIDTH,
-                                UIUtils::BAND_BUTTON_WIDTH);
-    }
 }

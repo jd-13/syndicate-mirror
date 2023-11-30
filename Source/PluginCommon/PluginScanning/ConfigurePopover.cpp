@@ -5,10 +5,10 @@ namespace {
 
     juce::Colour stateToLabelColour(bool state) {
         if (state) {
-            return UIUtils::neutralControlColour;
+            return UIUtils::highlightColour;
         }
 
-        return UIUtils::neutralControlColour.withAlpha(0.5f);
+        return UIUtils::highlightColour.withAlpha(0.5f);
     }
 
     int getHeightForLabelText(juce::String text) {
@@ -49,6 +49,7 @@ void CustomPathsList::mouseDown(const juce::MouseEvent& event) {
     if (auto label = dynamic_cast<juce::Label*>(event.eventComponent); label != nullptr) {
         removePathFromSearchPaths(_customPaths, label->getText());
         rebuild();
+        resized();
     }
 }
 
@@ -69,7 +70,7 @@ void CustomPathsList::rebuild() {
         thisLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
         thisLabel->setJustificationType(juce::Justification::verticallyCentred | juce::Justification::horizontallyCentred);
         thisLabel->setEditable(false, false, false);
-        thisLabel->setColour(juce::Label::textColourId, UIUtils::neutralControlColour);
+        thisLabel->setColour(juce::Label::textColourId, UIUtils::highlightColour);
         thisLabel->addMouseListener(this, false);
         thisLabel->setTooltip("Right click to remove");
 
@@ -95,10 +96,9 @@ FormatConfigureComponent::FormatConfigureComponent(
     addAndMakeVisible(_defaultPathsButton.get());
     _defaultPathsButton->setButtonText(TRANS("Include " + formatName + " Default Paths"));
     _defaultPathsButton->setLookAndFeel(&_toggleButtonLookAndFeel);
-    _defaultPathsButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _defaultPathsButton->setColour(juce::TextButton::buttonColourId, UIUtils::neutralHighlightColour);
-    _defaultPathsButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    _defaultPathsButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    _defaultPathsButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _defaultPathsButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _defaultPathsButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     _defaultPathsButton->setToggleState(defaultPathsEnabled, juce::NotificationType::dontSendNotification);
     _defaultPathsButton->onClick = [&]() {
         defaultPathsEnabled = !defaultPathsEnabled;
@@ -113,13 +113,18 @@ FormatConfigureComponent::FormatConfigureComponent(
     addAndMakeVisible(_customPathsButton.get());
     _customPathsButton->setButtonText(TRANS("Add Custom " + formatName + " Paths"));
     _customPathsButton->setLookAndFeel(&_staticButtonLookAndFeel);
-    _customPathsButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _customPathsButton->setColour(juce::TextButton::buttonColourId, UIUtils::neutralHighlightColour);
-    _customPathsButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
-    _customPathsButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralHighlightColour);
+    _customPathsButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _customPathsButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _customPathsButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     _customPathsButton->onClick = [&, formatName]() {
         const int flags {juce::FileBrowserComponent::canSelectDirectories | juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectMultipleItems};
         _fileChooser.reset(new juce::FileChooser("Add " + formatName + " Directories"));
+
+#if _WIN32
+        // Workaround on windows to stop the file chooser from appearing behind the plugin selector window
+        getTopLevelComponent()->setAlwaysOnTop(false);
+#endif
+
         _fileChooser->launchAsync(flags, [&](const juce::FileChooser& chooser) {
             for (juce::File selectedDirectory : chooser.getResults()) {
                 customPaths.addIfNotAlreadyThere(selectedDirectory);
@@ -128,6 +133,12 @@ FormatConfigureComponent::FormatConfigureComponent(
             customPaths.removeNonExistentPaths();
             _customPathsListComponent->rebuild();
             resized();
+
+#if _WIN32
+            // Other half of the workaround
+            // Restore the always on top state of the plugin selector window after the file chooser has closed
+            getTopLevelComponent()->setAlwaysOnTop(true);
+#endif
         });
     };
 }
@@ -179,10 +190,9 @@ ConfigurePopover::ConfigurePopover(ScanConfiguration& config, std::function<void
     addAndMakeVisible(_okButton.get());
     _okButton->setButtonText(TRANS("OK"));
     _okButton->setLookAndFeel(&_buttonLookAndFeel);
-    _okButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _okButton->setColour(juce::TextButton::buttonColourId, UIUtils::neutralHighlightColour);
-    _okButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
-    _okButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralHighlightColour);
+    _okButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _okButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _okButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     _okButton->onClick = [&]() { _onCloseCallback(); };
 
     _tooltipLabel.reset(new juce::Label("Tooltip Label", ""));

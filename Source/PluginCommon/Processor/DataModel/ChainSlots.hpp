@@ -54,18 +54,18 @@ private:
 };
 
 struct PluginParameterModulationSource {
+    // Definition of the modulation source
+    ModulationSourceDefinition definition;
+
+    // Amount of modulation to be applied (-1 : 1)
+    float modulationAmount;
+
     PluginParameterModulationSource() : definition(0, MODULATION_TYPE::MACRO), modulationAmount(0) { }
 
     PluginParameterModulationSource(ModulationSourceDefinition newDefinition,
                                     float newModulationAmount) :
             definition(newDefinition),
             modulationAmount(newModulationAmount) { }
-
-    // Definition of the modulation source
-    ModulationSourceDefinition definition;
-
-    // Amount of modulation to be applied (-1 : 1)
-    float modulationAmount;
 };
 
 struct PluginParameterModulationConfig {

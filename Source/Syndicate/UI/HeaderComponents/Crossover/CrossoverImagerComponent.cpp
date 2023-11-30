@@ -42,7 +42,7 @@ void CrossoverImagerComponent::paint(juce::Graphics& g) {
         }
     }
 
-    g.setColour(UIUtils::neutralControlColour);
+    g.setColour(UIUtils::highlightColour);
     g.strokePath(p, juce::PathStrokeType(0.5f));
 
     _stopEvent.signal();

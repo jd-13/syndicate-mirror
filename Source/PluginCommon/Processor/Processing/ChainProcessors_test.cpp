@@ -101,7 +101,7 @@ SCENARIO("ChainProcessors: Silence in = silence out") {
             juce::MidiBuffer midiBuffer;
 
             ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer, nullptr);
 
             THEN("The buffer contains silence") {
                 const bool expectDidCallPluginProcess {
@@ -179,7 +179,7 @@ SCENARIO("ChainProcessors: Gain stage and plugin processing is applied correctly
             juce::MidiBuffer midiBuffer;
 
             ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer, nullptr);
 
             THEN("The buffer contains silence") {
                 for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {
@@ -239,7 +239,7 @@ SCENARIO("ChainProcessors: Latency is applied correctly") {
 
             {
                 WECore::AudioSpinTryLock lock(chain->latencyCompLineMutex);
-                ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
+                ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer, nullptr);
             }
 
             THEN("The buffer is unchanged") {
@@ -262,7 +262,7 @@ SCENARIO("ChainProcessors: Latency is applied correctly") {
             ChainProcessors::prepareToPlay(*(chain.get()), {layout, SAMPLE_RATE, NUM_SAMPLES});
                 ChainMutators::setRequiredLatency(chain, sampleDelay, {layout, SAMPLE_RATE, NUM_SAMPLES});
 
-            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer);
+            ChainProcessors::processBlock(*(chain.get()), buffer, midiBuffer, nullptr);
 
             THEN("The buffer is delayed correctly") {
                 for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {

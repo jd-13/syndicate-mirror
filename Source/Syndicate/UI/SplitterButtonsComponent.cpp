@@ -12,32 +12,29 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     seriesBtn->setButtonText(TRANS("Series"));
     seriesBtn->addListener(this);
     seriesBtn->setLookAndFeel(_buttonLookAndFeel.get());
-    seriesBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
-    seriesBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    seriesBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    seriesBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
-    seriesBtn->setTooltip("A single chain of plugins routed in series");
+    seriesBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    seriesBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    seriesBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    seriesBtn->setTooltip("A single chain of plugins in series");
 
     parallelBtn.reset(new juce::TextButton("Parallel Button"));
     addAndMakeVisible(parallelBtn.get());
     parallelBtn->setButtonText(TRANS("Parallel"));
     parallelBtn->addListener(this);
     parallelBtn->setLookAndFeel(_buttonLookAndFeel.get());
-    parallelBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
-    parallelBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    parallelBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    parallelBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
-    parallelBtn->setTooltip("Multiple chains of plugins routed in parallel");
+    parallelBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    parallelBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    parallelBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    parallelBtn->setTooltip("Multiple chains of plugins in parallel");
 
     multibandBtn.reset(new juce::TextButton("Multiband Button"));
     addAndMakeVisible(multibandBtn.get());
     multibandBtn->setButtonText(TRANS("Multiband"));
     multibandBtn->addListener(this);
     multibandBtn->setLookAndFeel(_buttonLookAndFeel.get());
-    multibandBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
-    multibandBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    multibandBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    multibandBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    multibandBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    multibandBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    multibandBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     multibandBtn->setTooltip("Multiple chains of plugins processing different frequency bands");
 
     leftrightBtn.reset(new juce::TextButton("Left/Right Button"));
@@ -45,10 +42,9 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     leftrightBtn->setButtonText(TRANS("Left/Right"));
     leftrightBtn->addListener(this);
     leftrightBtn->setLookAndFeel(_buttonLookAndFeel.get());
-    leftrightBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
-    leftrightBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    leftrightBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    leftrightBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    leftrightBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    leftrightBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    leftrightBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     leftrightBtn->setTooltip("Two chains of plugins to process the left and right channels separately");
 
     midsideBtn.reset(new juce::TextButton("Mid/Side Button"));
@@ -56,10 +52,9 @@ SplitterButtonsComponent::SplitterButtonsComponent(SyndicateAudioProcessor& proc
     midsideBtn->setButtonText(TRANS("Mid/Side"));
     midsideBtn->addListener(this);
     midsideBtn->setLookAndFeel(_buttonLookAndFeel.get());
-    midsideBtn->setColour(juce::TextButton::buttonColourId, UIUtils::neutralDeactivatedColour);
-    midsideBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    midsideBtn->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    midsideBtn->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    midsideBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    midsideBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    midsideBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     midsideBtn->setTooltip("Two chains of plugins to process the mid and side channels separately");
 
     leftrightBtn->setEnabled(canDoStereoSplitTypes(_processor.getBusesLayout()));

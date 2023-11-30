@@ -18,38 +18,39 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
     _bypassButton.reset(new UIUtils::BypassButton("Bypass Button"));
     addAndMakeVisible(_bypassButton.get());
     _bypassButton->setTooltip(TRANS("Enable/disable this plugin slot"));
-    _bypassButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _bypassButton->setColour(juce::TextButton::textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
-    _bypassButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    _bypassButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::highlightColour);
+    _bypassButton->setColour(juce::TextButton::textColourOnId, UIUtils::slotBackgroundColour);
+    _bypassButton->setColour(juce::TextButton::textColourOffId, UIUtils::highlightColour);
     _bypassButton->addMouseListener(this, false);
     _bypassButton->addListener(this);
 
     _openButton.reset(new UIUtils::PluginOpenButton("Plugin Open Button"));
     addAndMakeVisible(_openButton.get());
     _openButton->setTooltip(TRANS("Open the editor window for this plugin slot"));
-    _openButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    _openButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::highlightColour);
     _openButton->addMouseListener(this, false);
     _openButton->addListener(this);
 
     _replaceButton.reset(new UIUtils::PluginReplaceButton("Plugin Replace Button"));
     addAndMakeVisible(_replaceButton.get());
     _replaceButton->setTooltip(TRANS("Replace the plugin in this slot"));
-    _replaceButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    _replaceButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::highlightColour);
     _replaceButton->addMouseListener(this, false);
     _replaceButton->addListener(this);
 
     _deleteButton.reset(new UIUtils::CrossButton("Plugin delete Button"));
     addAndMakeVisible(_deleteButton.get());
     _deleteButton->setTooltip(TRANS("Remove this plugin slot"));
-    _deleteButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    _deleteButton->setColour(UIUtils::CrossButton::enabledColour, UIUtils::highlightColour);
+    _deleteButton->setColour(UIUtils::CrossButton::disabledColour, UIUtils::deactivatedColour);
     _deleteButton->addMouseListener(this, false);
     _deleteButton->addListener(this);
 
     _modulationButton.reset(new UIUtils::ModulationButton("Modulation Button"));
     addAndMakeVisible(_modulationButton.get());
-    _modulationButton->setTooltip(TRANS("Opens the modulation tray for this plugin slot"));
+    _modulationButton->setTooltip(TRANS("Open the modulation tray for this plugin slot"));
     _modulationButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::PLUGIN_SLOT_MODULATION_ON_COLOUR);
-    _modulationButton->setColour(juce::TextButton::textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
+    _modulationButton->setColour(juce::TextButton::textColourOnId, UIUtils::slotBackgroundColour);
     _modulationButton->setColour(juce::TextButton::textColourOffId, UIUtils::PLUGIN_SLOT_MODULATION_ON_COLOUR);
     _modulationButton->addMouseListener(this, false);
     _modulationButton->addListener(this);
@@ -59,7 +60,7 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
     _descriptionLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
     _descriptionLabel->setJustificationType(juce::Justification::centred);
     _descriptionLabel->setEditable(false, false, false);
-    _descriptionLabel->setColour(juce::Label::textColourId, UIUtils::neutralControlColour);
+    _descriptionLabel->setColour(juce::Label::textColourId, UIUtils::highlightColour);
     _descriptionLabel->addMouseListener(this, false);
 
     PluginModulationConfig modulationConfig =
@@ -159,4 +160,15 @@ void PluginSlotComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
         // Don't update the button - togglePluginModulationActive() will cause the graph to redraw
         _pluginModulationInterface.togglePluginModulationActive(_chainNumber, _slotNumber);
     }
+}
+
+void PluginSlotComponent::paint(juce::Graphics& g) {
+    // Fill the space between the plugin slot and the modulation tray
+    if (_modulationTray != nullptr) {
+        g.setColour(UIUtils::modulationTrayBackgroundColour);
+        g.fillRect(MARGIN, UIUtils::PLUGIN_SLOT_HEIGHT / 2, getWidth() - MARGIN * 2, UIUtils::PLUGIN_SLOT_HEIGHT / 2);
+    }
+
+    // Draw the slot background
+    BaseSlotComponent::paint(g);
 }

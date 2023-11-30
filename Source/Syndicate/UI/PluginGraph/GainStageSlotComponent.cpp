@@ -42,12 +42,12 @@ void GainStageMeter::paint(juce::Graphics& g) {
         g.drawLine(zeroLineXPos, meterArea.getY(), zeroLineXPos, meterArea.getY() + meterArea.getHeight());
 
         // Draw the lower part of the meter
-        g.setColour(UIUtils::neutralControlColour.withBrightness(0.5));
+        g.setColour(UIUtils::highlightColour.withBrightness(0.5));
         g.fillRect(meterArea.removeFromLeft(std::min(meterArea.getWidth(), zeroLineXPos)));
 
         // Draw the area above 0dB
         if (meterWidth > zeroLineXPos) {
-            g.setColour(UIUtils::neutralControlColour.withLightness(0.5).withBrightness(0.5));
+            g.setColour(UIUtils::highlightColour.withLightness(0.5).withBrightness(0.5));
             g.fillRect(meterArea);
         }
     }
@@ -81,7 +81,7 @@ GainStageSlotComponent::GainStageSlotComponent(
     valueLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle ("Regular"));
     valueLabel->setJustificationType(juce::Justification::centred);
     valueLabel->setEditable(true, true, false);
-    valueLabel->setColour(juce::Label::textColourId, UIUtils::neutralControlColour);
+    valueLabel->setColour(juce::Label::textColourId, UIUtils::highlightColour);
 
     // This is set to match the tooltip of the meter since it's overlaid on the meter
     valueLabel->setTooltip(meterTooltip);
@@ -93,7 +93,7 @@ GainStageSlotComponent::GainStageSlotComponent(
     gainSld->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     gainSld->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     gainSld->addListener(this);
-    gainSld->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::neutralControlColour);
+    gainSld->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::highlightColour);
     gainSld->setLookAndFeel(&_gainSliderLookAndFeel);
     gainSld->setTooltip(TRANS("Gain applied by this gain stage"));
 
@@ -104,14 +104,15 @@ GainStageSlotComponent::GainStageSlotComponent(
     panSld->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     panSld->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     panSld->addListener(this);
-    panSld->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::neutralControlColour);
+    panSld->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::highlightColour);
     panSld->setLookAndFeel(&_panSliderLookAndFeel);
     panSld->setTooltip(TRANS("Balance applied by this gain stage (if in stereo)"));
 
     removeBtn.reset(new UIUtils::CrossButton("Remove Button"));
     addAndMakeVisible(removeBtn.get());
     removeBtn->setTooltip(TRANS("Remove this gain stage"));
-    removeBtn->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
+    removeBtn->setColour(UIUtils::CrossButton::enabledColour, UIUtils::highlightColour);
+    removeBtn->setColour(UIUtils::CrossButton::disabledColour, UIUtils::deactivatedColour);
     removeBtn->addListener(this);
 
     // Initialise the slider values

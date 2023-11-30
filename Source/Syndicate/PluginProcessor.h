@@ -124,6 +124,8 @@ public:
 
     void moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
 
+    void moveChain(int fromChainNumber, int toChainNumber);
+
     /**
      * Called by a splitter when its latency has changed, so this processor can update the latency
      * it reports back to the host.
@@ -142,6 +144,8 @@ private:
 
         void triggerUpdate() { _updateListener(); }
 
+        void rebuildChainParameters();
+
         void setProcessor(SyndicateAudioProcessor* processor) { _processor = processor; }
 
         void restoreFromXml(juce::XmlElement* element) override;
@@ -151,7 +155,6 @@ private:
         SyndicateAudioProcessor* _processor;
 
         void _restoreSplitterFromXml(juce::XmlElement* element);
-        void _restoreChainParameters();
         void _restoreModulationSourcesFromXml(juce::XmlElement* element);
         void _restoreMacroNamesFromXml(juce::XmlElement* element);
         void _restoreMainWindowStateFromXml(juce::XmlElement* element);

@@ -7,11 +7,11 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
     _exportButton.reset(new juce::TextButton("Save Button"));
     addAndMakeVisible(_exportButton.get());
     _exportButton->setButtonText(TRANS("Save"));
-    _exportButton->setTooltip("Saves the current settings to a file");
+    _exportButton->setTooltip("Save the current settings to a file");
     _exportButton->setLookAndFeel(&_buttonLookAndFeel);
-    _exportButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _exportButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
-    _exportButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     _exportButton->onClick = [&]() {
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::saveMode};
         _fileChooser.reset(new juce::FileChooser("Export Syndicate Preset", juce::File(), "*.syn"));
@@ -23,11 +23,11 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
     _importButton.reset(new juce::TextButton("Load Button"));
     addAndMakeVisible(_importButton.get());
     _importButton->setButtonText(TRANS("Load"));
-    _importButton->setTooltip("Loads settings from a previously saved file");
+    _importButton->setTooltip("Load settings from a previously saved file");
     _importButton->setLookAndFeel(&_buttonLookAndFeel);
-    _importButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _importButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
-    _importButton->setColour(juce::TextButton::textColourOffId, UIUtils::neutralControlColour);
+    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     _importButton->onClick = [&]() {
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode};
         _fileChooser.reset(new juce::FileChooser("Import Syndicate Preset", juce::File(), "*.syn"));

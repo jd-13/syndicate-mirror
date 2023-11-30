@@ -32,6 +32,17 @@ namespace SplitterInterface {
     bool getChainMute(Splitter& splitter, int chainNumber);
     bool getChainSolo(Splitter& splitter, int chainNumber);
 
+    void moveSlot(Splitter& splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
+    void copySlot(Splitter& splitter,
+                  std::function<void()> onSuccess,
+                  juce::AudioPluginFormatManager& formatManager,
+                  int fromChainNumber,
+                  int fromSlotNumber,
+                  int toChainNumber,
+                  int toSlotNumber);
+
+    void moveChain(Splitter& splitter, int fromChainNumber, int toChainNumber);
+
     size_t getNumChains(Splitter& splitter);
 
     bool addParallelChain(Splitter& splitter);

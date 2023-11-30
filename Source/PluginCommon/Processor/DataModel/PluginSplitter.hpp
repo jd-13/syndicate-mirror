@@ -28,9 +28,6 @@ struct PluginChainWrapper {
  * A splitter may contain more chains than it can actually use if they have been carried over from
  * a previous splitter that could handle more. In this case its processBlock will just ignore the
  * extra chains.
- *
- * TODO: Ideally the state of the plugins in the unused chains would be stored and the plugin
- * instances removed until they are eventually needed, but for now we just keep them.
  */
 class PluginSplitter {
 public:
@@ -39,7 +36,6 @@ public:
     HostConfiguration config;
     std::function<float(int, MODULATION_TYPE)> getModulationValueCallback;
     std::function<void(int)> notifyProcessorOnLatencyChange;
-
 
     PluginSplitter(int defaultNumChains,
                    HostConfiguration newConfig,
@@ -100,8 +96,6 @@ public:
 
         notifyProcessorOnLatencyChange(highestLatency);
     }
-
-protected:
 };
 
 /**

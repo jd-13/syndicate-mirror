@@ -8,30 +8,36 @@ void ChainButtonLookAndFeel::drawButtonBackground(juce::Graphics& g,
                                                   bool /*shouldDrawButtonAsDown*/) {
     const juce::Rectangle<float> area = button.getLocalBounds().reduced(1, 1).toFloat();
 
-    // Draw the outline
-    g.setColour(button.findColour(ChainButton::buttonOnColourId));
-    g.drawEllipse(area, 1.0f);
-
-    // Fill if needed
     if (button.getToggleState()) {
-        g.fillEllipse(area);
+        g.setColour(button.findColour(highlightColour));
+    } else {
+        g.setColour(button.findColour(backgroundColour));
     }
+    g.fillEllipse(area);
 }
 
 void ChainButtonLookAndFeel::drawButtonText(juce::Graphics& g,
                                             juce::TextButton& button,
                                             bool /*shouldDrawButtonAsHighlighted*/,
                                             bool /*shouldDrawButtonAsDown*/) {
-    g.setColour(button.findColour(button.getToggleState() ? ChainButton::textColourOnId : ChainButton::textColourOffId));
+
+    if (!button.isEnabled()) {
+        g.setColour(button.findColour(disabledColour));
+    } else if (button.getToggleState()) {
+        g.setColour(button.findColour(backgroundColour));
+    } else {
+        g.setColour(button.findColour(highlightColour));
+    }
+
     g.drawText(button.getButtonText(), button.getLocalBounds().reduced(2), juce::Justification::centred, false);
 }
 
 ChainButton::ChainButton(CHAIN_BUTTON_TYPE type) {
     setLookAndFeel(&_lookAndFeel);
 
-    setColour(buttonOnColourId, UIUtils::neutralControlColour);
-    setColour(textColourOnId, UIUtils::PLUGIN_SLOT_MOD_TRAY_BG_COLOUR);
-    setColour(textColourOffId, UIUtils::neutralControlColour);
+    setColour(ChainButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    setColour(ChainButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    setColour(ChainButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
 
     switch (type) {
         case CHAIN_BUTTON_TYPE::BYPASS:

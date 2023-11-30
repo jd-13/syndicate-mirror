@@ -1,7 +1,6 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "ChainButtonsComponent.h"
 #include "SplitterHeaderComponent.h"
 #include "UIUtils.h"
 
@@ -19,12 +18,8 @@ public:
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
 private:
-    std::vector<std::unique_ptr<ChainButtonsComponent>> _chainButtons;
-    SyndicateAudioProcessor& _processor;
-    UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
+    UIUtils::AddButtonLookAndFeel _buttonLookAndFeel;
     std::unique_ptr<juce::TextButton> addChainBtn;
-    std::unique_ptr<UIUtils::LinkedScrollView> _viewPort;
-    UIUtils::LinkedScrollView* _graphView;
 
     void _rebuildHeader();
 

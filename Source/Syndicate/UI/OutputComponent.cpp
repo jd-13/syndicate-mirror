@@ -41,12 +41,12 @@ void OutputMeter::paint(juce::Graphics& g) {
         g.drawLine(meterArea.getX(), getHeight() - zeroLineHeight, meterArea.getX() + meterArea.getWidth(), getHeight() - zeroLineHeight);
 
         // Draw the lower part of the meter
-        g.setColour(UIUtils::neutralControlColour.withBrightness(0.5));
+        g.setColour(UIUtils::highlightColour.withBrightness(0.5));
         g.fillRect(meterArea.removeFromBottom(std::min(meterArea.getHeight(), zeroLineHeight)));
 
         // Draw the area above 0dB
         if (meterHeight > zeroLineHeight) {
-            g.setColour(UIUtils::neutralControlColour.withLightness(0.5).withBrightness(0.5));
+            g.setColour(UIUtils::highlightColour.withLightness(0.5).withBrightness(0.5));
             g.fillRect(meterArea);
         }
     }
@@ -61,8 +61,8 @@ OutputComponent::OutputComponent(SyndicateAudioProcessor& processor) : _processo
     panSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     panSlider->addListener(this);
     panSlider->setLookAndFeel(&_panSliderLookAndFeel);
-    panSlider->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::neutralControlColour);
-    panSlider->setColour(juce::Slider::rotarySliderOutlineColourId, UIUtils::neutralDeactivatedColour);
+    panSlider->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::highlightColour);
+    panSlider->setColour(juce::Slider::rotarySliderOutlineColourId, UIUtils::deactivatedColour);
     panSlider->setTooltip("Balance applied to the output (if in stereo)");
 
     panLabel.reset(new juce::Label("Balance Label", TRANS("Balance")));
@@ -81,8 +81,8 @@ OutputComponent::OutputComponent(SyndicateAudioProcessor& processor) : _processo
     outputGainSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     outputGainSlider->addListener(this);
     outputGainSlider->setLookAndFeel(&_gainSliderLookAndFeel);
-    outputGainSlider->setColour(juce::Slider::thumbColourId, UIUtils::neutralControlColour);
-    outputGainSlider->setColour(juce::Slider::trackColourId, UIUtils::neutralControlColour);
+    outputGainSlider->setColour(juce::Slider::thumbColourId, UIUtils::highlightColour);
+    outputGainSlider->setColour(juce::Slider::trackColourId, UIUtils::highlightColour);
     outputGainSlider->setTooltip("Gain applied to the output in dB");
 
     outputGainLabel.reset(new juce::Label("Output Gain Label", TRANS("Output")));

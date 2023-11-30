@@ -6,17 +6,12 @@
 
 class LeftrightSplitterSubComponent : public SplitterHeaderComponent {
 public:
-    LeftrightSplitterSubComponent(ChainParameters& leftChainParams,
-                                  ChainParameters& rightChainParams);
-    ~LeftrightSplitterSubComponent() override;
-
-    void resized() override;
-
-    void onParameterUpdate() override;
+    LeftrightSplitterSubComponent(SyndicateAudioProcessor& processor,
+                                  ChainParameters& leftChainParams,
+                                  ChainParameters& rightChainParams,
+                                  UIUtils::LinkedScrollView* graphView);
+    ~LeftrightSplitterSubComponent() = default;
 
 private:
-    std::unique_ptr<ChainButtonsComponent> _leftChainbuttons;
-    std::unique_ptr<ChainButtonsComponent> _rightChainbuttons;
-
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeftrightSplitterSubComponent)
 };

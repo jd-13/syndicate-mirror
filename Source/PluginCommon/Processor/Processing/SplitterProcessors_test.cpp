@@ -128,7 +128,7 @@ SCENARIO("SplitterProcessors: Silence in = silence out") {
                 // Skip these - can't use mono for these split types
             } else {
                 SplitterProcessors::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
-                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer);
+                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer, nullptr);
             }
 
 
@@ -231,7 +231,7 @@ SCENARIO("SplitterProcessors: Gain stage and plugin processing is applied correc
                 // Skip these - can't use mono for these split types
             } else {
                 SplitterProcessors::prepareToPlay(*(splitter.get()), SAMPLE_RATE, NUM_SAMPLES, layout);
-                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer);
+                SplitterProcessors::processBlock(*(splitter.get()), buffer, midiBuffer, nullptr);
             }
 
             THEN("The buffer contains silence") {

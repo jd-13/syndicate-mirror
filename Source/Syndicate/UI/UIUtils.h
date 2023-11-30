@@ -12,19 +12,14 @@
 namespace UIUtils {
     // Chains/plugin slots
     constexpr int CHAIN_WIDTH {200};
-    constexpr int BAND_BUTTON_WIDTH {21};
     constexpr int PLUGIN_SLOT_HEIGHT {30};
     constexpr int PLUGIN_SLOT_CORNER_RADIUS {PLUGIN_SLOT_HEIGHT / 2};
     constexpr int SLOT_DRAG_HANDLE_WIDTH {PLUGIN_SLOT_HEIGHT};
-
-    const juce::Colour PLUGIN_SLOT_MODULATION_ON_COLOUR(161, 102, 221);
 
     // Modulation tray
     constexpr int PLUGIN_SLOT_MOD_TRAY_HEIGHT {PLUGIN_SLOT_HEIGHT * 3};
     constexpr int PLUGIN_MOD_TARGET_SLIDER_HEIGHT {static_cast<int>(UIUtils::PLUGIN_SLOT_MOD_TRAY_HEIGHT * 0.25)};
     constexpr int PLUGIN_MOD_TARGET_SLIDER_WIDTH {PLUGIN_MOD_TARGET_SLIDER_HEIGHT};
-
-    const juce::Colour PLUGIN_SLOT_MOD_TRAY_BG_COLOUR(20, 20, 20);
 
     int getChainXPos(int chainIndex, int numChains, int graphViewWidth);
 
@@ -47,6 +42,12 @@ namespace UIUtils {
 
     class ToggleButtonLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
     public:
+        enum ColourIds {
+            backgroundColour,
+            highlightColour,
+            disabledColour
+        };
+
         void drawButtonBackground(juce::Graphics& g,
                                   juce::Button& button,
                                   const juce::Colour& backgroundColour,
@@ -61,6 +62,12 @@ namespace UIUtils {
 
     class StaticButtonLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
     public:
+        enum ColourIds {
+            backgroundColour,
+            highlightColour,
+            disabledColour
+        };
+
         virtual void drawButtonBackground(juce::Graphics& g,
                                           juce::Button& button,
                                           const juce::Colour& backgroundColour,
@@ -72,8 +79,19 @@ namespace UIUtils {
                                     bool isMouseOverButton,
                                     bool isButtonDown) override;
 
-    private:
-        int _getCornerSize(int width, int height) const;
+    protected:
+        virtual int _getCornerSize(int width, int height) const;
+    };
+
+    class AddButtonLookAndFeel : public StaticButtonLookAndFeel {
+    public:
+        virtual void drawButtonText(juce::Graphics& g,
+                                    juce::TextButton& textButton,
+                                    bool isMouseOverButton,
+                                    bool isButtonDown) override;
+
+    protected:
+        virtual int _getCornerSize(int width, int height) const override;
     };
 
     class TextOnlyButtonLookAndFeel : public StaticButtonLookAndFeel {
@@ -95,6 +113,18 @@ namespace UIUtils {
 
     class StandardComboBoxLookAndFeel : public WECore::LookAndFeelMixins::ComboBoxV2<WECore::JUCEPlugin::CoreLookAndFeel> {
     public:
+        void drawComboBox(juce::Graphics& g,
+                          int width,
+                          int height,
+                          bool isButtonDown,
+                          int buttonX,
+                          int buttonY,
+                          int buttonW,
+                          int buttonH,
+                          juce::ComboBox& box) override;
+
+        void positionComboBoxText(juce::ComboBox& box, juce::Label& label) override;
+
         void drawPopupMenuBackground(juce::Graphics& g, int width, int height) override;
 
         void drawPopupMenuItem(juce::Graphics& g,
@@ -153,11 +183,15 @@ namespace UIUtils {
 
     const juce::Colour& getColourForModulationType(MODULATION_TYPE type);
 
-    const juce::Colour neutralHighlightColour = juce::Colour(226, 226, 226);
-    const juce::Colour neutralControlColour = juce::Colour(0xfffc9d74);
-    const juce::Colour neutralDeactivatedColour = neutralHighlightColour.withBrightness(0.5);
+    const juce::Colour neutralColour = juce::Colour(226, 226, 226);
+    const juce::Colour highlightColour = juce::Colour(0xfffc9d74);
+    const juce::Colour deactivatedColour = neutralColour.withBrightness(0.5);
 
     const juce::Colour backgroundColour = juce::Colour(0xff272727);
+    const juce::Colour slotBackgroundColour = juce::Colour(0xff272727).withMultipliedLightness(1.2);
+    const juce::Colour modulationTrayBackgroundColour = slotBackgroundColour.withMultipliedLightness(1.2);
+
+    const juce::Colour PLUGIN_SLOT_MODULATION_ON_COLOUR(161, 102, 221);
 
     const juce::Colour tooltipColour = juce::Colour(0xff929292);
 
@@ -224,6 +258,11 @@ namespace UIUtils {
 
     class CrossButton : public juce::Button {
     public:
+        enum ColourIds {
+            enabledColour,
+            disabledColour
+        };
+
         CrossButton(const juce::String& buttonName);
 
         void paintButton(juce::Graphics& g,
@@ -274,4 +313,6 @@ namespace UIUtils {
     private:
         juce::Viewport* _otherView;
     };
+
+    juce::String getCopyKeyName();
 }

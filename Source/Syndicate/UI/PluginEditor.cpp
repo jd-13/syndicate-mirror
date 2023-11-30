@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 7.0.4
+  Created with Projucer version: 7.0.9
 
   ------------------------------------------------------------------------------
 
@@ -58,10 +58,6 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     addAndMakeVisible(_headerExtensionComponent.get());
     _headerExtensionComponent->setName("Header Extension Component");
 
-    _splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
-    addAndMakeVisible(_splitterHeader.get());
-    _splitterHeader->setName("Splitter Header");
-
     _outputSidebar.reset(new OutputComponent(_processor));
     addAndMakeVisible(_outputSidebar.get());
     _outputSidebar->setName("Output");
@@ -69,6 +65,10 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _graphView.reset(new GraphViewComponent(_processor));
     addAndMakeVisible(_graphView.get());
     _graphView->setName("Graph View");
+
+    _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _processor.chainParameters[0], _graphView->getViewport()));
+    addAndMakeVisible(_splitterHeader.get());
+    _splitterHeader->setName("Splitter Header");
 
     _modulationBar.reset(new ModulationBar(_processor, this));
     addAndMakeVisible(_modulationBar.get());
@@ -230,7 +230,7 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
 
         switch (_processor.getSplitType()) {
             case SPLIT_TYPE::SERIES:
-                _splitterHeader.reset(new SeriesSplitterSubComponent(_processor.chainParameters[0]));
+                _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _processor.chainParameters[0], _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::PARALLEL:
                 _splitterHeader.reset(new ParallelSplitterSubComponent(_processor, _headerExtensionComponent.get(), _graphView->getViewport()));
@@ -239,10 +239,10 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
                 _splitterHeader.reset(new MultibandSplitterSubComponent(_processor, _headerExtensionComponent.get(), _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
-                _splitterHeader.reset(new LeftrightSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
+                _splitterHeader.reset(new LeftrightSplitterSubComponent(_processor, _processor.chainParameters[0], _processor.chainParameters[1], _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::MIDSIDE:
-                _splitterHeader.reset(new MidsideSplitterSubComponent(_processor.chainParameters[0], _processor.chainParameters[1]));
+                _splitterHeader.reset(new MidsideSplitterSubComponent(_processor, _processor.chainParameters[0], _processor.chainParameters[1], _graphView->getViewport()));
                 break;
         }
 

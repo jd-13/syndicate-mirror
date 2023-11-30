@@ -27,7 +27,7 @@ MacroComponent::MacroComponent(int macroNumber,
     nameLbl->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle ("Regular"));
     nameLbl->setJustificationType(juce::Justification::centred);
     nameLbl->setEditable(true, true, false);
-    nameLbl->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
+    nameLbl->setColour(juce::Label::textColourId, UIUtils::neutralColour);
     nameLbl->setColour(juce::TextEditor::textColourId, juce::Colours::black);
     nameLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     nameLbl->addListener(this);
@@ -35,7 +35,7 @@ MacroComponent::MacroComponent(int macroNumber,
 
     dragHandle.reset(new UIUtils::DragHandle());
     addAndMakeVisible(dragHandle.get());
-    dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::neutralHighlightColour);
+    dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::neutralColour);
     dragHandle->setTooltip(tooltipString);
 
     const juce::Colour& baseColour = UIUtils::getColourForModulationType(MODULATION_TYPE::MACRO);

@@ -20,25 +20,18 @@ namespace UIUtils {
         const int cornerSize {juce::jmin(juce::roundToInt(width * 0.4f),
                                         juce::roundToInt(height * 0.4f))};
 
-        juce::Path p;
-        juce::PathStrokeType pStroke(1);
-
-        p.addRoundedRectangle(indent,
-                                indent,
-                                width - 2 * indent,
-                                height - 2 * indent,
-                                static_cast<float>(cornerSize));
-
-        if (button.isEnabled()) {
-            g.setColour(button.findColour(juce::TextButton::buttonOnColourId));
+        if (button.getToggleState()) {
+            g.setColour(button.findColour(UIUtils::ToggleButtonLookAndFeel::highlightColour));
         } else {
-            g.setColour(button.findColour(juce::TextButton::buttonColourId));
+            g.setColour(button.findColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour));
         }
 
-        g.strokePath(p, pStroke);
-        if (button.getToggleState() && button.isEnabled()) {
-            g.fillPath(p);
-        }
+        g.fillRoundedRectangle(
+            indent,
+            indent,
+            width - 2 * indent,
+            height - 2 * indent,
+            static_cast<float>(cornerSize));
     }
 
     void ToggleButtonLookAndFeel::drawButtonText(juce::Graphics& g,
@@ -52,11 +45,11 @@ namespace UIUtils {
         g.setFont(font);
 
         if (!textButton.isEnabled()) {
-            g.setColour(textButton.findColour(juce::TextButton::buttonColourId));
+            g.setColour(textButton.findColour(UIUtils::ToggleButtonLookAndFeel::disabledColour));
         } else if (textButton.getToggleState()) {
-            g.setColour(textButton.findColour(juce::TextButton::textColourOnId));
+            g.setColour(textButton.findColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour));
         } else {
-            g.setColour(textButton.findColour(juce::TextButton::textColourOffId));
+            g.setColour(textButton.findColour(UIUtils::ToggleButtonLookAndFeel::highlightColour));
         }
 
         g.drawFittedText(textButton.getButtonText(),
@@ -80,22 +73,13 @@ namespace UIUtils {
         constexpr float indent {2.0f};
         const int cornerSize {_getCornerSize(width, height)};
 
-        juce::Path p;
-        juce::PathStrokeType pStroke(1);
-
-        p.addRoundedRectangle(indent,
-                                indent,
-                                width - 2 * indent,
-                                height - 2 * indent,
-                                static_cast<float>(cornerSize));
-
-        if (button.isEnabled()) {
-            g.setColour(button.findColour(juce::TextButton::buttonOnColourId));
-        } else {
-            g.setColour(button.findColour(juce::TextButton::buttonColourId));
-        }
-
-        g.strokePath(p, pStroke);
+        g.setColour(button.findColour(UIUtils::StaticButtonLookAndFeel::backgroundColour));
+        g.fillRoundedRectangle(
+            indent,
+            indent,
+            width - 2 * indent,
+            height - 2 * indent,
+            static_cast<float>(cornerSize));
     }
 
     void StaticButtonLookAndFeel::drawButtonText(juce::Graphics& g,
@@ -110,9 +94,9 @@ namespace UIUtils {
         g.setFont(font);
 
         if (textButton.isEnabled()) {
-            g.setColour(textButton.findColour(juce::TextButton::textColourOnId));
+            g.setColour(textButton.findColour(UIUtils::StaticButtonLookAndFeel::highlightColour));
         } else {
-            g.setColour(textButton.findColour(juce::TextButton::textColourOffId));
+            g.setColour(textButton.findColour(UIUtils::StaticButtonLookAndFeel::disabledColour));
         }
 
         g.drawFittedText(textButton.getButtonText(),
@@ -126,6 +110,50 @@ namespace UIUtils {
 
     int StaticButtonLookAndFeel::_getCornerSize(int width, int height) const {
         return juce::jmin(juce::roundToInt(width * 0.4f), juce::roundToInt(height * 0.4f));
+    }
+
+    void AddButtonLookAndFeel::drawButtonText(juce::Graphics& g,
+                                                 juce::TextButton& textButton,
+                                                 bool isMouseOverButton,
+                                                 bool isButtonDown) {
+        juce::Font font;
+        font.setTypefaceName(WECore::JUCEPlugin::CoreLookAndFeel::getTypefaceForFont(font)->getName());
+        g.setFont(font);
+
+        if (textButton.isEnabled()) {
+            g.setColour(textButton.findColour(UIUtils::StaticButtonLookAndFeel::highlightColour));
+        } else {
+            g.setColour(textButton.findColour(UIUtils::StaticButtonLookAndFeel::disabledColour));
+        }
+
+        constexpr int lineSpacing {4};
+        const float fontHeight {font.getHeight()};
+
+        const int firstLineY {static_cast<int>(textButton.getHeight() / 2 - lineSpacing - fontHeight)};
+        const int secondLineY {textButton.getHeight() / 2 + lineSpacing};
+
+        const int textX {_getCornerSize(textButton.getWidth(), textButton.getHeight())};
+        const int textWidth {textButton.getWidth() - 2 * textX};
+
+        g.drawFittedText("+",
+                         textX,
+                         firstLineY,
+                         textWidth,
+                         fontHeight,
+                         juce::Justification::centred,
+                         0);
+
+        g.drawFittedText(textButton.getButtonText(),
+                         textX,
+                         secondLineY,
+                         textWidth,
+                         fontHeight,
+                         juce::Justification::centred,
+                         0);
+    }
+
+    int AddButtonLookAndFeel::_getCornerSize(int width, int height) const {
+        return juce::jmin(juce::roundToInt(width * 0.2f), juce::roundToInt(height * 0.2f));
     }
 
     void SearchBarLookAndFeel::drawTextEditorOutline(juce::Graphics& g,
@@ -159,9 +187,34 @@ namespace UIUtils {
         label->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
         label->setJustificationType(juce::Justification::centred);
         label->setEditable(false, false, false);
-        label->setColour(juce::Label::textColourId, neutralHighlightColour);
+        label->setColour(juce::Label::textColourId, neutralColour);
         label->setColour(juce::TextEditor::textColourId, juce::Colours::black);
         label->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
+    }
+
+    void StandardComboBoxLookAndFeel::drawComboBox(juce::Graphics& g,
+                                                   int width,
+                                                   int height,
+                                                   bool isButtonDown,
+                                                   int buttonX,
+                                                   int buttonY,
+                                                   int buttonW,
+                                                   int buttonH,
+                                                   juce::ComboBox& box) {
+
+        // Draw background
+        g.setColour(slotBackgroundColour);
+        g.fillRoundedRectangle(0, 0, width, height, height / 2);
+
+        // Draw arrows
+        // TODO using buttonX - 6 works for now, but it's not ideal at really small sizes
+        WECore::LookAndFeelMixins::ComboBoxV2<WECore::JUCEPlugin::CoreLookAndFeel>::drawComboBox(
+            g, width, height, isButtonDown, buttonX - 10, buttonY, buttonW, buttonH, box);
+    }
+
+    void StandardComboBoxLookAndFeel::positionComboBoxText(juce::ComboBox& box, juce::Label& label) {
+        label.setBounds(10, 1, box.getWidth() - 6 - box.getHeight(), box.getHeight() - 2);
+        label.setFont(getComboBoxFont(box));
     }
 
     void StandardComboBoxLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height) {
@@ -267,7 +320,7 @@ namespace UIUtils {
         _titleLabel->setFont(juce::Font(20.00f, juce::Font::plain).withTypefaceStyle("Bold"));
         _titleLabel->setJustificationType(juce::Justification::centred);
         _titleLabel->setEditable(false, false, false);
-        _titleLabel->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
+        _titleLabel->setColour(juce::Label::textColourId, UIUtils::neutralColour);
 
         const juce::Font contentFont = juce::Font(15.0f, juce::Font::plain).withTypefaceStyle("Regular");
         _contentLabel.reset(new juce::Label("Content Label", content));
@@ -275,7 +328,7 @@ namespace UIUtils {
         _contentLabel->setFont(contentFont);
         _contentLabel->setJustificationType(juce::Justification::centred);
         _contentLabel->setEditable(false, false, false);
-        _contentLabel->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
+        _contentLabel->setColour(juce::Label::textColourId, UIUtils::neutralColour);
 
         _contentSize = _getBoundsForText(content, contentFont);
 
@@ -283,10 +336,10 @@ namespace UIUtils {
         _contentView->setViewedComponent(_contentLabel.get(), false);
         _contentView->setScrollBarsShown(true, true);
         _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
         _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
         _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
         _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
         addAndMakeVisible(_contentView.get());
 
@@ -295,10 +348,10 @@ namespace UIUtils {
         _button->setButtonText(TRANS("OK"));
         _button->addListener(this);
         _button->setLookAndFeel(&_buttonLookAndFeel);
-        _button->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-        _button->setColour(juce::TextButton::buttonColourId, UIUtils::neutralHighlightColour);
-        _button->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
-        _button->setColour(juce::TextButton::textColourOffId, UIUtils::neutralHighlightColour);
+        _button->setColour(juce::TextButton::buttonOnColourId, UIUtils::highlightColour);
+        _button->setColour(juce::TextButton::buttonColourId, UIUtils::neutralColour);
+        _button->setColour(juce::TextButton::textColourOnId, UIUtils::highlightColour);
+        _button->setColour(juce::TextButton::textColourOffId, UIUtils::neutralColour);
     }
 
     void PopoverComponent::resized() {
@@ -368,15 +421,20 @@ namespace UIUtils {
                                    bool /*shouldDrawButtonAsDown*/) {
         const juce::Rectangle<float> area = getLocalBounds().reduced(1, 1).toFloat();
 
-        g.setColour(findColour(juce::TextButton::buttonOnColourId));
-        g.drawEllipse(area, 1.0f);
-        if (getToggleState()) {
-            g.fillEllipse(area);
-            g.setColour(findColour(juce::TextButton::textColourOnId));
-        } else {
-            g.setColour(findColour(juce::TextButton::textColourOffId));
+
+        juce::Colour buttonColour = highlightColour;
+        juce::Colour iconColour = modulationTrayBackgroundColour;
+        if (!getToggleState()) {
+            buttonColour = modulationTrayBackgroundColour;
+            iconColour = highlightColour;
         }
 
+        // Draw the background
+        g.setColour(buttonColour);
+        g.fillEllipse(area);
+
+        // Draw the icon
+        g.setColour(iconColour);
         g.drawLine(getWidth() * 0.5, getHeight() * 0.25, getWidth() * 0.5, getHeight() * 0.75, 1.0f);
     }
 
@@ -387,15 +445,19 @@ namespace UIUtils {
                                    bool /*shouldDrawButtonAsDown*/) {
         const juce::Rectangle<float> area = getLocalBounds().reduced(1, 1).toFloat();
 
-        g.setColour(findColour(juce::TextButton::buttonOnColourId));
-        g.drawEllipse(area, 1.0f);
-        if (getToggleState()) {
-            g.fillEllipse(area);
-            g.setColour(findColour(juce::TextButton::textColourOnId));
-        } else {
-            g.setColour(findColour(juce::TextButton::textColourOffId));
+        juce::Colour buttonColour = PLUGIN_SLOT_MODULATION_ON_COLOUR;
+        juce::Colour iconColour = modulationTrayBackgroundColour;
+        if (!getToggleState()) {
+            buttonColour = modulationTrayBackgroundColour;
+            iconColour = PLUGIN_SLOT_MODULATION_ON_COLOUR;
         }
 
+        // Draw the background
+        g.setColour(buttonColour);
+        g.fillEllipse(area);
+
+        // Draw the icon
+        g.setColour(iconColour);
         g.drawText("M", getLocalBounds().reduced(2), juce::Justification::centred, false);
     }
 
@@ -405,9 +467,17 @@ namespace UIUtils {
                                   bool /*shouldDrawButtonAsHighlighted*/,
                                   bool /*shouldDrawButtonAsDown*/) {
         juce::Rectangle<float> area = reduceToSquare(getLocalBounds()).toFloat();
-        area = area.reduced(area.getWidth() / 3);
+        if (area.getWidth() > 22) {
+            area = area.reduced(area.getWidth() / 3.5);
+        } else {
+            area = area.reduced(area.getWidth() / 4);
+        }
 
-        g.setColour(findColour(juce::TextButton::buttonOnColourId));
+        if (isEnabled()) {
+            g.setColour(findColour(enabledColour));
+        } else {
+            g.setColour(findColour(disabledColour));
+        }
         g.drawLine(juce::Line(area.getTopLeft(), area.getBottomRight()));
         g.drawLine(juce::Line(area.getTopRight(), area.getBottomLeft()));
     }
@@ -484,7 +554,11 @@ namespace UIUtils {
 
     void DragHandle::paint(juce::Graphics& g) {
         juce::Rectangle<int> area = reduceToSquare(getLocalBounds());
-        area = area.reduced(area.getWidth() / 5);
+        if (area.getWidth() > 22) {
+            area = area.reduced(area.getWidth() / 5);
+        } else {
+            area = area.reduced(area.getWidth() / 10);
+        }
 
         const int arrowHeadLength {area.getWidth() / 5};
 
@@ -541,5 +615,17 @@ namespace UIUtils {
             // Only linked horizontally
             _otherView->setViewPosition(newRangeStartInt, 0);
         }
+    }
+
+    juce::String getCopyKeyName() {
+#if _WIN32
+        return "Alt";
+#elif __APPLE__
+        return "Option";
+#elif __linux__
+        return "Alt";
+#else
+    #error "Unknown OS"
+#endif
     }
 }

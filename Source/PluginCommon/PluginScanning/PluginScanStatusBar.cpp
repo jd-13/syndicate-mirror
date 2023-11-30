@@ -11,14 +11,13 @@ PluginScanStatusBar::PluginScanStatusBar(PluginScanClient& pluginScanClient,
     statusLbl->setFont(juce::Font (15.00f, juce::Font::plain).withTypefaceStyle ("Regular"));
     statusLbl->setJustificationType(juce::Justification::centredLeft);
     statusLbl->setEditable(false, false, false);
-    statusLbl->setColour(juce::Label::textColourId, style.controlColour);
+    statusLbl->setColour(juce::Label::textColourId, style.highlightColour);
 
     auto styleButton = [&style](std::unique_ptr<juce::TextButton>& button) {
         button->setLookAndFeel(style.scanButtonLookAndFeel.get());
-        button->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-        button->setColour(juce::TextButton::buttonColourId, style.neutralColour);
-        button->setColour(juce::TextButton::textColourOnId, style.controlColour);
-        button->setColour(juce::TextButton::textColourOffId, style.neutralColour);
+        button->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
+        button->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
+        button->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, style.disabledColour);
     };
 
     startScanBtn.reset(new juce::TextButton("Start Scan Button"));

@@ -23,8 +23,10 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
 
     std::unique_ptr<SelectorComponentStyle> style = std::make_unique<SelectorComponentStyle>(
         UIUtils::backgroundColour,
-        UIUtils::neutralHighlightColour,
-        UIUtils::neutralControlColour,
+        UIUtils::slotBackgroundColour,
+        UIUtils::neutralColour,
+        UIUtils::highlightColour,
+        UIUtils::deactivatedColour,
         std::make_unique<UIUtils::SearchBarLookAndFeel>(),
         std::make_unique<UIUtils::ToggleButtonLookAndFeel>(),
         std::make_unique<UIUtils::StaticButtonLookAndFeel>(),

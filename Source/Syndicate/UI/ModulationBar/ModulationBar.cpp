@@ -13,7 +13,7 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
         view->setViewedComponent(new juce::Component());
         view->setScrollBarsShown(true, false);
         view->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-        view->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+        view->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
         view->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
         addAndMakeVisible(view.get());
     };
@@ -146,31 +146,8 @@ void ModulationBar::AddButtonLookAndFeel::drawButtonBackground(juce::Graphics& g
     constexpr int MARGIN {1};
     juce::Rectangle<int> area = juce::Rectangle<int>(button.getWidth(), button.getHeight()).reduced(MARGIN, MARGIN);
 
-    juce::Path p;
-    const int centreY {area.getHeight() / 2 + area.getY()};
-    const int centreX {area.getHeight() / 2 + area.getX()};
-    const int radius {area.getHeight() / 2};
-
-    p.startNewSubPath(centreX, area.getY());
-    p.addCentredArc(centreX,
-                    centreY,
-                    radius,
-                    radius,
-                    0,
-                    0,
-                    -WECore::CoreMath::DOUBLE_PI);
-    p.lineTo(area.getWidth() - centreX, area.getHeight() + area.getY());
-    p.addCentredArc(area.getWidth() - centreX,
-                    centreY,
-                    radius,
-                    radius,
-                    0,
-                    WECore::CoreMath::DOUBLE_PI,
-                    0);
-    p.closeSubPath();
-
     g.setColour(button.findColour(juce::TextButton::buttonColourId));
-    g.strokePath(p, juce::PathStrokeType(1.0f));
+    g.fillRoundedRectangle(area.toFloat(), area.getHeight() / 2);
 }
 
 void ModulationBar::_resetButtons() {
@@ -185,8 +162,8 @@ void ModulationBar::_resetButtons() {
     _lfoButtonsView->getViewedComponent()->addAndMakeVisible(_addLfoButton.get());
     _addLfoButton->setButtonText("+ LFO");
     _addLfoButton->addListener(this);
-    _addLfoButton->setTooltip("Creates a new LFO");
-    _addLfoButton->setColour(juce::TextButton::buttonColourId, UIUtils::getColourForModulationType(MODULATION_TYPE::LFO));
+    _addLfoButton->setTooltip("Create a new LFO");
+    _addLfoButton->setColour(juce::TextButton::buttonColourId, UIUtils::slotBackgroundColour);
     _addLfoButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::LFO));
     _addLfoButton->setLookAndFeel(_addButtonLookAndFeel.get());
 
@@ -201,8 +178,8 @@ void ModulationBar::_resetButtons() {
     _envelopeButtonsView->getViewedComponent()->addAndMakeVisible(_addEnvelopeButton.get());
     _addEnvelopeButton->setButtonText("+ ENV");
     _addEnvelopeButton->addListener(this);
-    _addEnvelopeButton->setTooltip("Creates a new envelope");
-    _addEnvelopeButton->setColour(juce::TextButton::buttonColourId, UIUtils::getColourForModulationType(MODULATION_TYPE::ENVELOPE));
+    _addEnvelopeButton->setTooltip("Create a new envelope");
+    _addEnvelopeButton->setColour(juce::TextButton::buttonColourId, UIUtils::slotBackgroundColour);
     _addEnvelopeButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::ENVELOPE));
     _addEnvelopeButton->setLookAndFeel(_addButtonLookAndFeel.get());
 

@@ -2,29 +2,18 @@
 
 #include "MidsideSplitterSubComponent.h"
 
-MidsideSplitterSubComponent::MidsideSplitterSubComponent(ChainParameters& midChainParams,
-                                                         ChainParameters& sideChainParams) {
+MidsideSplitterSubComponent::MidsideSplitterSubComponent(SyndicateAudioProcessor& processor,
+                                                         ChainParameters& midChainParams,
+                                                         ChainParameters& sideChainParams,
+                                                         UIUtils::LinkedScrollView* graphView)
+        : SplitterHeaderComponent(processor, graphView) {
+    auto midChainbuttons = std::make_unique<ChainButtonsComponent>(0, midChainParams);
+    _viewPort->getViewedComponent()->addAndMakeVisible(midChainbuttons.get());
+    midChainbuttons->chainLabel->setText("Mid", juce::dontSendNotification);
+    _chainButtons.push_back(std::move(midChainbuttons));
 
-    _midChainbuttons.reset(new ChainButtonsComponent(midChainParams));
-    addAndMakeVisible(_midChainbuttons.get());
-    _midChainbuttons->chainLabel->setText("Mid", juce::dontSendNotification);
-
-    _sideChainbuttons.reset(new ChainButtonsComponent(sideChainParams));
-    addAndMakeVisible(_sideChainbuttons.get());
-    _sideChainbuttons->chainLabel->setText("Side", juce::dontSendNotification);
-}
-
-MidsideSplitterSubComponent::~MidsideSplitterSubComponent() {
-    _midChainbuttons = nullptr;
-    _sideChainbuttons = nullptr;
-}
-
-void MidsideSplitterSubComponent::resized() {
-    _midChainbuttons->setBounds(UIUtils::getChainXPos(0, 2, getWidth()), 0, UIUtils::CHAIN_WIDTH, getHeight());
-    _sideChainbuttons->setBounds(UIUtils::getChainXPos(1, 2, getWidth()), 0, UIUtils::CHAIN_WIDTH, getHeight());
-}
-
-void MidsideSplitterSubComponent::onParameterUpdate() {
-    _midChainbuttons->onParameterUpdate();
-    _sideChainbuttons->onParameterUpdate();
+    auto sideChainbuttons = std::make_unique<ChainButtonsComponent>(1, sideChainParams);
+    _viewPort->getViewedComponent()->addAndMakeVisible(sideChainbuttons.get());
+    sideChainbuttons->chainLabel->setText("Side", juce::dontSendNotification);
+    _chainButtons.push_back(std::move(sideChainbuttons));
 }

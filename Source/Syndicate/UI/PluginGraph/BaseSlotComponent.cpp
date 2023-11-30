@@ -9,20 +9,8 @@ BaseSlotComponent::BaseSlotComponent(int chainNumber, int slotNumber) : _chainNu
     // Set up the drag label
     dragHandle.reset(new UIUtils::DragHandle());
     addAndMakeVisible(dragHandle.get());
-    dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::neutralControlColour);
-
-    juce::String copyKey;
-#if _WIN32
-        copyKey = "Alt";
-#elif __APPLE__
-        copyKey = "Option";
-#elif __linux__
-        copyKey = "Alt";
-#else
-    #error "Unknown OS"
-#endif
-
-    dragHandle->setTooltip(TRANS("Drag to move this slot to another position - hold " + copyKey + " key to copy"));
+    dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::highlightColour);
+    dragHandle->setTooltip(TRANS("Drag to move this slot to another position - hold " + UIUtils::getCopyKeyName() + " key to copy"));
     dragHandle->addMouseListener(this, false);
 }
 
@@ -36,11 +24,8 @@ void BaseSlotComponent::paint(juce::Graphics& g) {
     const juce::Rectangle<float> fillArea = juce::Rectangle<int>(getWidth(), UIUtils::PLUGIN_SLOT_HEIGHT).reduced(MARGIN, MARGIN).toFloat();
     const float cornerRadius {fillArea.getHeight() / 2};
 
-    g.setColour(UIUtils::backgroundColour);
+    g.setColour(UIUtils::slotBackgroundColour);
     g.fillRoundedRectangle(fillArea, cornerRadius);
-
-    g.setColour(UIUtils::neutralControlColour);
-    g.drawRoundedRectangle(fillArea, cornerRadius, 1);
 }
 
 juce::Rectangle<int> BaseSlotComponent::getAvailableSlotArea() {

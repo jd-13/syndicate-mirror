@@ -84,7 +84,7 @@ PluginModulationTargetSourceSlider::PluginModulationTargetSourceSlider(
     _idLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
     _idLabel->setJustificationType(juce::Justification::centred);
     _idLabel->setEditable(true, true, false);
-    _idLabel->setColour(juce::Label::textColourId, UIUtils::neutralHighlightColour);
+    _idLabel->setColour(juce::Label::textColourId, UIUtils::neutralColour);
     _idLabel->setColour(juce::Label::backgroundColourId, juce::Colour(0x00000000));
     _idLabel->setInterceptsMouseClicks(false, false);
 
@@ -177,15 +177,25 @@ PluginModulationTarget::PluginModulationTarget(PluginModulationInterface& plugin
     _targetSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     _targetSlider->addListener(this);
     _targetSlider->setLookAndFeel(&_sliderLookAndFeel);
-    _targetSlider->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::neutralControlColour);
-    _targetSlider->setTooltip("Controls the selected plugin parameter, drag a source here to modulate");
+    _targetSlider->setColour(juce::Slider::rotarySliderFillColourId, UIUtils::highlightColour);
+    _targetSlider->setTooltip("Control for the selected plugin parameter, drag a source here to modulate");
 
     _targetSelectButton.reset(new PluginModulationTargetButton([&]() { _pluginModulationInterface.removeModulationTarget(_chainNumber, _pluginNumber, _targetNumber); }));
     addAndMakeVisible(_targetSelectButton.get());
     _targetSelectButton->addListener(this);
     _targetSelectButton->setLookAndFeel(&_buttonLookAndFeel);
-    _targetSelectButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralControlColour);
-    _targetSelectButton->setColour(juce::TextButton::textColourOnId, UIUtils::neutralControlColour);
+    _targetSelectButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _targetSelectButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _targetSelectButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+
+    _targetAddButton.reset(new juce::TextButton("Param"));
+    addAndMakeVisible(_targetAddButton.get());
+    _targetAddButton->addListener(this);
+    _targetAddButton->setLookAndFeel(&_addButtonLookAndFeel);
+    _targetAddButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _targetAddButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _targetAddButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    _targetAddButton->setTooltip("Add a plugin parameter to modulate");
 
     _reloadState();
 }
@@ -193,9 +203,11 @@ PluginModulationTarget::PluginModulationTarget(PluginModulationInterface& plugin
 PluginModulationTarget::~PluginModulationTarget() {
     _targetSlider->setLookAndFeel(nullptr);
     _targetSelectButton->setLookAndFeel(nullptr);
+    _targetAddButton->setLookAndFeel(nullptr);
 
     _targetSlider = nullptr;
     _targetSelectButton = nullptr;
+    _targetAddButton = nullptr;
 }
 
 void PluginModulationTarget::resized() {
@@ -203,6 +215,7 @@ void PluginModulationTarget::resized() {
 
     _targetSlider->setBounds(availableArea.removeFromTop(availableArea.getHeight() / 2));
     _targetSelectButton->setBounds(availableArea.removeFromTop(availableArea.getHeight() / 2));
+    _targetAddButton->setBounds(getLocalBounds().withTrimmedBottom(availableArea.getHeight()));
 
     _refreshSlotPositions();
 }
@@ -249,6 +262,9 @@ void PluginModulationTarget::buttonClicked(juce::Button* buttonThatWasClicked) {
             // Select a target
             _pluginModulationInterface.selectModulationTarget(_chainNumber, _pluginNumber, _targetNumber);
         }
+    } else if (buttonThatWasClicked == _targetAddButton.get()) {
+        // Select a target
+        _pluginModulationInterface.selectModulationTarget(_chainNumber, _pluginNumber, _targetNumber);
     }
 }
 
@@ -323,7 +339,7 @@ void PluginModulationTarget::_addTargetSlot(ModulationSourceDefinition definitio
     newModulationSlot->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     newModulationSlot->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     newModulationSlot->addListener(this);
-    newModulationSlot->setTooltip("Drag up/down to add positive/negative modulation, right click to remove");
+    newModulationSlot->setTooltip("Drag up or down to add positive or negative modulation, right click to remove");
     _modulationSlots.push_back(std::move(newModulationSlot));
     _refreshSlotPositions();
 }
@@ -368,6 +384,9 @@ void PluginModulationTarget::_reloadState() {
         _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _pluginNumber);
 
     if (modulationConfig.parameterConfigs.size() > _targetNumber) {
+        _targetAddButton->setEnabled(false);
+        _targetAddButton->setVisible(false);
+
         const std::shared_ptr<PluginParameterModulationConfig> thisParameterConfig = modulationConfig.parameterConfigs[_targetNumber];
 
         // Restoring slider position
@@ -389,7 +408,7 @@ void PluginModulationTarget::_reloadState() {
     } else {
         _targetSlider->setEnabled(false);
         _targetSlider->setVisible(false);
-        _targetSelectButton->setButtonText("+ Param");
-        _targetSelectButton->setTooltip("Click to select a plugin parameter to modulate");
+        _targetSelectButton->setEnabled(false);
+        _targetSelectButton->setVisible(false);
     }
 }

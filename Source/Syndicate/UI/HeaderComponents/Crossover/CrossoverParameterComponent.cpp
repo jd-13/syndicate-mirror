@@ -35,7 +35,7 @@ void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
         p.startNewSubPath(crossoverXPos, getHeight() - lineLength);
         p.lineTo(crossoverXPos, getHeight());
 
-        g.setColour(UIUtils::neutralControlColour);
+        g.setColour(UIUtils::highlightColour);
         g.strokePath(p, juce::PathStrokeType(0.5f));
     });
 }
@@ -44,7 +44,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
     constexpr int WIDTH {100};
     const int yPos {getHeight() / 2 - FREQUENCY_TEXT_HEIGHT / 2};
 
-    g.setColour(UIUtils::neutralControlColour);
+    g.setColour(UIUtils::highlightColour);
 
     SplitterInterface::forEachCrossover(_processor.splitter, [&](float crossoverFrequency) {
 
@@ -66,7 +66,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
 void CrossoverParameterComponent::_drawBandText(juce::Graphics& g) {
     double xPosLeft {0};
 
-    g.setColour(UIUtils::neutralControlColour.withBrightness(0.7));
+    g.setColour(UIUtils::highlightColour.withBrightness(0.7));
 
     SplitterInterface::forEachChain(_processor.splitter, [&](int bandNumber, std::shared_ptr<PluginChain>) {
         const double xPosRight {

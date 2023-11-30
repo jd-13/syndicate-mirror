@@ -242,7 +242,7 @@ SCENARIO("ChainProcessors: Plugin isn't applied when bypassed") {
             auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
 
             ChainProcessors::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessors::processBlock(slot, buffer, midiBuffer);
+            ChainProcessors::processBlock(slot, buffer, midiBuffer, nullptr);
 
             THEN("The buffer is unchanged") {
                 for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {
@@ -324,7 +324,7 @@ SCENARIO("ChainProcessors: Plugin is applied correctly with modulation") {
             auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
 
             ChainProcessors::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
-            ChainProcessors::processBlock(slot, buffer, midiBuffer);
+            ChainProcessors::processBlock(slot, buffer, midiBuffer, nullptr);
 
             THEN("The buffer is processed and modulation is applied correctly") {
                 CHECK(didCallProcess);

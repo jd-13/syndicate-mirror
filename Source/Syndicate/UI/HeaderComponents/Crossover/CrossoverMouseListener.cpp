@@ -8,10 +8,6 @@
 namespace {
     std::function<void(const juce::MouseEvent&)> createDragCallback(SyndicateAudioProcessor& processor, int crossoverNumber) {
         return [&processor, crossoverNumber](const juce::MouseEvent& event) {
-            constexpr double MIN_SPACING {
-                2 * UIUtils::Crossover::SLIDER_THUMB_RADIUS + UIUtils::BAND_BUTTON_WIDTH
-            };
-
             const int currentXPos {event.getPosition().getX()};
             const int componentWidth {event.eventComponent->getWidth()};
 
@@ -25,6 +21,7 @@ namespace {
                     UIUtils::Crossover::sliderValueToXPos(SplitterInterface::getCrossoverFrequency(processor.splitter, otherCrossoverNumber), componentWidth)
                 };
 
+                constexpr double MIN_SPACING {4 * UIUtils::Crossover::SLIDER_THUMB_RADIUS};
                 const double requiredGap {MIN_SPACING * std::abs(crossoverNumber - otherCrossoverNumber)};
                 const double actualGap {std::abs(currentXPos - otherXPos)};
 
@@ -76,9 +73,6 @@ void CrossoverMouseListener::_resolveParameterInteraction(const juce::MouseEvent
 
         if (mouseDownX < crossoverXPos - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH) {
             // Click landed below a crossover handle
-            if (event.mods.isRightButtonDown()) {
-                _processor.removeCrossoverBand(bandIndex);
-            }
             break;
 
         } else if (mouseDownX < crossoverXPos + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH) {

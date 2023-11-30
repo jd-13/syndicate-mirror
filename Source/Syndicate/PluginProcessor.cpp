@@ -299,10 +299,8 @@ void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition 
 
 void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
     if (SplitterInterface::setSplitType(splitter, splitType, {getBusesLayout(), getSampleRate(), getBlockSize()})) {
-        // Add chain parameters if needed
-        while (chainParameters.size() < SplitterInterface::getNumChains(splitter)) {
-            chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
-        }
+        // Update the headers
+        _splitterParameters->rebuildChainParameters();
 
         // For graph state changes we need to make sure the processor has updated its state first,
         // then the UI can rebuild based on the processor state
@@ -314,7 +312,8 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
 
 void SyndicateAudioProcessor::addParallelChain() {
     if (SplitterInterface::addParallelChain(splitter)) {
-        chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
+        // Update the headers
+        _splitterParameters->rebuildChainParameters();
 
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
@@ -324,7 +323,8 @@ void SyndicateAudioProcessor::addParallelChain() {
 
 void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
     if (SplitterInterface::removeParallelChain(splitter, chainNumber)) {
-        chainParameters.erase(chainParameters.begin() + chainNumber);
+        // Update the headers
+        _splitterParameters->rebuildChainParameters();
 
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
@@ -334,7 +334,8 @@ void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
 
 void SyndicateAudioProcessor::addCrossoverBand() {
     SplitterInterface::addCrossoverBand(splitter);
-    chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
+    // Update the headers
+    _splitterParameters->rebuildChainParameters();
 
     if (_editor != nullptr) {
         _editor->needsGraphRebuild();
@@ -343,7 +344,8 @@ void SyndicateAudioProcessor::addCrossoverBand() {
 
 void SyndicateAudioProcessor::removeCrossoverBand(int bandNumber) {
     if (SplitterInterface::removeCrossoverBand(splitter, bandNumber)) {
-        chainParameters.erase(chainParameters.begin() + bandNumber);
+        // Update the headers
+        _splitterParameters->rebuildChainParameters();
 
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
@@ -413,107 +415,27 @@ void SyndicateAudioProcessor::insertGainStage(int chainNumber, int pluginNumber)
 }
 
 void SyndicateAudioProcessor::copySlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
-    std::shared_ptr<juce::AudioPluginInstance> sourcePlugin =
-        SplitterInterface::getPlugin(splitter, fromChainNumber, fromSlotNumber);
-
-    if (sourcePlugin != nullptr) {
-        // This is a plugin
-
-        // Get the state and config before making changes that might change the plugin's position
-        juce::MemoryBlock sourceState;
-        sourcePlugin->getStateInformation(sourceState);
-
-        PluginModulationConfig sourceConfig =
-            SplitterInterface::getPluginModulationConfig(splitter, fromChainNumber, fromSlotNumber);
-
-        // Create the callback
-        // Be careful about what is used in this callback - anything in local scope needs to be captured by value
-        auto onPluginCreated = [&, sourceState, sourceConfig, toChainNumber, toSlotNumber](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
-            if (plugin != nullptr) {
-                // Create the shared pointer here as we need it for the window
-                std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(plugin);
-
-                if (pluginConfigurator.configure(
-                        sharedPlugin, {getBusesLayout(), getSampleRate(), getBlockSize()})) {
-                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Plugin configured");
-
-                    // Hand the plugin over to the splitter
-                    if (SplitterInterface::insertPlugin(splitter, sharedPlugin, toChainNumber, toSlotNumber)) {
-                        // Apply plugin state
-                        sharedPlugin->setStateInformation(sourceState.getData(), sourceState.getSize());
-
-                        // Apply modulation
-                        SplitterInterface::setPluginModulationConfig(splitter, sourceConfig, toChainNumber, toSlotNumber);
-
-                        // Ideally we'd like to handle plugin selection like any other parameter - just update the
-                        // parameter and just action the update in the callback
-                        // We can't do that though as the splitters are stateful, but we still update the parameter
-                        // so the UI also gets the update - need to do this last though as the UI pulls its state
-                        // from the splitter
-                        if (_editor != nullptr) {
-                            _editor->needsGraphRebuild();
-                        }
-                    } else {
-                        juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to insert plugin");
-                    }
-                } else {
-                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to configure plugin");
-                }
-            } else {
-                juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to load plugin: " + error);
-            }
-        };
-
-        // Try to load the plugin
-        formatManager.createPluginInstanceAsync(
-            sourcePlugin->getPluginDescription(),
-            getSampleRate(),
-            getBlockSize(),
-            onPluginCreated);
-    } else {
-        // This is a gain stage
-        auto [gain, pan] = SplitterInterface::getGainLinearAndPan(splitter, fromChainNumber, fromSlotNumber);
-
-        // Add it in the new position
-        if (SplitterInterface::insertGainStage(splitter, toChainNumber, toSlotNumber)) {
-            SplitterInterface::setGainLinear(splitter, toChainNumber, toSlotNumber, gain);
-            SplitterInterface::setPan(splitter, toChainNumber, toSlotNumber, pan);
-
-            if (_editor != nullptr) {
-                _editor->needsGraphRebuild();
-            }
+    auto onSuccess = [&]() {
+        if (_editor != nullptr) {
+            _editor->needsGraphRebuild();
         }
-    }
+    };
+
+    SplitterInterface::copySlot(splitter, onSuccess, formatManager, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 }
 
 void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
-    // Copy everything we need
-    std::shared_ptr<juce::AudioPluginInstance> plugin =
-        SplitterInterface::getPlugin(splitter, fromChainNumber, fromSlotNumber);
+    SplitterInterface::moveSlot(splitter, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 
-    if (plugin != nullptr) {
-        // This is a plugin
-        PluginModulationConfig config =
-            SplitterInterface::getPluginModulationConfig(splitter, fromChainNumber, fromSlotNumber);
-
-        // Remove it from the chain
-        if (SplitterInterface::removeSlot(splitter, fromChainNumber, fromSlotNumber)) {
-            // Add it in the new position
-            SplitterInterface::insertPlugin(splitter, plugin, toChainNumber, toSlotNumber);
-            SplitterInterface::setPluginModulationConfig(splitter, config, toChainNumber, toSlotNumber);
-        }
-    } else {
-        // This is a gain stage
-        auto [gain, pan] = SplitterInterface::getGainLinearAndPan(splitter, fromChainNumber, fromSlotNumber);
-
-        // Remove it from the chain
-        if (SplitterInterface::removeSlot(splitter, fromChainNumber, fromSlotNumber)) {
-            // Add it in the new position
-            SplitterInterface::insertGainStage(splitter, toChainNumber, toSlotNumber);
-            SplitterInterface::setGainLinear(splitter, toChainNumber, toSlotNumber, gain);
-            SplitterInterface::setPan(splitter, toChainNumber, toSlotNumber, pan);
-        }
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
     }
+}
+
+void SyndicateAudioProcessor::moveChain(int fromChainNumber, int toChainNumber) {
+    SplitterInterface::moveChain(splitter, fromChainNumber, toChainNumber);
+
+    _splitterParameters->rebuildChainParameters();
 
     if (_editor != nullptr) {
         _editor->needsGraphRebuild();
@@ -564,6 +486,25 @@ void SyndicateAudioProcessor::_onParameterUpdate() {
     }
 }
 
+void SyndicateAudioProcessor::SplitterParameters::rebuildChainParameters() {
+    const size_t numChains {SplitterInterface::getNumChains(_processor->splitter)};
+    while (_processor->chainParameters.size() > numChains) {
+        // More parameters than chains, delete them
+        _processor->chainParameters.erase(_processor->chainParameters.begin());
+    }
+
+    for (int chainNumber {0}; chainNumber < numChains; chainNumber++) {
+        // Add parameters if needed
+        if (_processor->chainParameters.size() <= chainNumber) {
+            _processor->chainParameters.emplace_back([&]() { triggerUpdate(); });
+        }
+
+        _processor->chainParameters[chainNumber].setBypass(SplitterInterface::getChainBypass(_processor->splitter, chainNumber));
+        _processor->chainParameters[chainNumber].setMute(SplitterInterface::getChainMute(_processor->splitter, chainNumber));
+        _processor->chainParameters[chainNumber].setSolo(SplitterInterface::getChainSolo(_processor->splitter, chainNumber));
+    }
+}
+
 void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElement* element) {
 #ifdef DEMO_BUILD
     juce::Logger::writeToLog("Not restoring state - demo build");
@@ -577,7 +518,7 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
             _restoreSplitterFromXml(splitterElement);
 
             // Now make sure the chain parameters are configured
-            _restoreChainParameters();
+            rebuildChainParameters();
         } else {
             juce::Logger::writeToLog("Missing element " + juce::String(XML_SPLITTER_STR));
         }
@@ -673,25 +614,6 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::
         _processor->pluginConfigurator,
         [&](juce::String errorText) { _processor->restoreErrors.push_back(errorText); }
     );
-}
-
-void SyndicateAudioProcessor::SplitterParameters::_restoreChainParameters() {
-    const size_t numChains {SplitterInterface::getNumChains(_processor->splitter)};
-    while (_processor->chainParameters.size() > numChains) {
-        // More parameters than chains, delete them
-        _processor->chainParameters.erase(_processor->chainParameters.begin());
-    }
-
-    for (int chainNumber {0}; chainNumber < numChains; chainNumber++) {
-        // Add parameters if needed
-        if (_processor->chainParameters.size() <= chainNumber) {
-            _processor->chainParameters.emplace_back([&]() { triggerUpdate(); });
-        }
-
-        _processor->chainParameters[chainNumber].setBypass(SplitterInterface::getChainBypass(_processor->splitter, chainNumber));
-        _processor->chainParameters[chainNumber].setMute(SplitterInterface::getChainMute(_processor->splitter, chainNumber));
-        _processor->chainParameters[chainNumber].setSolo(SplitterInterface::getChainSolo(_processor->splitter, chainNumber));
-    }
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreModulationSourcesFromXml(juce::XmlElement* element) {

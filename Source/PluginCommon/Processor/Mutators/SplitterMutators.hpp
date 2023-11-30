@@ -24,6 +24,18 @@ namespace SplitterMutators {
     void setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val);
     bool getChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber);
 
+    void moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
+    void copySlot(std::shared_ptr<PluginSplitter> splitter,
+                  std::function<void(std::shared_ptr<juce::AudioPluginInstance> sharedPlugin, juce::MemoryBlock sourceState, bool isBypassed, PluginModulationConfig sourceConfig)> insertPlugin,
+                  std::function<void()> onSuccess,
+                  juce::AudioPluginFormatManager& formatManager,
+                  int fromChainNumber,
+                  int fromSlotNumber,
+                  int toChainNumber,
+                  int toSlotNumber);
+
+    void moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber);
+
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain);
     float getGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
     std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);

@@ -16,7 +16,7 @@ PluginSlotModulationTray::PluginSlotModulationTray(PluginModulationInterface& pl
     _targetsView->setViewedComponent(new juce::Component());
     _targetsView->setScrollBarsShown(false, true);
     _targetsView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-    _targetsView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralHighlightColour.withAlpha(0.5f));
+    _targetsView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _targetsView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
     addAndMakeVisible(_targetsView.get());
 
@@ -61,9 +61,12 @@ void PluginSlotModulationTray::paint(juce::Graphics& g) {
 
     const juce::Rectangle<float> fillArea = getLocalBounds().reduced(1, 1).toFloat();
 
-    g.setColour(UIUtils::backgroundColour);
+    g.setColour(UIUtils::modulationTrayBackgroundColour);
     g.fillRoundedRectangle(fillArea, UIUtils::PLUGIN_SLOT_CORNER_RADIUS);
-
-    g.setColour(UIUtils::neutralControlColour);
-    g.drawRoundedRectangle(fillArea, UIUtils::PLUGIN_SLOT_CORNER_RADIUS, 1);
+    g.fillRect(
+        static_cast<int>(fillArea.getX()),
+        0,
+        static_cast<int>(fillArea.getWidth()),
+        UIUtils::PLUGIN_SLOT_CORNER_RADIUS
+    );
 }

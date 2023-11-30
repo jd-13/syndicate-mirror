@@ -32,7 +32,7 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
 
     waveComboBox.reset(new juce::ComboBox("LFO Wave"));
     addAndMakeVisible(waveComboBox.get());
-    waveComboBox->setTooltip(TRANS("Wave shape selected for this LFO"));
+    waveComboBox->setTooltip(TRANS("Wave shape for this LFO"));
     waveComboBox->setEditableText(false);
     waveComboBox->setJustificationType(juce::Justification::centredLeft);
     waveComboBox->setTextWhenNothingSelected(juce::String());
@@ -42,14 +42,14 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
     waveComboBox->addItem(TRANS("Saw"), 3);
     waveComboBox->addItem(TRANS("SC Comp"), 4);
     waveComboBox->setLookAndFeel(&_comboBoxLookAndFeel);
-    waveComboBox->setColour(juce::ComboBox::textColourId, UIUtils::neutralHighlightColour);
+    waveComboBox->setColour(juce::ComboBox::textColourId, baseColour);
     waveComboBox->setColour(juce::ComboBox::arrowColourId, baseColour);
     waveComboBox->addListener(this);
 
-    _comboBoxLookAndFeel.setColour(juce::PopupMenu::backgroundColourId, UIUtils::backgroundColour);
-    _comboBoxLookAndFeel.setColour(juce::PopupMenu::textColourId, UIUtils::neutralHighlightColour);
+    _comboBoxLookAndFeel.setColour(juce::PopupMenu::backgroundColourId, UIUtils::slotBackgroundColour);
+    _comboBoxLookAndFeel.setColour(juce::PopupMenu::textColourId, baseColour);
     _comboBoxLookAndFeel.setColour(juce::PopupMenu::highlightedBackgroundColourId, baseColour);
-    _comboBoxLookAndFeel.setColour(juce::PopupMenu::highlightedTextColourId, UIUtils::neutralHighlightColour);
+    _comboBoxLookAndFeel.setColour(juce::PopupMenu::highlightedTextColourId, UIUtils::slotBackgroundColour);
 
     freqLabel.reset(new juce::Label("LFO Freq Label", TRANS("Rate")));
     addAndMakeVisible(freqLabel.get());
@@ -64,9 +64,9 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
     tempoSyncButton->setTooltip(TRANS("Sync LFO frequency to host tempo"));
     tempoSyncButton->setButtonText(TRANS("Tempo"));
     tempoSyncButton->setLookAndFeel(&_buttonLookAndFeel);
-    tempoSyncButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    tempoSyncButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    tempoSyncButton->setColour(juce::TextButton::textColourOffId, baseColour);
+    tempoSyncButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    tempoSyncButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
+    tempoSyncButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     tempoSyncButton->addListener(this);
 
     tempoNumerSlider.reset(new juce::Slider("LFO Tempo Numer Slider"));
@@ -121,12 +121,15 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
 
     invertButton.reset(new juce::TextButton("LFO Invert Button"));
     addAndMakeVisible(invertButton.get());
-    invertButton->setTooltip(TRANS("Inverts the LFO output"));
+    invertButton->setTooltip(TRANS("Invert the LFO output"));
     invertButton->setButtonText(TRANS("Invert"));
     invertButton->setLookAndFeel(&_buttonLookAndFeel);
     invertButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
     invertButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
     invertButton->setColour(juce::TextButton::textColourOffId, baseColour);
+    invertButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    invertButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
+    invertButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     invertButton->addListener(this);
 
     // Load UI state

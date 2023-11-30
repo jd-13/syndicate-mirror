@@ -110,6 +110,136 @@ namespace SplitterMutators {
         return false;
     }
 
+    void moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
+        // Copy everything we need
+        std::shared_ptr<juce::AudioPluginInstance> plugin =
+            SplitterMutators::getPlugin(splitter, fromChainNumber, fromSlotNumber);
+
+         if (fromChainNumber == toChainNumber && fromSlotNumber < toSlotNumber) {
+            // Decrement the target position if the original we removed was before it in the same chain
+            toSlotNumber--;
+        }
+
+        if (plugin != nullptr) {
+            // This is a plugin
+            const bool isBypassed {SplitterMutators::getSlotBypass(splitter, fromChainNumber, fromSlotNumber)};
+            PluginModulationConfig config =
+                SplitterMutators::getPluginModulationConfig(splitter, fromChainNumber, fromSlotNumber);
+
+            // Remove it from the chain
+            if (SplitterMutators::removeSlot(splitter, fromChainNumber, fromSlotNumber)) {
+                // Add it in the new position
+                SplitterMutators::insertPlugin(splitter, plugin, toChainNumber, toSlotNumber);
+                SplitterMutators::setSlotBypass(splitter, toChainNumber, toSlotNumber, isBypassed);
+                SplitterMutators::setPluginModulationConfig(splitter, config, toChainNumber, toSlotNumber);
+            }
+        } else {
+            // This is a gain stage
+            const float gain {SplitterMutators::getGainLinear(splitter, fromChainNumber, fromSlotNumber)};
+            const float pan {SplitterMutators::getPan(splitter, fromChainNumber, fromSlotNumber)};
+
+            // Remove it from the chain
+            if (SplitterMutators::removeSlot(splitter, fromChainNumber, fromSlotNumber)) {
+                // Add it in the new position
+                SplitterMutators::insertGainStage(splitter, toChainNumber, toSlotNumber);
+                SplitterMutators::setGainLinear(splitter, toChainNumber, toSlotNumber, gain);
+                SplitterMutators::setPan(splitter, toChainNumber, toSlotNumber, pan);
+            }
+        }
+    }
+
+    void copySlot(std::shared_ptr<PluginSplitter> splitter,
+                  std::function<void(std::shared_ptr<juce::AudioPluginInstance> sharedPlugin, juce::MemoryBlock sourceState, bool isBypassed, PluginModulationConfig sourceConfig)> insertPlugin,
+                  std::function<void()> onSuccess,
+                  juce::AudioPluginFormatManager& formatManager,
+                  int fromChainNumber,
+                  int fromSlotNumber,
+                  int toChainNumber,
+                  int toSlotNumber) {
+        std::shared_ptr<juce::AudioPluginInstance> sourcePlugin =
+                SplitterMutators::getPlugin(splitter, fromChainNumber, fromSlotNumber);
+
+        if (sourcePlugin != nullptr) {
+            // This is a plugin
+
+            // Get the state and config before making changes that might change the plugin's position
+            juce::MemoryBlock sourceState;
+            sourcePlugin->getStateInformation(sourceState);
+
+            const bool isBypassed {SplitterMutators::getSlotBypass(splitter, fromChainNumber, fromSlotNumber)};
+            PluginModulationConfig sourceConfig =
+                SplitterMutators::getPluginModulationConfig(splitter, fromChainNumber, fromSlotNumber);
+
+            // Create the callback
+            // Be careful about what is used in this callback - anything in local scope needs to be captured by value
+            auto onPluginCreated = [splitter, insertPlugin, sourceState, isBypassed, sourceConfig, toChainNumber, toSlotNumber](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
+                if (plugin != nullptr) {
+                    // Create the shared pointer here as we need it for the window
+                    std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(plugin);
+
+                    PluginConfigurator pluginConfigurator;
+
+                    if (pluginConfigurator.configure(sharedPlugin, splitter->config)) {
+                        insertPlugin(sharedPlugin, sourceState, isBypassed, sourceConfig);
+                    } else {
+                        juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to configure plugin");
+                    }
+                } else {
+                    juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to load plugin: " + error);
+                }
+            };
+
+            // Try to load the plugin
+            formatManager.createPluginInstanceAsync(
+                sourcePlugin->getPluginDescription(),
+                splitter->config.sampleRate,
+                splitter->config.blockSize,
+                onPluginCreated);
+        } else {
+            // This is a gain stage
+            const float gain {SplitterMutators::getGainLinear(splitter, fromChainNumber, fromSlotNumber)};
+            const float pan {SplitterMutators::getPan(splitter, fromChainNumber, fromSlotNumber)};
+
+            // Add it in the new position
+            if (SplitterMutators::insertGainStage(splitter, toChainNumber, toSlotNumber)) {
+                SplitterMutators::setGainLinear(splitter, toChainNumber, toSlotNumber, gain);
+                SplitterMutators::setPan(splitter, toChainNumber, toSlotNumber, pan);
+
+                onSuccess();
+            }
+        }
+    }
+
+    void moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber) {
+        if (fromChainNumber >= splitter->chains.size()) {
+            return;
+        }
+
+        // Create a copy of the chain and remove the original
+        std::shared_ptr<PluginChain> chainToMove = splitter->chains[fromChainNumber].chain;
+        const bool isSoloed = splitter->chains[fromChainNumber].isSoloed;
+        splitter->chains.erase(splitter->chains.begin() + fromChainNumber);
+
+        if (toChainNumber > splitter->chains.size()) {
+            // Insert at the end
+            toChainNumber = splitter->chains.size();
+        } else if (fromChainNumber < toChainNumber) {
+            // Decrement the target position if the original we removed was before it
+            toChainNumber--;
+        }
+
+        // Insert the copy at the new position
+        splitter->chains.emplace(splitter->chains.begin() + toChainNumber, chainToMove, isSoloed);
+
+        if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
+            // Update the crossover
+            for (int chainIndex {0}; chainIndex < splitter->chains.size(); chainIndex++) {
+                CrossoverMutators::setPluginChain(multibandSplitter->crossover, chainIndex, splitter->chains[chainIndex].chain);
+                CrossoverMutators::setIsSoloed(multibandSplitter->crossover, chainIndex, splitter->chains[chainIndex].isSoloed);
+            }
+        }
+    }
+
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain) {
         if (chainNumber < splitter->chains.size()) {
             return ChainMutators::setGainLinear(splitter->chains[chainNumber].chain, positionInChain, gain);

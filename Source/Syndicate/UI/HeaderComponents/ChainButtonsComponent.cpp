@@ -1,20 +1,18 @@
 #include "ChainButtonsComponent.h"
 
-ChainButtonsComponent::ChainButtonsComponent(ChainParameters& headerParams) :
-        _headerParams(headerParams),
-        _canRemove(false) {
+ChainButtonsComponent::ChainButtonsComponent(int chainNumber, ChainParameters& headerParams) :
+        _chainNumber(chainNumber), _headerParams(headerParams) {
     chainLabel.reset(new juce::Label("Chain Label", TRANS("")));
     addAndMakeVisible(chainLabel.get());
     UIUtils::setDefaultLabelStyle(chainLabel);
+    chainLabel->setColour(juce::Label::textColourId, UIUtils::highlightColour);
     chainLabel->addMouseListener(this, false);
 
-    removeButton.reset(new UIUtils::CrossButton("Remove Button"));
-    addAndMakeVisible(removeButton.get());
-    removeButton->addListener(this);
-    removeButton->setTooltip("Remove this chain");
-    removeButton->setVisible(false);
-    removeButton->setColour(juce::TextButton::buttonOnColourId, UIUtils::neutralHighlightColour);
-    removeButton->addMouseListener(this, false);
+    dragHandle.reset(new UIUtils::DragHandle());
+    addAndMakeVisible(dragHandle.get());
+    dragHandle->setColour(UIUtils::DragHandle::handleColourId, UIUtils::highlightColour);
+    dragHandle->setTooltip(TRANS("Drag to move this chain to another position"));
+    dragHandle->addMouseListener(this, false);
 
     bypassBtn.reset(new ChainButton(CHAIN_BUTTON_TYPE::BYPASS));
     addAndMakeVisible(bypassBtn.get());
@@ -33,39 +31,55 @@ ChainButtonsComponent::ChainButtonsComponent(ChainParameters& headerParams) :
     soloBtn->addListener(this);
     soloBtn->setTooltip("Solo this chain");
     soloBtn->addMouseListener(this, false);
+
+    removeButton.reset(new UIUtils::CrossButton("Remove Button"));
+    addAndMakeVisible(removeButton.get());
+    removeButton->addListener(this);
+    removeButton->setTooltip("Remove this chain");
+    removeButton->setColour(UIUtils::CrossButton::enabledColour, UIUtils::highlightColour);
+    removeButton->setColour(UIUtils::CrossButton::disabledColour, UIUtils::deactivatedColour);
+    removeButton->addMouseListener(this, false);
+    removeButton->setEnabled(false);
 }
 
-ChainButtonsComponent::ChainButtonsComponent(ChainParameters& headerParams,
+ChainButtonsComponent::ChainButtonsComponent(int chainNumber,
+                                             ChainParameters& headerParams,
                                              std::function<void()> removeChainCallback) :
-        ChainButtonsComponent(headerParams) {
+        ChainButtonsComponent(chainNumber, headerParams) {
     _removeChainCallback = removeChainCallback;
-    _canRemove = true;
+    removeButton->setEnabled(true);
 }
 
 ChainButtonsComponent::~ChainButtonsComponent() {
     chainLabel = nullptr;
-    removeButton = nullptr;
+    dragHandle = nullptr;
     bypassBtn = nullptr;
     muteBtn = nullptr;
     soloBtn = nullptr;
+    removeButton = nullptr;
 }
 
 void ChainButtonsComponent::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
-    const int margin {4};
-    availableArea = availableArea.reduced(margin);
 
     const juce::Rectangle<int> topArea = availableArea.removeFromTop(availableArea.getHeight() / 2);
     chainLabel->setBounds(topArea);
-    removeButton->setBounds(topArea);
+
+    constexpr int BUTTON_ROW_MARGIN {5};
+    availableArea = availableArea.reduced(BUTTON_ROW_MARGIN, 0);
+
+    constexpr int DRAG_HANDLE_WIDTH {22};
+    constexpr int BAND_BUTTON_WIDTH {21};
 
     juce::FlexBox flexBox;
     flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
     flexBox.justifyContent = juce::FlexBox::JustifyContent::spaceAround;
     flexBox.alignContent = juce::FlexBox::AlignContent::center;
-    flexBox.items.add(juce::FlexItem(*bypassBtn.get()).withMinWidth(UIUtils::BAND_BUTTON_WIDTH).withMinHeight(UIUtils::BAND_BUTTON_WIDTH));
-    flexBox.items.add(juce::FlexItem(*muteBtn.get()).withMinWidth(UIUtils::BAND_BUTTON_WIDTH).withMinHeight(UIUtils::BAND_BUTTON_WIDTH));
-    flexBox.items.add(juce::FlexItem(*soloBtn.get()).withMinWidth(UIUtils::BAND_BUTTON_WIDTH).withMinHeight(UIUtils::BAND_BUTTON_WIDTH));
+    flexBox.items.add(juce::FlexItem(*dragHandle.get()).withMinWidth(DRAG_HANDLE_WIDTH).withMinHeight(DRAG_HANDLE_WIDTH));
+    flexBox.items.add(juce::FlexItem(*bypassBtn.get()).withMinWidth(BAND_BUTTON_WIDTH).withMinHeight(BAND_BUTTON_WIDTH));
+    flexBox.items.add(juce::FlexItem(*muteBtn.get()).withMinWidth(BAND_BUTTON_WIDTH).withMinHeight(BAND_BUTTON_WIDTH));
+    flexBox.items.add(juce::FlexItem(*soloBtn.get()).withMinWidth(BAND_BUTTON_WIDTH).withMinHeight(BAND_BUTTON_WIDTH));
+    flexBox.items.add(juce::FlexItem(*removeButton.get()).withMinWidth(BAND_BUTTON_WIDTH).withMinHeight(BAND_BUTTON_WIDTH));
     flexBox.performLayout(availableArea.toFloat());
 }
 
@@ -81,29 +95,24 @@ void ChainButtonsComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
     }
 }
 
-void ChainButtonsComponent::mouseEnter(const juce::MouseEvent& event) {
-    if (_canRemove) {
-        chainLabel->setVisible(false);
-        removeButton->setVisible(true);
-    }
-}
-
-void ChainButtonsComponent::mouseExit(const juce::MouseEvent& event) {
-    if (_canRemove) {
-        chainLabel->setVisible(true);
-        removeButton->setVisible(false);
-    }
-}
-
 void ChainButtonsComponent::onParameterUpdate() {
     bypassBtn->setToggleState(_headerParams.getBypass(), juce::dontSendNotification);
     muteBtn->setToggleState(_headerParams.getMute(), juce::dontSendNotification);
     soloBtn->setToggleState(_headerParams.getSolo(), juce::dontSendNotification);
 }
 
-int ChainButtonsComponent::_getButtonXPos(int buttonIndex) {
-    const float margin {getWidth() / 10.0f};
-    const float availableWidth {getWidth() - margin * 2};
+void ChainButtonsComponent::mouseDrag(const juce::MouseEvent& e) {
+    if (dragHandle != nullptr && e.originalComponent == dragHandle.get()) {
+        juce::DragAndDropContainer* container = juce::DragAndDropContainer::findParentDragContainerFor(this);
 
-    return (availableWidth / 6.0) * (buttonIndex * 2.0 + 1) - (UIUtils::BAND_BUTTON_WIDTH / 2.0) + margin;
+        if (container != nullptr) {
+            juce::var details;
+            details.append(_chainNumber);
+
+            // This is a copy if alt is down, otherwise move
+            details.append(juce::ModifierKeys::currentModifiers.isAltDown());
+
+            container->startDragging(details, this);
+        }
+    }
 }

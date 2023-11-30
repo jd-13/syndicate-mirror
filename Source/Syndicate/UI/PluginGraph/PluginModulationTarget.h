@@ -93,9 +93,11 @@ private:
     int _targetNumber;
     std::unique_ptr<PluginModulationTargetSlider> _targetSlider;
     std::unique_ptr<PluginModulationTargetButton> _targetSelectButton;
+    std::unique_ptr<juce::Button> _targetAddButton;
     std::vector<std::unique_ptr<PluginModulationTargetSourceSlider>> _modulationSlots;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
+    UIUtils::AddButtonLookAndFeel _addButtonLookAndFeel;
 
     void _addTargetSlot(ModulationSourceDefinition definition);
     void _removeTargetSlot(ModulationSourceDefinition definition);

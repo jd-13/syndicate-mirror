@@ -78,7 +78,7 @@ void PluginParameterSelectorTableListBoxModel::paintCell(juce::Graphics& g,
     if (rowNumber < _parameterList.size()) {
         const juce::String text = _parameterList[rowNumber]->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT);
 
-        g.setColour(UIUtils::neutralHighlightColour);
+        g.setColour(UIUtils::neutralColour);
         g.drawText(text, 2, 0, width - 4, height, juce::Justification::centredLeft, true);
     }
 }

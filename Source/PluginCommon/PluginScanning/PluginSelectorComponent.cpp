@@ -27,8 +27,8 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
     addAndMakeVisible(pluginTableListBox.get());
     pluginTableListBox->setName("Plugin Table List Box");
     pluginTableListBox->getHeader().setLookAndFeel(style.tableHeaderLookAndFeel.get());
-    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, style.controlColour);
-    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, style.controlColour);
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::textColourId, style.highlightColour);
+    pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::outlineColourId, style.highlightColour);
     pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::backgroundColourId, style.backgroundColour);
     pluginTableListBox->getHeader().setColour(juce::TableHeaderComponent::highlightColourId, style.neutralColour);
     pluginTableListBox->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
@@ -154,39 +154,39 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     searchEdt->setSelectAllWhenFocused(true);
     searchEdt->setWantsKeyboardFocus(true);
     searchEdt->setLookAndFeel(style.searchBarLookAndFeel.get());
-    searchEdt->setColour(juce::TextEditor::outlineColourId, style.controlColour);
+    searchEdt->setColour(juce::TextEditor::outlineColourId, style.highlightColour);
     searchEdt->setColour(juce::TextEditor::backgroundColourId, style.backgroundColour);
-    searchEdt->setColour(juce::TextEditor::textColourId, style.controlColour);
-    searchEdt->setColour(juce::TextEditor::highlightColourId, style.controlColour);
+    searchEdt->setColour(juce::TextEditor::textColourId, style.highlightColour);
+    searchEdt->setColour(juce::TextEditor::highlightColourId, style.highlightColour);
     searchEdt->setColour(juce::TextEditor::highlightedTextColourId, style.neutralColour);
-    searchEdt->setColour(juce::CaretComponent::caretColourId, style.controlColour);
+    searchEdt->setColour(juce::CaretComponent::caretColourId, style.highlightColour);
 
     vstBtn.reset(new juce::TextButton("VST Button"));
     addAndMakeVisible(vstBtn.get());
     vstBtn->setButtonText(TRANS("VST"));
     vstBtn->addListener(this);
     vstBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
-    vstBtn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    vstBtn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
-    vstBtn->setColour(juce::TextButton::textColourOffId, style.controlColour);
+    vstBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
+    vstBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
+    vstBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, style.disabledColour);
 
     vst3Btn.reset(new juce::TextButton ("VST3 Button"));
     addAndMakeVisible(vst3Btn.get());
     vst3Btn->setButtonText(TRANS("VST3"));
     vst3Btn->addListener(this);
     vst3Btn->setLookAndFeel(style.headerButtonLookAndFeel.get());
-    vst3Btn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    vst3Btn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
-    vst3Btn->setColour(juce::TextButton::textColourOffId, style.controlColour);
+    vst3Btn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
+    vst3Btn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
+    vst3Btn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, style.disabledColour);
 
     auBtn.reset(new juce::TextButton("AU Button"));
     addAndMakeVisible(auBtn.get());
     auBtn->setButtonText(TRANS("AU"));
     auBtn->addListener(this);
     auBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
-    auBtn->setColour(juce::TextButton::buttonOnColourId, style.controlColour);
-    auBtn->setColour(juce::TextButton::textColourOnId, style.backgroundColour);
-    auBtn->setColour(juce::TextButton::textColourOffId, style.controlColour);
+    auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
+    auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
+    auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, style.disabledColour);
 }
 
 void PluginSelectorComponent::restoreScrollPosition() {
