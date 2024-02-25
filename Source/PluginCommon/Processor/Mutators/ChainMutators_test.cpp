@@ -25,10 +25,23 @@ namespace {
             juce::String getParameterID() const override { return name; }
         };
 
-        MutatorTestPluginInstance() {
+        juce::AudioProcessorListener* addedListener;
+        juce::AudioProcessorListener* removedListener;
+
+        MutatorTestPluginInstance() : addedListener(nullptr), removedListener(nullptr) {
             addHostedParameter(std::make_unique<PluginParameter>("param1"));
             addHostedParameter(std::make_unique<PluginParameter>("param2"));
             addHostedParameter(std::make_unique<PluginParameter>("param3"));
+        }
+
+        void addListener(juce::AudioProcessorListener* newListener) {
+            addedListener = newListener;
+            TestUtils::TestPluginInstance::addListener(newListener);
+        }
+
+        void removeListener(juce::AudioProcessorListener* listenerToRemove) override {
+            removedListener = listenerToRemove;
+            TestUtils::TestPluginInstance::removeListener(listenerToRemove);
         }
     };
 }
@@ -61,6 +74,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 1);
                 CHECK(ChainMutators::getPlugin(chain, 0) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 10);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
              // WHEN("A plugin is added at position > chains.size()")
@@ -74,6 +88,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 2);
                 CHECK(ChainMutators::getPlugin(chain, 1) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 25);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
             // WHEN("A plugin is added in the middle")
@@ -87,6 +102,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 3);
                 CHECK(ChainMutators::getPlugin(chain, 1) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 45);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
             // WHEN("A gain stage is added in the middle")
@@ -116,6 +132,8 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 REQUIRE(ChainMutators::getPlugin(chain, 1) != nullptr);
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(25);
+
+                auto oldPlugin = std::dynamic_pointer_cast<MutatorTestPluginInstance>(ChainMutators::getPlugin(chain, 1));
                 ChainMutators::replacePlugin(chain, plugin, 1);
 
                 // THEN("The new plugin is in the correct place")
@@ -123,6 +141,8 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 5);
                 CHECK(ChainMutators::getPlugin(chain, 1) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 50);
+                CHECK(oldPlugin->removedListener == &chain->latencyListener);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
             // WHEN("A gain stage is replaced with a plugin")
@@ -137,6 +157,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 5);
                 CHECK(ChainMutators::getPlugin(chain, 2) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 80);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
             // WHEN("A plugin is replaced at position > chains.size()")
@@ -150,6 +171,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(ChainMutators::getNumSlots(chain) == 6);
                 CHECK(ChainMutators::getPlugin(chain, 5) == plugin);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 115);
+                CHECK(plugin->addedListener == &chain->latencyListener);
             }
 
             // WHEN("A plugin is removed")
@@ -160,6 +182,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 auto expectedChain = chain->chain;
                 expectedChain.erase(expectedChain.begin() + 2);
 
+                auto oldPlugin = std::dynamic_pointer_cast<MutatorTestPluginInstance>(ChainMutators::getPlugin(chain, 2));
                 const bool success {ChainMutators::removeSlot(chain, 2)};
 
                 // THEN("The plugin is removed from the correct place")
@@ -167,6 +190,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 CHECK(chain->chain.size() == 5);
                 CHECK(ChainMutators::getNumSlots(chain) == 5);
                 CHECK(chain->latencyListener.calculatedTotalPluginLatency == 85);
+                CHECK(oldPlugin->removedListener == &chain->latencyListener);
 
                 for (int slotIndex {0}; slotIndex < expectedChain.size(); slotIndex++) {
                     CHECK(expectedChain[slotIndex] == chain->chain[slotIndex]);
@@ -316,12 +340,13 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
         REQUIRE(chain->latencyListener.calculatedTotalPluginLatency == 25);
 
         WHEN("A plugin is bypassed") {
-            ChainMutators::setSlotBypass(chain, 2, true);
+            const bool success {ChainMutators::setSlotBypass(chain, 2, true)};
 
             // Allow the latency message to be sent
             messageManager->runDispatchLoopUntil(10);
 
             THEN("The plugin is bypassed correctly") {
+                CHECK(success);
                 CHECK(!ChainMutators::getSlotBypass(chain, 0));
                 CHECK(!ChainMutators::getSlotBypass(chain, 1));
                 CHECK(ChainMutators::getSlotBypass(chain, 2));
@@ -331,12 +356,13 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("A gain stage is bypassed") {
-            ChainMutators::setSlotBypass(chain, 1, true);
+            const bool success {ChainMutators::setSlotBypass(chain, 1, true)};
 
             // Allow the latency message to be sent (though we don't expect one for a gain stage change)
             messageManager->runDispatchLoopUntil(10);
 
             THEN("The gain stage is bypassed correctly") {
+                CHECK(success);
                 CHECK(!ChainMutators::getSlotBypass(chain, 0));
                 CHECK(ChainMutators::getSlotBypass(chain, 1));
                 CHECK(!ChainMutators::getSlotBypass(chain, 2));
@@ -346,12 +372,13 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("An out of bounds slot is bypassed") {
-            ChainMutators::setSlotBypass(chain, 10, true);
+            const bool success {ChainMutators::setSlotBypass(chain, 10, true)};
 
             // Allow the latency message to be sent (though we don't expect one here)
             messageManager->runDispatchLoopUntil(10);
 
             THEN("Nothing is bypassed") {
+                CHECK(!success);
                 CHECK(!ChainMutators::getSlotBypass(chain, 0));
                 CHECK(!ChainMutators::getSlotBypass(chain, 1));
                 CHECK(!ChainMutators::getSlotBypass(chain, 2));
@@ -403,7 +430,6 @@ SCENARIO("ChainMutators: The chain can be bypassed and muted") {
 
     GIVEN("An empty chain") {
         auto modulationCallback = [](int, MODULATION_TYPE) {
-            // Return something unique we can test for later
             return 0.0f;
         };
 
@@ -447,4 +473,27 @@ SCENARIO("ChainMutators: The chain can be bypassed and muted") {
     }
 
     juce::MessageManager::deleteInstance();
+}
+
+SCENARIO("ChainMutators: Chains are removed from plugins as latency listeners on destruction") {
+    GIVEN("A plugin chain with a single plugin") {
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        auto chain = std::make_shared<PluginChain>(modulationCallback);
+        auto plugin = std::make_shared<MutatorTestPluginInstance>();
+
+        ChainMutators::insertPlugin(chain, plugin, 0);
+
+        WHEN("The chain is deleted") {
+            // Get a pointer to the chain as a AudioProcessorListener before resetting
+            auto listener = &chain->latencyListener;
+            chain.reset();
+
+            THEN("The chain is removed from the plugin as a listener") {
+                CHECK(plugin->removedListener == listener);
+            }
+        }
+    }
 }

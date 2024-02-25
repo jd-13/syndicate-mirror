@@ -2,38 +2,42 @@
 
 #include "DataModelInterface.hpp"
 
-namespace SplitterInterface {
-    bool setSplitType(Splitter& splitter, SPLIT_TYPE splitType, HostConfiguration config);
-    SPLIT_TYPE getSplitType(Splitter& splitter);
+namespace ModelInterface {
+    bool setSplitType(StateManager& manager, SPLIT_TYPE splitType, HostConfiguration config);
+    SPLIT_TYPE getSplitType(StateManager& manager);
 
-    bool insertPlugin(Splitter& splitter, std::shared_ptr<juce::AudioPluginInstance> plugin, int chainNumber, int positionInChain);
-    bool replacePlugin(Splitter& splitter, std::shared_ptr<juce::AudioPluginInstance> plugin, int chainNumber, int positionInChain);
-    bool removeSlot(Splitter& splitter, int chainNumber, int positionInChain);
-    bool insertGainStage(Splitter& splitter, int chainNumber, int positionInChain);
+    bool replacePlugin(StateManager& manager, std::shared_ptr<juce::AudioPluginInstance> plugin, int chainNumber, int positionInChain);
+    bool removeSlot(StateManager& manager, int chainNumber, int positionInChain);
+    bool insertGainStage(StateManager& manager, int chainNumber, int positionInChain);
 
-    std::shared_ptr<juce::AudioPluginInstance> getPlugin(Splitter& splitter, int chainNumber, int positionInChain);
+    std::shared_ptr<juce::AudioPluginInstance> getPlugin(StateManager& manager, int chainNumber, int positionInChain);
 
-    bool setGainLinear(Splitter& splitter, int chainNumber, int positionInChain, float gain);
-    bool setPan(Splitter& splitter, int chainNumber, int positionInChain, float pan);
-    std::tuple<float, float> getGainLinearAndPan(Splitter& splitter, int chainNumber, int positionInChain);
+    bool setGainLinear(StateManager& manager, int chainNumber, int positionInChain, float gain);
+    bool setPan(StateManager& manager, int chainNumber, int positionInChain, float pan);
+    std::tuple<float, float> getGainLinearAndPan(StateManager& manager, int chainNumber, int positionInChain);
+    float getGainStageOutputAmplitude(StateManager& manager, int chainNumber, int positionInChain, int channelNumber);
 
-    // TODO change usage of this get/set pattern to make it more atomic
-    bool setPluginModulationConfig(Splitter& splitter, PluginModulationConfig config, int chainNumber, int positionInChain);
-    PluginModulationConfig getPluginModulationConfig(Splitter& splitter, int chainNumber, int positionInChain);
-    void removeModulationSource(Splitter& splitter, ModulationSourceDefinition definition);
+    PluginModulationConfig getPluginModulationConfig(StateManager& manager, int chainNumber, int positionInChain);
+    void setPluginModulationIsActive(StateManager& manager, int chainNumber, int positionInChain, bool val);
+    void setModulationTarget(StateManager& manager, int chainNumber, int positionInChain, int targetNumber, juce::String targetName);
+    void removeModulationTarget(StateManager& manager, int chainNumber, int positionInChain, int targetNumber);
+    void addModulationSourceToTarget(StateManager& manager, int chainNumber, int positionInChain, int targetNumber, ModulationSourceDefinition source);
+    void removeModulationSourceFromTarget(StateManager& manager, int chainNumber, int positionInChain, int targetNumber, ModulationSourceDefinition source);
+    void setModulationTargetValue(StateManager& manager, int chainNumber, int positionInChain, int targetNumber, float val);
+    void setModulationSourceValue(StateManager& manager, int chainNumber, int positionInChain, int targetNumber, int sourceNumber, float val);
 
-    void setSlotBypass(Splitter& splitter, int chainNumber, int positionInChain, bool isBypassed);
-    bool getSlotBypass(Splitter& splitter, int chainNumber, int positionInChain);
+    void setSlotBypass(StateManager& manager, int chainNumber, int positionInChain, bool isBypassed);
+    bool getSlotBypass(StateManager& manager, int chainNumber, int positionInChain);
 
-    void setChainBypass(Splitter& splitter, int chainNumber, bool val);
-    void setChainMute(Splitter& splitter, int chainNumber, bool val);
-    void setChainSolo(Splitter& splitter, int chainNumber, bool val);
-    bool getChainBypass(Splitter& splitter, int chainNumber);
-    bool getChainMute(Splitter& splitter, int chainNumber);
-    bool getChainSolo(Splitter& splitter, int chainNumber);
+    void setChainBypass(StateManager& manager, int chainNumber, bool val);
+    void setChainMute(StateManager& manager, int chainNumber, bool val);
+    void setChainSolo(StateManager& manager, int chainNumber, bool val);
+    bool getChainBypass(StateManager& manager, int chainNumber);
+    bool getChainMute(StateManager& manager, int chainNumber);
+    bool getChainSolo(StateManager& manager, int chainNumber);
 
-    void moveSlot(Splitter& splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
-    void copySlot(Splitter& splitter,
+    void moveSlot(StateManager& manager, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
+    void copySlot(StateManager& manager,
                   std::function<void()> onSuccess,
                   juce::AudioPluginFormatManager& formatManager,
                   int fromChainNumber,
@@ -41,48 +45,82 @@ namespace SplitterInterface {
                   int toChainNumber,
                   int toSlotNumber);
 
-    void moveChain(Splitter& splitter, int fromChainNumber, int toChainNumber);
+    void moveChain(StateManager& manager, int fromChainNumber, int toChainNumber);
 
-    size_t getNumChains(Splitter& splitter);
+    size_t getNumChains(StateManager& manager);
 
-    bool addParallelChain(Splitter& splitter);
-    bool removeParallelChain(Splitter& splitter, int chainNumber);
+    bool addParallelChain(StateManager& manager);
+    bool removeParallelChain(StateManager& manager, int chainNumber);
 
-    void addCrossoverBand(Splitter& splitter);
-    bool removeCrossoverBand(Splitter& splitter, int bandNumber);
-    bool setCrossoverFrequency(Splitter& splitter, size_t index, float val);
-    float getCrossoverFrequency(Splitter& splitter, size_t index);
+    void addCrossoverBand(StateManager& manager);
+    bool removeCrossoverBand(StateManager& manager, int bandNumber);
+    bool setCrossoverFrequency(StateManager& manager, size_t index, float val);
+    float getCrossoverFrequency(StateManager& manager, size_t index);
 
-    std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(Splitter& splitter);
+    std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(StateManager& manager);
 
-    std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(Splitter& splitter, int chainNumber, int positionInChain);
+    std::shared_ptr<PluginEditorBounds> getPluginEditorBounds(StateManager& manager, int chainNumber, int positionInChain);
 
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(Splitter& splitter, int chainNumber, int positionInChain);
+    void forEachChain(StateManager& manager, std::function<void(int, std::shared_ptr<PluginChain>)> callback);
+    void forEachCrossover(StateManager& manager, std::function<void(float)> callback);
 
-    void forEachChain(Splitter& splitter, std::function<void(int, std::shared_ptr<PluginChain>)> callback);
-    void forEachCrossover(Splitter& splitter, std::function<void(float)> callback);
-
-    void writeToXml(Splitter& splitter, juce::XmlElement* element);
-    void restoreFromXml(
-        Splitter& splitter, juce::XmlElement* element,
+    void writeSplitterToXml(StateManager& manager, juce::XmlElement* element);
+    void restoreSplitterFromXml(
+        StateManager& manager, juce::XmlElement* element,
         std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
         std::function<void(int)> latencyChangeCallback,
         HostConfiguration config,
         const PluginConfigurator& pluginConfigurator,
         std::function<void(juce::String)> onErrorCallback);
-}
 
-namespace ModulationInterface {
-    void addLfo(ModulationSourcesState& state);
-    void addEnvelope(ModulationSourcesState& state);
-    void removeModulationSource(ModulationSourcesState& state, ModulationSourceDefinition definition);
+    void createDefaultSources(StateManager& manager);
+    void addLfo(StateManager& manager);
+    void addEnvelope(StateManager& manager);
+    void removeModulationSource(StateManager& manager, ModulationSourceDefinition definition);
 
-    std::shared_ptr<WECore::Richter::RichterLFO> getLfo(ModulationSourcesState& state, int lfoNumber);
-    std::shared_ptr<EnvelopeWrapper> getEnvelope(ModulationSourcesState& state, int envelopeNumber);
+    void forEachLfo(StateManager& manager, std::function<void(int)> callback);
+    void forEachEnvelope(StateManager& manager, std::function<void(int)> callback);
 
-    void forEachLfo(ModulationSourcesState& state, std::function<void(int)> callback);
-    void forEachEnvelope(ModulationSourcesState& state, std::function<void(int)> callback);
+    void setLfoTempoSyncSwitch(StateManager& manager, int lfoIndex, bool val);
+    void setLfoInvertSwitch(StateManager& manager, int lfoIndex, bool val);
+    void setLfoWave(StateManager& manager, int lfoIndex, int val);
+    void setLfoTempoNumer(StateManager& manager, int lfoIndex, int val);
+    void setLfoTempoDenom (StateManager& manager, int lfoIndex, int val);
+    void setLfoFreq(StateManager& manager, int lfoIndex, double val);
+    void setLfoDepth(StateManager& manager, int lfoIndex, double val);
+    void setLfoManualPhase(StateManager& manager, int lfoIndex, double val);
 
-    void writeToXml(ModulationSourcesState& state, juce::XmlElement* element);
-    void restoreFromXml(ModulationSourcesState& state, juce::XmlElement* element, HostConfiguration config);
+    bool getLfoTempoSyncSwitch(StateManager& manager, int lfoIndex);
+    bool getLfoInvertSwitch(StateManager& manager, int lfoIndex);
+    int getLfoWave(StateManager& manager, int lfoIndex);
+    double getLfoTempoNumer(StateManager& manager, int lfoIndex);
+    double getLfoTempoDenom(StateManager& manager, int lfoIndex);
+    double getLfoFreq(StateManager& manager, int lfoIndex);
+    double getLfoDepth(StateManager& manager, int lfoIndex);
+    double getLfoManualPhase(StateManager& manager, int lfoIndex);
+
+    void setEnvAttackTimeMs(StateManager& manager, int envIndex, double val);
+    void setEnvReleaseTimeMs(StateManager& manager, int envIndex, double val);
+    void setEnvFilterEnabled(StateManager& manager, int envIndex, bool val);
+    void setEnvFilterHz(StateManager& manager, int envIndex, double lowCut, double highCut);
+    void setEnvAmount(StateManager& manager, int envIndex, float val);
+    void setEnvUseSidechainInput(StateManager& manager, int envIndex, bool val);
+
+    double getEnvAttackTimeMs(StateManager& manager, int envIndex);
+    double getEnvReleaseTimeMs(StateManager& manager, int envIndex);
+    bool getEnvFilterEnabled(StateManager& manager, int envIndex);
+    double getEnvLowCutHz(StateManager& manager, int envIndex);
+    double getEnvHighCutHz(StateManager& manager, int envIndex);
+    float getEnvAmount(StateManager& manager, int envIndex);
+    bool getEnvUseSidechainInput(StateManager& manager, int envIndex);
+    double getEnvLastOutput(StateManager& manager, int envIndex);
+
+    void writeSourcesToXml(StateManager& manager, juce::XmlElement* element);
+    void restoreSourcesFromXml(StateManager& manager, juce::XmlElement* element, HostConfiguration config);
+
+    void undo(StateManager& manager, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
+    void redo(StateManager& manager, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
+
+    std::optional<juce::String> getUndoOperation(const StateManager& manager);
+    std::optional<juce::String> getRedoOperation(const StateManager& manager);
 }

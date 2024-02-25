@@ -63,10 +63,12 @@ namespace SplitterMutators {
         return PluginModulationConfig();
     }
 
-    void setSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, bool isBypassed) {
+    bool setSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, bool isBypassed) {
         if (splitter->chains.size() > chainNumber) {
-            ChainMutators::setSlotBypass(splitter->chains[chainNumber].chain, positionInChain, isBypassed);
+            return ChainMutators::setSlotBypass(splitter->chains[chainNumber].chain, positionInChain, isBypassed);
         }
+
+        return false;
     }
 
     bool getSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain) {
@@ -77,7 +79,7 @@ namespace SplitterMutators {
         return false;
     }
 
-    void setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val) {
+    bool setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val) {
         // The multiband crossover can handle soloed bands, so let it do that first
         if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
             CrossoverMutators::setIsSoloed(multibandSplitter->crossover, chainNumber, val);
@@ -94,8 +96,12 @@ namespace SplitterMutators {
                 } else {
                     splitter->numChainsSoloed--;
                 }
+
+                return true;
             }
         }
+
+        return false;
     }
 
     bool getChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber) {
@@ -110,7 +116,7 @@ namespace SplitterMutators {
         return false;
     }
 
-    void moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
+    bool moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
         // Copy everything we need
         std::shared_ptr<juce::AudioPluginInstance> plugin =
             SplitterMutators::getPlugin(splitter, fromChainNumber, fromSlotNumber);
@@ -132,6 +138,7 @@ namespace SplitterMutators {
                 SplitterMutators::insertPlugin(splitter, plugin, toChainNumber, toSlotNumber);
                 SplitterMutators::setSlotBypass(splitter, toChainNumber, toSlotNumber, isBypassed);
                 SplitterMutators::setPluginModulationConfig(splitter, config, toChainNumber, toSlotNumber);
+                return true;
             }
         } else {
             // This is a gain stage
@@ -144,8 +151,11 @@ namespace SplitterMutators {
                 SplitterMutators::insertGainStage(splitter, toChainNumber, toSlotNumber);
                 SplitterMutators::setGainLinear(splitter, toChainNumber, toSlotNumber, gain);
                 SplitterMutators::setPan(splitter, toChainNumber, toSlotNumber, pan);
+                return true;
             }
         }
+
+        return false;
     }
 
     void copySlot(std::shared_ptr<PluginSplitter> splitter,
@@ -210,9 +220,9 @@ namespace SplitterMutators {
         }
     }
 
-    void moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber) {
+    bool moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber) {
         if (fromChainNumber >= splitter->chains.size()) {
-            return;
+            return false;
         }
 
         // Create a copy of the chain and remove the original
@@ -238,6 +248,8 @@ namespace SplitterMutators {
                 CrossoverMutators::setIsSoloed(multibandSplitter->crossover, chainIndex, splitter->chains[chainIndex].isSoloed);
             }
         }
+
+        return true;
     }
 
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain) {
@@ -256,12 +268,12 @@ namespace SplitterMutators {
         return 0.0f;
     }
 
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain) {
+    float getGainStageOutputAmplitude(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, int channelNumber) {
         if (chainNumber < splitter->chains.size()) {
-            return ChainMutators::getGainStageLevelsInterface(splitter->chains[chainNumber].chain, positionInChain);
+            return ChainMutators::getGainStageOutputAmplitude(splitter->chains[chainNumber].chain, positionInChain, channelNumber);
         }
 
-        return std::optional<GainStageLevelsInterface>();
+        return 0.0f;
     }
 
     bool setPan(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float pan) {
@@ -354,19 +366,21 @@ namespace SplitterMutators {
         if (CrossoverMutators::getNumBands(splitter->crossover) > WECore::MONSTR::Parameters::NUM_BANDS.minValue &&
             CrossoverMutators::getNumBands(splitter->crossover) > bandNumber) {
             // Remove the band first, then the chain
-            CrossoverMutators::removeBand(splitter->crossover, bandNumber);
-            splitter->chains[bandNumber].chain->latencyListener.removeSplitter();
-            splitter->chains.erase(splitter->chains.begin() + bandNumber);
+            if (CrossoverMutators::removeBand(splitter->crossover, bandNumber)) {
+                splitter->chains[bandNumber].chain->latencyListener.removeSplitter();
+                splitter->chains.erase(splitter->chains.begin() + bandNumber);
+                splitter->onLatencyChange();
+                return true;
+            }
 
-            splitter->onLatencyChange();
-            return true;
+            return false;
         }
 
         return false;
     }
 
-    void setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val) {
-        CrossoverMutators::setCrossoverFrequency(splitter->crossover, index, val);
+    bool setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val) {
+        return CrossoverMutators::setCrossoverFrequency(splitter->crossover, index, val);
     }
 
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index) {

@@ -1,17 +1,13 @@
 #include "FFTProvider.hpp"
 
-FFTProvider::FFTProvider() : _inputBuffer(nullptr),
-                             _fftBuffer(nullptr),
-                             _outputs(nullptr),
+FFTProvider::FFTProvider() : _inputBuffer(new float[FFT_SIZE]),
+                             _fftBuffer(new float[FFT_SIZE]),
+                             _outputs(new float[NUM_OUTPUTS]),
                              _fft(FFT_ORDER),
                              _isStereo(false),
                              _binWidth(0) {
-    _inputBuffer = new float[FFT_SIZE];
-    _fftBuffer = new float[FFT_SIZE];
-    _outputs = new float[NUM_OUTPUTS];
-
-    juce::FloatVectorOperations::fill(_inputBuffer, 0, NUM_OUTPUTS);
-    juce::FloatVectorOperations::fill(_fftBuffer, 0, NUM_OUTPUTS);
+    juce::FloatVectorOperations::fill(_inputBuffer, 0, FFT_SIZE);
+    juce::FloatVectorOperations::fill(_fftBuffer, 0, FFT_SIZE);
     juce::FloatVectorOperations::fill(_outputs, 0, NUM_OUTPUTS);
 
     for (auto& env : _envs) {

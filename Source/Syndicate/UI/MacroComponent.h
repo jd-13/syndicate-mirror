@@ -19,16 +19,17 @@ public:
     MacroComponent(int macroNumber,
                    juce::DragAndDropContainer* dragContainer,
                    juce::AudioParameterFloat* macroParam,
-                   juce::String& macroName);
+                   const juce::String& macroName);
     ~MacroComponent() override;
 
     void onParameterUpdate();
+    void updateName(juce::String name);
 
     void resized() override;
     void sliderValueChanged(juce::Slider* sliderThatWasMoved) override;
     void sliderDragStarted(juce::Slider* slider) override;
     void sliderDragEnded(juce::Slider* slider) override;
-    void labelTextChanged(juce::Label* labelThatHasChanged) override;
+    void labelTextChanged(juce::Label* labelThatHasChanged) override { }
     void mouseDrag(const juce::MouseEvent& e) override;
 
 #ifdef RESIZE_DISABLE_EDIT
@@ -42,7 +43,6 @@ private:
     ModulationSourceDefinition _modulationSourceDefinition;
     juce::AudioParameterFloat* _macroParam;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
-    juce::String& _macroName;
 
     std::unique_ptr<juce::Slider> macroSld;
     std::unique_ptr<juce::Label> nameLbl;

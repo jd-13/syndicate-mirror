@@ -55,7 +55,7 @@ namespace ChainMutators {
     /**
      * Bypasses or enables the slot at the given position.
      */
-    void setSlotBypass(std::shared_ptr<PluginChain> chain, int position, bool isBypassed);
+    bool setSlotBypass(std::shared_ptr<PluginChain> chain, int position, bool isBypassed);
 
     /**
      * Returns true if the slot is bypassed.
@@ -65,28 +65,24 @@ namespace ChainMutators {
     /**
      * Bypasses the entire chain if set to true.
      */
-    void setChainBypass(std::shared_ptr<PluginChain> chain,  bool val);
+    void setChainBypass(std::shared_ptr<PluginChain> chain, bool val);
 
     /**
      * Mutes the entire chain if set to true.
      */
-    void setChainMute(std::shared_ptr<PluginChain> chain,  bool val);
+    void setChainMute(std::shared_ptr<PluginChain> chain, bool val);
 
     /**
      * Sets the gain for the gain stage at the given position.
      */
-    bool setGainLinear(std::shared_ptr<PluginChain> chain,  int position, float gain);
+    bool setGainLinear(std::shared_ptr<PluginChain> chain, int position, float gain);
 
     /**
      * Returns the gain for the gain stage at the given position.
      */
-    float getGainLinear(std::shared_ptr<PluginChain> chain,  int position);
+    float getGainLinear(std::shared_ptr<PluginChain> chain, int position);
 
-    /**
-     * If this position refers to a gain stage returns a levels provider for it, otherwise an empty
-     * optional.
-     */
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(std::shared_ptr<PluginChain> chain,  int position);
+    float getGainStageOutputAmplitude(std::shared_ptr<PluginChain> chain, int position, int channelNumber);
 
     /**
      * Sets the pan/balance for the gain stage at the given position.

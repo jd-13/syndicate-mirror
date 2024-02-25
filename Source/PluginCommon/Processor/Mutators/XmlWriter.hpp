@@ -20,5 +20,5 @@ namespace XmlWriter {
     void write(std::shared_ptr<PluginParameterModulationConfig> config, juce::XmlElement* element);
     void write(std::shared_ptr<PluginParameterModulationSource> source, juce::XmlElement* element);
 
-    void write(ModulationInterface::ModulationSourcesState& state, juce::XmlElement* element);
+    void write(ModelInterface::ModulationSourcesState& state, juce::XmlElement* element);
 }

@@ -12,13 +12,15 @@
  */
 class GainStageMeter : public UIUtils::SafeAnimatedComponent {
 public:
-    GainStageMeter(const GainStageLevelsInterface levelsProvider);
+    GainStageMeter(const PluginSelectionInterface& pluginSelectionInterface, int chainNumber, int slotNumber);
     ~GainStageMeter() = default;
 
     void paint(juce::Graphics& g) override;
 
 private:
-    const GainStageLevelsInterface _levelsProvider;
+    const PluginSelectionInterface& _pluginSelectionInterface;
+    const int _chainNumber;
+    const int _slotNumber;
 };
 
 /**

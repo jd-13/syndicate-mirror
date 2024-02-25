@@ -2,19 +2,13 @@
 
 #include "DataModelInterface.hpp"
 
-namespace SplitterInterface {
-    void prepareToPlay(Splitter& splitter, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
-    void releaseResources(Splitter& splitter);
-    void reset(Splitter& splitter);
-    void processBlock(Splitter& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead);
+namespace ModelInterface {
+    void prepareToPlay(StateManager& manager, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
+    void releaseResources(StateManager& manager);
+    void reset(StateManager& manager);
+    void processBlock(StateManager& manager, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead, juce::AudioPlayHead::CurrentPositionInfo tempoInfo);
 
-}
-
-namespace ModulationInterface {
-    void prepareToPlay(ModulationSourcesState& modulationSources, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout);
-    void reset(ModulationSourcesState& modulationSources);
-    void processBlock(ModulationSourcesState& modulationSources, juce::AudioBuffer<float>& buffer, juce::AudioPlayHead::CurrentPositionInfo tempoInfo);
-
-    double getLfoModulationValue(ModulationSourcesState& modulationSources, int lfoNumber);
-    double getEnvelopeModulationValue(ModulationSourcesState& modulationSources, int envelopeNumber);
+    // Do not call from anything outside the model - they assume the locks are already held
+    double getLfoModulationValue(StateManager& manager, int lfoNumber);
+    double getEnvelopeModulationValue(StateManager& manager, int envelopeNumber);
 }

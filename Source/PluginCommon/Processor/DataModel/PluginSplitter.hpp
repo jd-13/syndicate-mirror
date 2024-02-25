@@ -36,6 +36,7 @@ public:
     HostConfiguration config;
     std::function<float(int, MODULATION_TYPE)> getModulationValueCallback;
     std::function<void(int)> notifyProcessorOnLatencyChange;
+    bool shouldNotifyProcessorOnLatencyChange;
 
     PluginSplitter(int defaultNumChains,
                    HostConfiguration newConfig,
@@ -44,7 +45,8 @@ public:
                    : numChainsSoloed(0),
                      config(newConfig),
                      getModulationValueCallback(newGetModulationValueCallback),
-                     notifyProcessorOnLatencyChange(latencyChangeCallback) {
+                     notifyProcessorOnLatencyChange(latencyChangeCallback),
+                     shouldNotifyProcessorOnLatencyChange(true) {
 
         // Set up the default number of chains
         for (int idx {0}; idx < defaultNumChains; idx++) {
@@ -59,7 +61,8 @@ public:
                      numChainsSoloed(otherSplitter->numChainsSoloed),
                      config(otherSplitter->config),
                      getModulationValueCallback(otherSplitter->getModulationValueCallback),
-                     notifyProcessorOnLatencyChange(otherSplitter->notifyProcessorOnLatencyChange) {
+                     notifyProcessorOnLatencyChange(otherSplitter->notifyProcessorOnLatencyChange),
+                     shouldNotifyProcessorOnLatencyChange(true) {
 
         // Move the latency listeners for the existing chains to point to this splitter
         for (auto& chain : chains) {
@@ -94,7 +97,32 @@ public:
             ChainMutators::setRequiredLatency(chain.chain, highestLatency, config);
         }
 
-        notifyProcessorOnLatencyChange(highestLatency);
+        if (shouldNotifyProcessorOnLatencyChange) {
+            notifyProcessorOnLatencyChange(highestLatency);
+        }
+    }
+
+    virtual PluginSplitter* clone() const = 0;
+
+protected:
+    PluginSplitter(std::vector<PluginChainWrapper> newChains,
+                   HostConfiguration newConfig,
+                   std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                   std::function<void(int)> newNotifyProcessorOnLatencyChange) :
+                       numChainsSoloed(0),
+                       config(newConfig),
+                       getModulationValueCallback(newGetModulationValueCallback),
+                       notifyProcessorOnLatencyChange(newNotifyProcessorOnLatencyChange),
+                       shouldNotifyProcessorOnLatencyChange(true) {
+        for (auto& chain : newChains) {
+            std::shared_ptr<PluginChain> newChain(chain.chain->clone());
+            newChain->latencyListener.setSplitter(this);
+
+            chains.emplace_back(newChain, chain.isSoloed);
+            if (chain.isSoloed) {
+                numChainsSoloed++;
+            }
+        }
     }
 };
 
@@ -119,6 +147,18 @@ public:
         // We only have one active chain in the series splitter, so it can't be muted or soloed
         ChainMutators::setChainMute(chains[0].chain, false);
     }
+
+    PluginSplitterSeries* clone() const override {
+        return new PluginSplitterSeries(chains, config, getModulationValueCallback, notifyProcessorOnLatencyChange);
+    }
+
+private:
+    PluginSplitterSeries(std::vector<PluginChainWrapper> newChains,
+                         HostConfiguration newConfig,
+                         std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                         std::function<void(int)> newNotifyProcessorOnLatencyChange) :
+                                PluginSplitter(newChains, newConfig, newGetModulationValueCallback, newNotifyProcessorOnLatencyChange) {
+    }
 };
 
 /**
@@ -141,6 +181,29 @@ public:
     PluginSplitterParallel(std::shared_ptr<PluginSplitter> otherSplitter)
                            : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS) {
         juce::Logger::writeToLog("Converted to PluginSplitterParallel");
+    }
+
+    PluginSplitterParallel* clone() const override {
+        return new PluginSplitterParallel(
+            chains,
+            config,
+            getModulationValueCallback,
+            notifyProcessorOnLatencyChange,
+            *inputBuffer,
+            *outputBuffer);
+    }
+
+private:
+    PluginSplitterParallel(std::vector<PluginChainWrapper> newChains,
+                           HostConfiguration newConfig,
+                           std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                           std::function<void(int)> newNotifyProcessorOnLatencyChange,
+                           const juce::AudioBuffer<float>& newInputBuffer,
+                           const juce::AudioBuffer<float>& newOutputBuffer) :
+                                PluginSplitter(newChains, newConfig, newGetModulationValueCallback, newNotifyProcessorOnLatencyChange) {
+        // We need to copy the buffers as well
+        inputBuffer.reset(new juce::AudioBuffer<float>(newInputBuffer));
+        outputBuffer.reset(new juce::AudioBuffer<float>(newOutputBuffer));
     }
 };
 
@@ -191,6 +254,36 @@ public:
 
         CrossoverProcessors::prepareToPlay(*crossover.get(), config.sampleRate, config.blockSize, config.layout);
     }
+
+    PluginSplitterMultiband* clone() const override {
+        auto clonedSplitter = new PluginSplitterMultiband(
+            chains,
+            config,
+            getModulationValueCallback,
+            notifyProcessorOnLatencyChange,
+            std::shared_ptr<CrossoverState>(crossover->clone()));
+
+        // The crossover we cloned needs to be updated to use the new chains that were just cloned
+        for (int chainIndex {0}; chainIndex < clonedSplitter->chains.size(); chainIndex++) {
+            CrossoverMutators::setPluginChain(clonedSplitter->crossover, chainIndex, clonedSplitter->chains[chainIndex].chain);
+        }
+
+        // Set up the fft provider
+        clonedSplitter->fftProvider.setSampleRate(config.sampleRate);
+        clonedSplitter->fftProvider.setIsStereo(canDoStereoSplitTypes(config.layout));
+
+        return clonedSplitter;
+    }
+
+private:
+    PluginSplitterMultiband(std::vector<PluginChainWrapper> newChains,
+                            HostConfiguration newConfig,
+                            std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                            std::function<void(int)> newNotifyProcessorOnLatencyChange,
+                            std::shared_ptr<CrossoverState> newCrossover) :
+                                PluginSplitter(newChains, newConfig, newGetModulationValueCallback, newNotifyProcessorOnLatencyChange),
+                                crossover(newCrossover) {
+    }
 };
 
 /**
@@ -214,6 +307,29 @@ public:
                             : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS) {
         juce::Logger::writeToLog("Converted to PluginSplitterLeftRight");
     }
+
+    PluginSplitterLeftRight* clone() const override {
+        return new PluginSplitterLeftRight(
+            chains,
+            config,
+            getModulationValueCallback,
+            notifyProcessorOnLatencyChange,
+            *leftBuffer,
+            *rightBuffer);
+    }
+
+private:
+    PluginSplitterLeftRight(std::vector<PluginChainWrapper> newChains,
+                            HostConfiguration newConfig,
+                            std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                            std::function<void(int)> newNotifyProcessorOnLatencyChange,
+                            const juce::AudioBuffer<float>& newLeftBuffer,
+                            const juce::AudioBuffer<float>& newRightBuffer) :
+                                PluginSplitter(newChains, newConfig, newGetModulationValueCallback, newNotifyProcessorOnLatencyChange) {
+        // We need to copy the buffers as well
+        leftBuffer.reset(new juce::AudioBuffer<float>(newLeftBuffer));
+        rightBuffer.reset(new juce::AudioBuffer<float>(newRightBuffer));
+    }
 };
 
 /**
@@ -236,5 +352,28 @@ public:
     PluginSplitterMidSide(std::shared_ptr<PluginSplitter> otherSplitter)
                           : PluginSplitter(otherSplitter, DEFAULT_NUM_CHAINS) {
         juce::Logger::writeToLog("Converted to PluginSplitterMidSide");
+    }
+
+    PluginSplitterMidSide* clone() const override {
+        return new PluginSplitterMidSide(
+            chains,
+            config,
+            getModulationValueCallback,
+            notifyProcessorOnLatencyChange,
+            *midBuffer,
+            *sideBuffer);
+    }
+
+private:
+    PluginSplitterMidSide(std::vector<PluginChainWrapper> newChains,
+                          HostConfiguration newConfig,
+                          std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                          std::function<void(int)> newNotifyProcessorOnLatencyChange,
+                          const juce::AudioBuffer<float>& newMidBuffer,
+                          const juce::AudioBuffer<float>& newSideBuffer) :
+                              PluginSplitter(newChains, newConfig, newGetModulationValueCallback, newNotifyProcessorOnLatencyChange) {
+        // We need to copy the buffers as well
+        midBuffer.reset(new juce::AudioBuffer<float>(newMidBuffer));
+        sideBuffer.reset(new juce::AudioBuffer<float>(newSideBuffer));
     }
 };

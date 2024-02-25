@@ -43,7 +43,7 @@ void ParallelSplitterSubComponent::buttonClicked(juce::Button* buttonThatWasClic
 }
 
 void ParallelSplitterSubComponent::onParameterUpdate() {
-    if (_chainButtons.size() != SplitterInterface::getNumChains(_processor.splitter)) {
+    if (_chainButtons.size() != ModelInterface::getNumChains(_processor.manager)) {
         _rebuildHeader();
     }
 
@@ -51,18 +51,18 @@ void ParallelSplitterSubComponent::onParameterUpdate() {
 }
 
 void ParallelSplitterSubComponent::_rebuildHeader() {
-    const size_t numChains {SplitterInterface::getNumChains(_processor.splitter)};
+    const size_t numChains {ModelInterface::getNumChains(_processor.manager)};
 
     _chainButtons.clear();
 
     for (size_t index {0}; index < numChains; index++) {
         if (numChains == 1) {
             // Don't provide a callback if there's only one chain - it can't be removed
-            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(index, _processor.chainParameters[index]));
+            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(_processor, index));
         } else {
             _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(
+                _processor,
                 index,
-                _processor.chainParameters[index],
                 [&, index]() { _processor.removeParallelChain(index); }
             ));
         }

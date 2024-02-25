@@ -7,8 +7,6 @@
 class MidsideSplitterSubComponent : public SplitterHeaderComponent {
 public:
     MidsideSplitterSubComponent(SyndicateAudioProcessor& processor,
-                                ChainParameters& midChainParams,
-                                ChainParameters& sideChainParams,
                                 UIUtils::LinkedScrollView* graphView);
     ~MidsideSplitterSubComponent() = default;
 

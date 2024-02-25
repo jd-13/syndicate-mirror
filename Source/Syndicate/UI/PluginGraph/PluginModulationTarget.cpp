@@ -222,32 +222,13 @@ void PluginModulationTarget::resized() {
 
 void PluginModulationTarget::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
     if (sliderThatWasMoved == _targetSlider.get()) {
-        // Update the rest value
-        PluginModulationConfig modulationConfig =
-            _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _pluginNumber);
-
-        if (modulationConfig.parameterConfigs.size() > _targetNumber) {
-            modulationConfig.parameterConfigs[_targetNumber]->restValue = _targetSlider->getValue();
-
-            // TODO maybe do something to force an update in the plugin's UI?
-            _pluginModulationInterface.setPluginModulationConfig(modulationConfig, _chainNumber, _pluginNumber);
-        }
+        _pluginModulationInterface.setModulationTargetValue(_chainNumber, _pluginNumber, _targetNumber, _targetSlider->getValue());
     } else {
         // Check if one of the source sliders were updated
         for (int slotIndex {0}; slotIndex < _modulationSlots.size(); slotIndex++) {
             if (sliderThatWasMoved == _modulationSlots[slotIndex].get()) {
                 // Update the modulation amount for this source
-                PluginModulationConfig modulationConfig =
-                    _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _pluginNumber);
-
-                if (modulationConfig.parameterConfigs.size() > _targetNumber) {
-                    std::vector<std::shared_ptr<PluginParameterModulationSource>> sources = modulationConfig.parameterConfigs[_targetNumber]->sources;
-                    if (sources.size() > slotIndex) {
-                        sources[slotIndex]->modulationAmount = sliderThatWasMoved->getValue();
-
-                        _pluginModulationInterface.setPluginModulationConfig(modulationConfig, _chainNumber, _pluginNumber);
-                    }
-                }
+                _pluginModulationInterface.setModulationSourceValue(_chainNumber, _pluginNumber, _targetNumber, slotIndex, sliderThatWasMoved->getValue());
             }
         }
     }
@@ -314,19 +295,12 @@ void PluginModulationTarget::itemDragExit(const SourceDetails& /*dragSourceDetai
 }
 
 void PluginModulationTarget::itemDropped(const SourceDetails& dragSourceDetails) {
-    PluginModulationConfig modulationConfig =
-        _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _pluginNumber);
+    const std::optional<ModulationSourceDefinition> draggedDefinition =
+        ModulationSourceDefinition::fromVariant(dragSourceDetails.description);
 
-    if (modulationConfig.parameterConfigs.size() > _targetNumber) {
-        const std::optional<ModulationSourceDefinition> draggedDefinition =
-            ModulationSourceDefinition::fromVariant(dragSourceDetails.description);
-
-        // Add another source to the target
-        if (draggedDefinition.has_value()) {
-            modulationConfig.parameterConfigs[_targetNumber]->sources.emplace_back(std::make_shared<PluginParameterModulationSource>(draggedDefinition.value(), 0));
-            _pluginModulationInterface.setPluginModulationConfig(modulationConfig, _chainNumber, _pluginNumber);
-            _reloadState();
-        }
+    // Add another source to the target
+    if (draggedDefinition.has_value()) {
+        _pluginModulationInterface.addSourceToTarget(_chainNumber, _pluginNumber, _targetNumber, draggedDefinition.value());
     }
 }
 
@@ -345,25 +319,7 @@ void PluginModulationTarget::_addTargetSlot(ModulationSourceDefinition definitio
 }
 
 void PluginModulationTarget::_removeTargetSlot(ModulationSourceDefinition definition) {
-    PluginModulationConfig modulationConfig =
-        _pluginModulationInterface.getPluginModulationConfig(_chainNumber, _pluginNumber);
-
-    if (modulationConfig.parameterConfigs.size() > _targetNumber) {
-        // Remove this source from the target
-        std::vector<std::shared_ptr<PluginParameterModulationSource>> updatedSources = modulationConfig.parameterConfigs[_targetNumber]->sources;
-
-        for (int index {0}; index < updatedSources.size(); index++) {
-            if (updatedSources[index]->definition == definition) {
-                updatedSources.erase(updatedSources.begin() + index);
-                break;
-            }
-        }
-
-        modulationConfig.parameterConfigs[_targetNumber]->sources = updatedSources;
-        _pluginModulationInterface.setPluginModulationConfig(modulationConfig, _chainNumber, _pluginNumber);
-
-        _reloadState();
-    }
+    _pluginModulationInterface.removeSourceFromTarget(_chainNumber, _pluginNumber, _targetNumber, definition);
 }
 
 void PluginModulationTarget::_refreshSlotPositions() {
@@ -402,7 +358,7 @@ void PluginModulationTarget::_reloadState() {
         // Restoring target slots
         for (const std::shared_ptr<PluginParameterModulationSource> thisSource : thisParameterConfig->sources) {
             _addTargetSlot(ModulationSourceDefinition(thisSource->definition.id, thisSource->definition.type));
-            _modulationSlots[_modulationSlots.size() - 1]->setValue(thisSource->modulationAmount);
+            _modulationSlots[_modulationSlots.size() - 1]->setValue(thisSource->modulationAmount, juce::dontSendNotification);
         }
 
     } else {

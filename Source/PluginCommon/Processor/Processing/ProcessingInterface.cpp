@@ -3,76 +3,72 @@
 #include "SplitterProcessors.hpp"
 #include "ModulationProcessors.hpp"
 
-namespace SplitterInterface {
-    void prepareToPlay(Splitter& splitter, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
-        WECore::AudioSpinLock lock(splitter.sharedMutex);
+namespace ModelInterface {
+    void prepareToPlay(StateManager& manager, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
+        WECore::AudioSpinLock lock(manager.sharedMutex);
+        SplitterState& splitter = manager.getSplitterStateUnsafe();
+        ModulationSourcesState& sources = *manager.getSourcesStateUnsafe();
+
+        ModulationProcessors::prepareToPlay(sources, sampleRate, samplesPerBlock, layout);
+
         if (splitter.splitter != nullptr) {
-            SplitterProcessors::prepareToPlay(*splitter.splitter.get(), sampleRate, samplesPerBlock, layout);
+            SplitterProcessors::prepareToPlay(*splitter.splitter, sampleRate, samplesPerBlock, layout);
         }
     }
 
-    void releaseResources(Splitter& splitter) {
-        WECore::AudioSpinLock lock(splitter.sharedMutex);
+    void releaseResources(StateManager& manager) {
+        WECore::AudioSpinLock lock(manager.sharedMutex);
+        SplitterState& splitter = manager.getSplitterStateUnsafe();
+
         if (splitter.splitter != nullptr) {
             SplitterProcessors::releaseResources(*splitter.splitter.get());
         }
     }
 
-    void reset(Splitter& splitter) {
-        WECore::AudioSpinLock lock(splitter.sharedMutex);
+    void reset(StateManager& manager) {
+        WECore::AudioSpinLock lock(manager.sharedMutex);
+        SplitterState& splitter = manager.getSplitterStateUnsafe();
+        ModulationSourcesState& sources = *manager.getSourcesStateUnsafe();
+
+        ModulationProcessors::reset(sources);
+
         if (splitter.splitter != nullptr) {
             SplitterProcessors::reset(*splitter.splitter.get());
         }
     }
 
-    void processBlock(Splitter& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
+    void processBlock(StateManager& manager,
+                      juce::AudioBuffer<float>& buffer,
+                      juce::MidiBuffer& midiMessages,
+                      juce::AudioPlayHead* newPlayHead,
+                      juce::AudioPlayHead::CurrentPositionInfo tempoInfo) {
         // Use the try lock on the audio thread
-        WECore::AudioSpinTryLock lock(splitter.sharedMutex);
-        if (lock.isLocked() && splitter.splitter != nullptr) {
-            SplitterProcessors::processBlock(*splitter.splitter.get(), buffer, midiMessages, newPlayHead);
-        }
-    }
-}
+        WECore::AudioSpinTryLock lock(manager.sharedMutex);
 
-namespace ModulationInterface {
-    void prepareToPlay(ModulationSourcesState& modulationSources, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
-        WECore::AudioSpinLock lock(modulationSources.sharedMutex);
-        ModulationProcessors::prepareToPlay(modulationSources, sampleRate, samplesPerBlock, layout);
-    }
-
-    void reset(ModulationSourcesState& modulationSources) {
-        WECore::AudioSpinLock lock(modulationSources.sharedMutex);
-        ModulationProcessors::reset(modulationSources);
-    }
-
-    void processBlock(ModulationSourcesState& modulationSources, juce::AudioBuffer<float>& buffer, juce::AudioPlayHead::CurrentPositionInfo tempoInfo) {
-        // Use the try lock on the audio thread
-        WECore::AudioSpinTryLock lock(modulationSources.sharedMutex);
         if (lock.isLocked()) {
-            ModulationProcessors::processBlock(modulationSources, buffer, tempoInfo);
-        }
+            SplitterState& splitter = manager.getSplitterStateUnsafe();
+            ModulationSourcesState& sources = *manager.getSourcesStateUnsafe();
 
-        // TODO LFOs should still be advanced even if the lock is not acquired to stop them
-        // drifting out of sync
+            // Advance the modulation sources
+            // (the envelopes need to be done now before we overwrite the buffer)
+            ModulationProcessors::processBlock(sources, buffer, tempoInfo);
+
+            // TODO LFOs should still be advanced even if the lock is not acquired to stop them
+            // drifting out of sync
+
+            if (splitter.splitter != nullptr) {
+                SplitterProcessors::processBlock(*splitter.splitter, buffer, midiMessages, newPlayHead);
+            }
+        }
     }
 
-    double getLfoModulationValue(ModulationSourcesState& modulationSources, int lfoNumber) {
-        // Use the try lock on the audio thread
-        WECore::AudioSpinTryLock lock(modulationSources.sharedMutex);
-        if (lock.isLocked()) {
-            return ModulationProcessors::getLfoModulationValue(modulationSources, lfoNumber);
-        }
-
-        return 0.0f;
+    double getLfoModulationValue(StateManager& manager, int lfoNumber) {
+        // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
+        return ModulationProcessors::getLfoModulationValue(*manager.getSourcesStateUnsafe(), lfoNumber);
     }
 
-    double getEnvelopeModulationValue(ModulationSourcesState& modulationSources, int envelopeNumber) {
-        // Use the try lock on the audio thread
-        WECore::AudioSpinTryLock lock(modulationSources.sharedMutex);
-        if (lock.isLocked()) {
-            return ModulationProcessors::getEnvelopeModulationValue(modulationSources, envelopeNumber);
-        }
-
-        return 0.0f;
+    double getEnvelopeModulationValue(StateManager& manager, int envelopeNumber) {
+        // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
+        return ModulationProcessors::getEnvelopeModulationValue(*manager.getSourcesStateUnsafe(), envelopeNumber);
     }
 }

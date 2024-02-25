@@ -50,7 +50,7 @@ void MultibandSplitterSubComponent::buttonClicked(juce::Button* buttonThatWasCli
 void MultibandSplitterSubComponent::onParameterUpdate() {
     crossoverComponent->onParameterUpdate();
 
-    if (_chainButtons.size() != SplitterInterface::getNumChains(_processor.splitter)) {
+    if (_chainButtons.size() != ModelInterface::getNumChains(_processor.manager)) {
         _rebuildHeader();
     }
 
@@ -58,20 +58,20 @@ void MultibandSplitterSubComponent::onParameterUpdate() {
 }
 
 void MultibandSplitterSubComponent::_rebuildHeader() {
-    const size_t numChains {SplitterInterface::getNumChains(_processor.splitter)};
+    const size_t numChains {ModelInterface::getNumChains(_processor.manager)};
 
     _chainButtons.clear();
 
     for (size_t index {0}; index < numChains; index++) {
         if (numChains > 2) {
             _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(
+                _processor,
                 index,
-                _processor.chainParameters[index],
                 [&, index]() { _processor.removeCrossoverBand(index); }
             ));
         } else {
             // Don't provide a callback if there's only two chains - they can't be removed
-            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(index, _processor.chainParameters[index]));
+            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(_processor, index));
         }
         _chainButtons[index]->chainLabel->setText("", juce::dontSendNotification);
         _viewPort->getViewedComponent()->addAndMakeVisible(_chainButtons[index].get());

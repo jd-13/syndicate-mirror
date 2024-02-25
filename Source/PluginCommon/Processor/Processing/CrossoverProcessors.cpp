@@ -5,16 +5,16 @@ namespace CrossoverProcessors {
     void prepareToPlay(CrossoverState& state, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
         // We don't filter sidechain channels but do copy them to each buffer - so filters may need less channels than the buffers do
         const int numFilterChannels {canDoStereoSplitTypes(layout) ? 2 : 1};
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.lowpassFilters) {
-            filter.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.lowpassFilters) {
+            filter->prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
         }
 
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.highpassFilters) {
-            filter.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.highpassFilters) {
+            filter->prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
         }
 
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.allpassFilters) {
-            filter.prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.allpassFilters) {
+            filter->prepare({sampleRate, static_cast<juce::uint32>(samplesPerBlock), static_cast<juce::uint32>(numFilterChannels)});
         }
 
         for (juce::AudioBuffer<float>& buffer : state.buffers) {
@@ -27,16 +27,16 @@ namespace CrossoverProcessors {
     }
 
     void reset(CrossoverState& state) {
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.lowpassFilters) {
-            filter.reset();
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.lowpassFilters) {
+            filter->reset();
         }
 
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.highpassFilters) {
-            filter.reset();
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.highpassFilters) {
+            filter->reset();
         }
 
-        for (juce::dsp::LinkwitzRileyFilter<float>& filter : state.allpassFilters) {
-            filter.reset();
+        for (std::shared_ptr<CloneableLRFilter<float>>& filter : state.allpassFilters) {
+            filter->reset();
         }
 
         for (juce::AudioBuffer<float>& buffer : state.buffers) {
@@ -60,19 +60,23 @@ namespace CrossoverProcessors {
             {
                 juce::dsp::AudioBlock<float> block(juce::dsp::AudioBlock<float>(lowBuffer).getSubsetChannelBlock(0, numFilterChannels));
                 juce::dsp::ProcessContextReplacing context(block);
-                state.lowpassFilters[crossoverNumber].process(context);
+                state.lowpassFilters[crossoverNumber]->process(context);
 
-                ChainProcessors::processBlock(*state.bands[crossoverNumber].chain.get(), lowBuffer, midiMessages, newPlayHead);
+                // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+                juce::AudioBuffer<float> lowBufferCropped(lowBuffer.getArrayOfWritePointers(), lowBuffer.getNumChannels(), buffer.getNumSamples());
+                ChainProcessors::processBlock(*state.bands[crossoverNumber].chain.get(), lowBufferCropped, midiMessages, newPlayHead);
             }
 
             {
                 juce::dsp::AudioBlock<float> block(juce::dsp::AudioBlock<float>(highBuffer).getSubsetChannelBlock(0, numFilterChannels));
                 juce::dsp::ProcessContextReplacing context(block);
-                state.highpassFilters[crossoverNumber].process(context);
+                state.highpassFilters[crossoverNumber]->process(context);
 
                 // If this is the last band we need to apply the processing
                 if (crossoverNumber + 1 == numCrossovers) {
-                    ChainProcessors::processBlock(*state.bands[crossoverNumber + 1].chain.get(), highBuffer, midiMessages, newPlayHead);
+                    // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+                    juce::AudioBuffer<float> highBufferCropped(highBuffer.getArrayOfWritePointers(), highBuffer.getNumChannels(), buffer.getNumSamples());
+                    ChainProcessors::processBlock(*state.bands[crossoverNumber + 1].chain.get(), highBufferCropped, midiMessages, newPlayHead);
                 }
             }
         }
@@ -88,7 +92,7 @@ namespace CrossoverProcessors {
             if (crossoverNumber + 1 < numCrossovers) {
                 juce::dsp::AudioBlock<float> block(juce::dsp::AudioBlock<float>(buffer).getSubsetChannelBlock(0, numFilterChannels));
                 juce::dsp::ProcessContextReplacing context(block);
-                state.allpassFilters[crossoverNumber].process(context);
+                state.allpassFilters[crossoverNumber]->process(context);
 
             }
 

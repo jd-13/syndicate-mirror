@@ -1,6 +1,6 @@
 #include "ModulationProcessors.hpp"
 
-namespace Mi = ModulationInterface;
+namespace Mi = ModelInterface;
 
 namespace ModulationProcessors {
     void prepareToPlay(Mi::ModulationSourcesState& state, double sampleRate, int samplesPerBlock, juce::AudioProcessor::BusesLayout layout) {
@@ -8,31 +8,31 @@ namespace ModulationProcessors {
         state.hostConfig.blockSize = samplesPerBlock;
         state.hostConfig.layout = layout;
 
-        for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : state.lfos) {
+        for (std::shared_ptr<Mi::CloneableLFO>& lfo : state.lfos) {
             lfo->setSampleRate(sampleRate);
         }
 
         for (std::shared_ptr<Mi::EnvelopeWrapper>& env : state.envelopes) {
-            env->envelope.setSampleRate(sampleRate);
+            env->envelope->setSampleRate(sampleRate);
         }
     }
 
     void reset(Mi::ModulationSourcesState& state) {
-        for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : state.lfos) {
+        for (std::shared_ptr<Mi::CloneableLFO>& lfo : state.lfos) {
             lfo->reset();
         }
 
         for (std::shared_ptr<Mi::EnvelopeWrapper>& env : state.envelopes) {
-            env->envelope.reset();
+            env->envelope->reset();
         }
     }
 
     void processBlock(Mi::ModulationSourcesState& state, juce::AudioBuffer<float>& buffer, juce::AudioPlayHead::CurrentPositionInfo tempoInfo) {
-        for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : state.lfos) {
+        for (std::shared_ptr<Mi::CloneableLFO>& lfo : state.lfos) {
             lfo->prepareForNextBuffer(tempoInfo.bpm, tempoInfo.timeInSeconds);
         }
 
-        for (std::shared_ptr<WECore::Richter::RichterLFO>& lfo : state.lfos) {
+        for (std::shared_ptr<Mi::CloneableLFO>& lfo : state.lfos) {
             for (int sampleIndex {0}; sampleIndex < buffer.getNumSamples(); sampleIndex++) {
                 lfo->getNextOutput(0);
             }
@@ -61,12 +61,12 @@ namespace ModulationProcessors {
                 }
                 averageSample /= (endChannel - startChannel);
 
-                env->envelope.getNextOutput(averageSample);
+                env->envelope->getNextOutput(averageSample);
             }
         }
     }
 
-    double getLfoModulationValue(ModulationInterface::ModulationSourcesState& state, int lfoNumber) {
+    double getLfoModulationValue(Mi::ModulationSourcesState& state, int lfoNumber) {
         const int index {lfoNumber - 1};
         if (state.lfos.size() > index) {
             return state.lfos[index]->getLastOutput();
@@ -75,10 +75,10 @@ namespace ModulationProcessors {
         return 0;
     }
 
-    double getEnvelopeModulationValue(ModulationInterface::ModulationSourcesState& state, int envelopeNumber) {
+    double getEnvelopeModulationValue(Mi::ModulationSourcesState& state, int envelopeNumber) {
         const int index {envelopeNumber - 1};
         if (state.envelopes.size() > index) {
-            return state.envelopes[index]->envelope.getLastOutput() * state.envelopes[index]->amount;
+            return state.envelopes[index]->envelope->getLastOutput() * state.envelopes[index]->amount;
         }
 
         return 0;

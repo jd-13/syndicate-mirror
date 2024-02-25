@@ -30,9 +30,9 @@ public:
 
     void setGainStageGain(int chainNumber, int slotNumber, float gain);
     std::tuple<float, float> getGainStageGainAndPan(int chainNumber, int slotNumber);
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(int chainNumber, int slotNumber);
-
     void setGainStagePan(int chainNumber, int slotNumber, float pan);
+    int getNumMainChannels() const;
+    float getGainStageOutputAmplitude(int chainNumber, int slotNumber, int channelNumber) const;
 
 private:
     SyndicateAudioProcessor& _processor;

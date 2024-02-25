@@ -21,7 +21,7 @@ void CrossoverParameterComponent::paint(juce::Graphics &g) {
 }
 
 void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
-    SplitterInterface::forEachCrossover(_processor.splitter, [&](float crossoverFrequency) {
+    ModelInterface::forEachCrossover(_processor.manager, [&](float crossoverFrequency) {
         const double crossoverXPos {
             UIUtils::Crossover::sliderValueToXPos(crossoverFrequency, getWidth())
         };
@@ -46,7 +46,7 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
 
     g.setColour(UIUtils::highlightColour);
 
-    SplitterInterface::forEachCrossover(_processor.splitter, [&](float crossoverFrequency) {
+    ModelInterface::forEachCrossover(_processor.manager, [&](float crossoverFrequency) {
 
         const double crossoverXPos {
             UIUtils::Crossover::sliderValueToXPos(crossoverFrequency, getWidth())
@@ -68,10 +68,10 @@ void CrossoverParameterComponent::_drawBandText(juce::Graphics& g) {
 
     g.setColour(UIUtils::highlightColour.withBrightness(0.7));
 
-    SplitterInterface::forEachChain(_processor.splitter, [&](int bandNumber, std::shared_ptr<PluginChain>) {
+    ModelInterface::forEachChain(_processor.manager, [&](int bandNumber, std::shared_ptr<PluginChain>) {
         const double xPosRight {
-            bandNumber < SplitterInterface::getNumChains(_processor.splitter) - 1 ?
-                UIUtils::Crossover::sliderValueToXPos(SplitterInterface::getCrossoverFrequency(_processor.splitter, bandNumber), getWidth()) :
+            bandNumber < ModelInterface::getNumChains(_processor.manager) - 1 ?
+                UIUtils::Crossover::sliderValueToXPos(ModelInterface::getCrossoverFrequency(_processor.manager, bandNumber), getWidth()) :
                 getWidth()
         };
 

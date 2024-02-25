@@ -12,8 +12,12 @@ namespace {
     }
 }
 
-GainStageMeter::GainStageMeter(const GainStageLevelsInterface levelsProvider) :
-            _levelsProvider(levelsProvider) {
+GainStageMeter::GainStageMeter(const PluginSelectionInterface& pluginSelectionInterface,
+                               int chainNumber,
+                               int slotNumber) :
+            _pluginSelectionInterface(pluginSelectionInterface),
+            _chainNumber(chainNumber),
+            _slotNumber(slotNumber) {
     start();
 }
 
@@ -23,7 +27,7 @@ void GainStageMeter::paint(juce::Graphics& g) {
     const int zeroLineXPos = dBToXPos(0, getWidth());
 
     // Draw the meter for each channel
-    const int numChannels {_levelsProvider.getNumChannels()};
+    const int numChannels {_pluginSelectionInterface.getNumMainChannels()};
     constexpr int MARGIN {4};
     juce::Rectangle<int> availableArea = getLocalBounds();
     const int availableHeight {getHeight() - ((1 + numChannels) * MARGIN)};
@@ -31,7 +35,7 @@ void GainStageMeter::paint(juce::Graphics& g) {
 
 
     for (int channel {0}; channel < numChannels; channel++) {
-        const float gaindB = WECore::CoreMath::linearTodB(_levelsProvider.getOutputAmplitude(channel));
+        const float gaindB = WECore::CoreMath::linearTodB(_pluginSelectionInterface.getGainStageOutputAmplitude(_chainNumber, _slotNumber, channel));
         const int meterWidth = dBToXPos(gaindB, getWidth());
 
         availableArea.removeFromTop(MARGIN);
@@ -63,18 +67,11 @@ GainStageSlotComponent::GainStageSlotComponent(
 
     _buttonLookAndFeel.reset(new UIUtils::TextOnlyButtonLookAndFeel());
 
-    std::optional<GainStageLevelsInterface> levelsInterface =
-        pluginSelectionInterface.getGainStageLevelsInterface(_chainNumber, _slotNumber);
-
     const juce::String meterTooltip("Output of this gain stage");
 
-    if (levelsInterface.has_value()) {
-        levelMeter.reset(new GainStageMeter(levelsInterface.value()));
-        addAndMakeVisible(levelMeter.get());
-        levelMeter->setTooltip(meterTooltip);
-    } else {
-        juce::Logger::writeToLog("GainStageSlotComponent::GainStageSlotComponent: Missing levels provider");
-    }
+    levelMeter.reset(new GainStageMeter(_pluginSelectionInterface, chainNumber, slotNumber));
+    addAndMakeVisible(levelMeter.get());
+    levelMeter->setTooltip(meterTooltip);
 
     valueLabel.reset(new juce::Label("Value Label", ""));
     addAndMakeVisible(valueLabel.get());
@@ -123,10 +120,7 @@ GainStageSlotComponent::GainStageSlotComponent(
     gainSld->setValue(logGain, juce::dontSendNotification);
 
     panSld->setValue(pan, juce::dontSendNotification);
-
-    if (levelsInterface.has_value()) {
-        panSld->setEnabled(levelsInterface.value().getNumChannels() == 2);
-    }
+    panSld->setEnabled(_pluginSelectionInterface.getNumMainChannels() == 2);
 
     gainSld->setValueToString([](double value) { return juce::String(value, 1) + " dB";});
     gainSld->start(valueLabel.get(), valueLabel->getText());

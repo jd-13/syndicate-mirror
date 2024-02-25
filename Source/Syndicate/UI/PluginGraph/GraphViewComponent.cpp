@@ -1,6 +1,6 @@
 #include "GraphViewComponent.h"
 #include "UIUtils.h"
-#include "SplitterInterface.hpp"
+#include "ModelInterface.hpp"
 
 namespace {
     std::vector<int> getChainViewScrollPositions(const std::vector<std::unique_ptr<ChainViewComponent>>& chainViews) {
@@ -26,7 +26,7 @@ namespace {
 GraphViewComponent::GraphViewComponent(SyndicateAudioProcessor& processor)
         : _processor(processor),
           _pluginSelectionInterface(processor),
-          _pluginModulationInterface(processor, this),
+          _pluginModulationInterface(processor),
           _hasRestoredScroll(false) {
 
     _viewPort.reset(new UIUtils::LinkedScrollView());
@@ -82,7 +82,7 @@ void GraphViewComponent::onParameterUpdate() {
 
     _chainViews.clear();
 
-    const int totalNumChains {static_cast<int>(SplitterInterface::getNumChains(_processor.splitter))};
+    const int totalNumChains {static_cast<int>(ModelInterface::getNumChains(_processor.manager))};
 
     const int numChainsToDisplay {
         _processor.getSplitType() == SPLIT_TYPE::SERIES ? 1 :
@@ -90,7 +90,7 @@ void GraphViewComponent::onParameterUpdate() {
         _processor.getSplitType() == SPLIT_TYPE::LEFTRIGHT || _processor.getSplitType() == SPLIT_TYPE::MIDSIDE ? 2 : 1
     };
 
-    SplitterInterface::forEachChain(_processor.splitter, [&](int chainNumber, std::shared_ptr<PluginChain> chain) {
+    ModelInterface::forEachChain(_processor.manager, [&](int chainNumber, std::shared_ptr<PluginChain> chain) {
         if (chainNumber < numChainsToDisplay) {
             _chainViews.push_back(std::make_unique<ChainViewComponent>(chainNumber, _pluginSelectionInterface, _pluginModulationInterface));
             _viewPort->getViewedComponent()->addAndMakeVisible(_chainViews[chainNumber].get());

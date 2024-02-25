@@ -96,15 +96,19 @@ namespace ChainMutators {
         return retVal;
     }
 
-    void setSlotBypass(std::shared_ptr<PluginChain> chain, int position, bool isBypassed) {
+    bool setSlotBypass(std::shared_ptr<PluginChain> chain, int position, bool isBypassed) {
         if (chain->chain.size() > position) {
             if (chain->chain[position]->isBypassed != isBypassed) {
                 chain->chain[position]->isBypassed = isBypassed;
 
                 // Trigger an update to the latency compensation
                 chain->latencyListener.onPluginChainUpdate();
+
+                return true;
             }
         }
+
+        return false;
     }
 
     bool getSlotBypass(std::shared_ptr<PluginChain> chain, int position) {
@@ -148,16 +152,16 @@ namespace ChainMutators {
         return 0.0f;
     }
 
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(std::shared_ptr<PluginChain> chain, int position) {
-        std::optional<GainStageLevelsInterface> retVal;
-
+    float getGainStageOutputAmplitude(std::shared_ptr<PluginChain> chain, int position, int channelNumber) {
         if (chain->chain.size() > position) {
             if (const auto gainStage = std::dynamic_pointer_cast<ChainSlotGainStage>(chain->chain[position])) {
-                retVal.emplace(gainStage);
+                if (channelNumber < gainStage->meterEnvelopes.size()) {
+                    return gainStage->meterEnvelopes[channelNumber].getLastOutput();
+                }
             }
         }
 
-        return retVal;
+        return 0.0f;
     }
 
     bool setPan(std::shared_ptr<PluginChain> chain, int position, float pan) {
@@ -189,7 +193,7 @@ namespace ChainMutators {
         const int compensation {std::max(numSamples - chain->latencyListener.calculatedTotalPluginLatency, 0)};
 
         WECore::AudioSpinLock lock(chain->latencyCompLineMutex);
-        chain->latencyCompLine.reset(new juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None>(compensation));
+        chain->latencyCompLine.reset(new CloneableDelayLineType(compensation));
         chain->latencyCompLine->prepare({
             config.sampleRate,
             static_cast<juce::uint32>(config.blockSize),

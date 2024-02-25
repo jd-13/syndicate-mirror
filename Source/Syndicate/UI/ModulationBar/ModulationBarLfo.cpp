@@ -2,7 +2,8 @@
 
 #include "ModulationBarLfo.h"
 
-ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> lfo) : _lfo(lfo) {
+ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIndex) :
+        _processor(processor), _lfoIndex(lfoIndex) {
 
     namespace RP = WECore::Richter::Parameters;
     constexpr double INTERVAL {0.01};
@@ -133,14 +134,14 @@ ModulationBarLfo::ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> 
     invertButton->addListener(this);
 
     // Load UI state
-    tempoSyncButton->setToggleState(_lfo->getTempoSyncSwitch(), juce::dontSendNotification);
-    invertButton->setToggleState(_lfo->getInvertSwitch(), juce::dontSendNotification);
-    waveComboBox->setSelectedId(_lfo->getWave(), juce::dontSendNotification);
-    depthSlider->setValue(_lfo->getDepth(), juce::dontSendNotification);
-    freqSlider->setValue(_lfo->getFreq(), juce::dontSendNotification);
-    phaseSlider->setValue(_lfo->getManualPhase(), juce::dontSendNotification);
-    tempoNumerSlider->setValue(_lfo->getTempoNumer(), juce::dontSendNotification);
-    tempoDenomSlider->setValue(_lfo->getTempoDenom(), juce::dontSendNotification);
+    tempoSyncButton->setToggleState(ModelInterface::getLfoTempoSyncSwitch(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    invertButton->setToggleState(ModelInterface::getLfoInvertSwitch(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    waveComboBox->setSelectedId(ModelInterface::getLfoWave(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    depthSlider->setValue(ModelInterface::getLfoDepth(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    freqSlider->setValue(ModelInterface::getLfoFreq(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    phaseSlider->setValue(ModelInterface::getLfoManualPhase(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    tempoNumerSlider->setValue(ModelInterface::getLfoTempoNumer(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    tempoDenomSlider->setValue(ModelInterface::getLfoTempoDenom(_processor.manager, _lfoIndex), juce::dontSendNotification);
 
     // Start slider label readouts
     freqSlider->start(freqLabel.get(), freqLabel->getText());
@@ -255,15 +256,15 @@ void ModulationBarLfo::resized() {
 void ModulationBarLfo::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
 
     if (sliderThatWasMoved == depthSlider.get()) {
-        _lfo->setDepth(depthSlider->getValue());
+        _processor.setLfoDepth(_lfoIndex, depthSlider->getValue());
     } else if (sliderThatWasMoved == freqSlider.get()) {
-        _lfo->setFreq(freqSlider->getValue());
+        _processor.setLfoFreq(_lfoIndex, freqSlider->getValue());
     } else if (sliderThatWasMoved == tempoNumerSlider.get()) {
-        _lfo->setTempoNumer(tempoNumerSlider->getValue());
+        _processor.setLfoTempoNumer(_lfoIndex, tempoNumerSlider->getValue());
     } else if (sliderThatWasMoved == tempoDenomSlider.get()) {
-        _lfo->setTempoDenom(tempoDenomSlider->getValue());
+        _processor.setLfoTempoDenom(_lfoIndex, tempoDenomSlider->getValue());
     } else if (sliderThatWasMoved == phaseSlider.get()) {
-        _lfo->setManualPhase(phaseSlider->getValue());
+        _processor.setLfoManualPhase(_lfoIndex, phaseSlider->getValue());
     }
 
     _updateWaveView();
@@ -271,7 +272,7 @@ void ModulationBarLfo::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
 
 void ModulationBarLfo::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) {
     if (comboBoxThatHasChanged == waveComboBox.get()) {
-        _lfo->setWave(waveComboBox->getSelectedId());
+        _processor.setLfoWave(_lfoIndex, waveComboBox->getSelectedId());
     }
 
     _updateWaveView();
@@ -281,10 +282,10 @@ void ModulationBarLfo::buttonClicked(juce::Button* buttonThatWasClicked) {
 
     if (buttonThatWasClicked == tempoSyncButton.get()) {
         tempoSyncButton->setToggleState(!tempoSyncButton->getToggleState(), juce::dontSendNotification);
-        _lfo->setTempoSyncSwitch(tempoSyncButton->getToggleState());
+        _processor.setLfoTempoSyncSwitch(_lfoIndex, tempoSyncButton->getToggleState());
     } else if (buttonThatWasClicked == invertButton.get()) {
         invertButton->setToggleState(!invertButton->getToggleState(), juce::dontSendNotification);
-        _lfo->setInvertSwitch(invertButton->getToggleState());
+        _processor.setLfoInvertSwitch(_lfoIndex, invertButton->getToggleState());
     }
 
     _updateTempoToggles();
@@ -348,17 +349,21 @@ juce::Label* ModulationBarLfo::TempoSliderLookAndFeel::createSliderTextBox(juce:
 void ModulationBarLfo::_updateWaveView() {
     const double* wave {nullptr};
 
-    if (_lfo->getWave() < 1.5) {
+    const int waveValue {ModelInterface::getLfoWave(_processor.manager, _lfoIndex)};
+    if (waveValue == 1) {
         wave = WECore::Richter::Wavetables::getInstance()->getSine();
-    } else if (_lfo->getWave() < 2.5) {
+    } else if (waveValue == 2) {
         wave = WECore::Richter::Wavetables::getInstance()->getSquare();
-    } else if (_lfo->getWave() < 3.5) {
+    } else if (waveValue == 3) {
         wave = WECore::Richter::Wavetables::getInstance()->getSaw();
     } else {
         wave = WECore::Richter::Wavetables::getInstance()->getSidechain();
     }
 
-    waveView->setWave(wave, _lfo->getDepth(), _lfo->getManualPhase(), _lfo->getInvertSwitch());
+    waveView->setWave(wave,
+                      ModelInterface::getLfoDepth(_processor.manager, _lfoIndex),
+                      ModelInterface::getLfoManualPhase(_processor.manager, _lfoIndex),
+                      ModelInterface::getLfoInvertSwitch(_processor.manager, _lfoIndex));
     waveView->repaint();
 }
 

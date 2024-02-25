@@ -5,11 +5,10 @@
 MacroComponent::MacroComponent(int macroNumber,
                                juce::DragAndDropContainer* dragContainer,
                                juce::AudioParameterFloat* macroParam,
-                               juce::String& macroName)
+                               const juce::String& macroName)
     : _dragContainer(dragContainer),
       _modulationSourceDefinition(macroNumber, MODULATION_TYPE::MACRO),
-      _macroParam(macroParam),
-      _macroName(macroName) {
+      _macroParam(macroParam) {
 
     const juce::String tooltipString("Macro " + juce::String(macroNumber) + " - Drag handle to a plugin modulation tray to assign");
     setTooltip(tooltipString);
@@ -44,7 +43,7 @@ MacroComponent::MacroComponent(int macroNumber,
     macroSld->setLookAndFeel(&_sliderLookAndFeel);
     macroSld->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
 
-    nameLbl->setText(_macroName, juce::dontSendNotification);
+    nameLbl->setText(macroName, juce::dontSendNotification);
     dragHandle->addMouseListener(this, false);
 }
 
@@ -86,16 +85,14 @@ void MacroComponent::sliderDragEnded(juce::Slider* slider) {
     }
 }
 
-void MacroComponent::labelTextChanged(juce::Label* labelThatHasChanged) {
-    if (labelThatHasChanged == nameLbl.get()) {
-        _macroName = nameLbl->getText();
-    }
-}
-
 void MacroComponent::mouseDrag(const juce::MouseEvent& e) {
     _dragContainer->startDragging(_modulationSourceDefinition.toVariant(), dragHandle.get());
 }
 
 void MacroComponent::onParameterUpdate() {
     macroSld->setValue(_macroParam->get(), juce::dontSendNotification);
+}
+
+void MacroComponent::updateName(juce::String name) {
+    nameLbl->setText(name, juce::dontSendNotification);
 }

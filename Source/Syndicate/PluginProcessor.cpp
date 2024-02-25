@@ -51,9 +51,9 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
         WECore::JUCEPlugin::CoreAudioProcessor(BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
                                                                 .withOutput("Output", juce::AudioChannelSet::stereo(), true)
                                                                 .withInput("Sidechain", juce::AudioChannelSet::stereo(), true)),
-        splitter({getBusesLayout(), getSampleRate(), getBlockSize()},
-                 [&](int id, MODULATION_TYPE type) { return getModulationValueForSource(id, type); },
-                 [&](int newLatencySamples) { onLatencyChange(newLatencySamples); }),
+        manager({getBusesLayout(), getSampleRate(), getBlockSize()},
+                [&](int id, MODULATION_TYPE type) { return getModulationValueForSource(id, type); },
+                [&](int newLatencySamples) { onLatencyChange(newLatencySamples); }),
         _logger(JucePlugin_Name, JucePlugin_VersionString, Utils::PluginLogDirectory),
         _editor(nullptr),
         _outputGainLinear(1)
@@ -72,12 +72,10 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
     registerParameter(outputPan, OUTPUTPAN_STR, &OUTPUTPAN, OUTPUTPAN.defaultValue, PRECISION);
 
     // Add a default LFO and envelope
-    ModulationInterface::addLfo(modulationSources);
-    ModulationInterface::addEnvelope(modulationSources);
+    ModelInterface::createDefaultSources(manager);
 
     // Make sure everything is initialised
     _splitterParameters->setProcessor(this);
-    chainParameters.emplace_back([&]() { _splitterParameters->triggerUpdate(); });
     _onParameterUpdate();
     pluginScanClient.restore();
 
@@ -170,34 +168,27 @@ void SyndicateAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-
-    // Update the modulation sources
-    ModulationInterface::prepareToPlay(modulationSources, sampleRate, samplesPerBlock, getBusesLayout());
-
     for (auto& env : meterEnvelopes) {
         env.setSampleRate(sampleRate);
     }
 
     juce::Logger::writeToLog("Setting bus layout:\n" + Utils::busesLayoutToString(getBusesLayout()));
-    SplitterInterface::prepareToPlay(splitter, sampleRate, samplesPerBlock, getBusesLayout());
+    ModelInterface::prepareToPlay(manager, sampleRate, samplesPerBlock, getBusesLayout());
 }
 
 void SyndicateAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
-    SplitterInterface::releaseResources(splitter);
-    ModulationInterface::reset(modulationSources);
+    ModelInterface::releaseResources(manager);
 }
 
 void SyndicateAudioProcessor::reset() {
-    ModulationInterface::reset(modulationSources);
-
     for (auto& env : meterEnvelopes) {
         env.reset();
     }
 
-    SplitterInterface::reset(splitter);
+    ModelInterface::reset(manager);
 }
 
 bool SyndicateAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout) const {
@@ -231,12 +222,8 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     juce::AudioPlayHead::CurrentPositionInfo mTempoInfo;
     getPlayHead()->getCurrentPosition(mTempoInfo);
 
-    // Advance the modulation sources
-    // (the envelopes need to be done now before we overwrite the buffer)
-    ModulationInterface::processBlock(modulationSources, buffer, mTempoInfo);
-
     // Pass the audio through the splitter (this is also the only safe place to pass the playhead through)
-    SplitterInterface::processBlock(splitter, buffer, midiMessages, getPlayHead());
+    ModelInterface::processBlock(manager, buffer, midiMessages, getPlayHead(), mTempoInfo);
 
     // Apply the output gain
     for (int channel {0}; channel < getMainBusNumInputChannels(); channel++)
@@ -271,6 +258,134 @@ juce::AudioProcessorEditor* SyndicateAudioProcessor::createEditor()
     return new SyndicateAudioProcessorEditor (*this);
 }
 
+void SyndicateAudioProcessor::addLfo() {
+    ModelInterface::addLfo(manager);
+
+    if (_editor != nullptr) {
+        _editor->needsModulationBarRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoTempoSyncSwitch(int lfoIndex, bool val) {
+    ModelInterface::setLfoTempoSyncSwitch(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoInvertSwitch(int lfoIndex, bool val) {
+    ModelInterface::setLfoInvertSwitch(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoWave(int lfoIndex, int val) {
+    ModelInterface::setLfoWave(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoTempoNumer(int lfoIndex, int val) {
+    ModelInterface::setLfoTempoNumer(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoTempoDenom(int lfoIndex, int val) {
+    ModelInterface::setLfoTempoDenom(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoFreq(int lfoIndex, double val) {
+    ModelInterface::setLfoFreq(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoDepth(int lfoIndex, double val) {
+    ModelInterface::setLfoDepth(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoManualPhase(int lfoIndex, double val) {
+    ModelInterface::setLfoManualPhase(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addEnvelope() {
+    ModelInterface::addEnvelope(manager);
+
+    if (_editor != nullptr) {
+        _editor->needsModulationBarRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvAttackTimeMs(int envIndex, double val) {
+    ModelInterface::setEnvAttackTimeMs(manager, envIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvReleaseTimeMs(int envIndex, double val) {
+    ModelInterface::setEnvReleaseTimeMs(manager, envIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvFilterEnabled(int envIndex, bool val) {
+    ModelInterface::setEnvFilterEnabled(manager, envIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvFilterHz(int envIndex, double lowCut, double highCut) {
+    ModelInterface::setEnvFilterHz(manager, envIndex, lowCut, highCut);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvAmount(int envIndex, float val) {
+    ModelInterface::setEnvAmount(manager, envIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setEnvUseSidechainInput(int envIndex, bool val) {
+    ModelInterface::setEnvUseSidechainInput(manager, envIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
 float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TYPE type) {
     // TODO This method may be called multiple times for each buffer, could be optimised
     if (type == MODULATION_TYPE::MACRO) {
@@ -279,17 +394,16 @@ float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TY
             return macros[index]->get();
         }
     } else if (type == MODULATION_TYPE::LFO) {
-        return ModulationInterface::getLfoModulationValue(modulationSources, id);
+        return ModelInterface::getLfoModulationValue(manager, id);
     } else if (type == MODULATION_TYPE::ENVELOPE) {
-        return ModulationInterface::getEnvelopeModulationValue(modulationSources, id);
+        return ModelInterface::getEnvelopeModulationValue(manager, id);
     }
 
     return 0.0f;
 }
 
 void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition definition) {
-    ModulationInterface::removeModulationSource(modulationSources, definition);
-    SplitterInterface::removeModulationSource(splitter, definition);
+    ModelInterface::removeModulationSource(manager, definition);
 
     // Make sure any changes to assigned sources are reflected in the UI
     if (_editor != nullptr) {
@@ -298,10 +412,7 @@ void SyndicateAudioProcessor::removeModulationSource(ModulationSourceDefinition 
 }
 
 void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
-    if (SplitterInterface::setSplitType(splitter, splitType, {getBusesLayout(), getSampleRate(), getBlockSize()})) {
-        // Update the headers
-        _splitterParameters->rebuildChainParameters();
-
+    if (ModelInterface::setSplitType(manager, splitType, {getBusesLayout(), getSampleRate(), getBlockSize()})) {
         // For graph state changes we need to make sure the processor has updated its state first,
         // then the UI can rebuild based on the processor state
         if (_editor != nullptr) {
@@ -310,11 +421,112 @@ void SyndicateAudioProcessor::setSplitType(SPLIT_TYPE splitType) {
     }
 }
 
-void SyndicateAudioProcessor::addParallelChain() {
-    if (SplitterInterface::addParallelChain(splitter)) {
-        // Update the headers
-        _splitterParameters->rebuildChainParameters();
+void SyndicateAudioProcessor::setChainBypass(int chainNumber, bool val) {
+    ModelInterface::setChainBypass(manager, chainNumber, val);
 
+    if (_editor != nullptr) {
+        _editor->needsChainButtonsRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setChainMute(int chainNumber, bool val) {
+    ModelInterface::setChainMute(manager, chainNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsChainButtonsRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setChainSolo(int chainNumber, bool val) {
+    ModelInterface::setChainSolo(manager, chainNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsChainButtonsRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setSlotBypass(int chainNumber, int positionInChain, bool bypass) {
+    ModelInterface::setSlotBypass(manager, chainNumber, positionInChain, bypass);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setSlotGainLinear(int chainNumber, int positionInChain, float gain) {
+    ModelInterface::setGainLinear(manager, chainNumber, positionInChain, gain);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setSlotPan(int chainNumber, int positionInChain, float pan) {
+    ModelInterface::setPan(manager, chainNumber, positionInChain, pan);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setPluginModulationIsActive(int chainNumber, int pluginNumber, bool val) {
+    ModelInterface::setPluginModulationIsActive(manager, chainNumber, pluginNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setModulationTarget(int chainNumber, int pluginNumber, int targetNumber, juce::String targetName) {
+    ModelInterface::setModulationTarget(manager, chainNumber, pluginNumber, targetNumber, targetName);
+
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeModulationTarget(int chainNumber, int pluginNumber, int targetNumber) {
+    ModelInterface::removeModulationTarget(manager, chainNumber, pluginNumber, targetNumber);
+
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::addModulationSourceToTarget(int chainNumber, int pluginNumber, int targetNumber, ModulationSourceDefinition source) {
+    ModelInterface::addModulationSourceToTarget(manager, chainNumber, pluginNumber, targetNumber, source);
+
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeModulationSourceFromTarget(int chainNumber, int pluginNumber, int targetNumber, ModulationSourceDefinition source) {
+    ModelInterface::removeModulationSourceFromTarget(manager, chainNumber, pluginNumber, targetNumber, source);
+
+    if (_editor != nullptr) {
+        _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setModulationTargetValue(int chainNumber, int pluginNumber, int targetNumber, float val) {
+    ModelInterface::setModulationTargetValue(manager, chainNumber, pluginNumber, targetNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setModulationSourceValue(int chainNumber, int pluginNumber, int targetNumber, int sourceNumber, float val) {
+    ModelInterface::setModulationSourceValue(manager, chainNumber, pluginNumber, targetNumber, sourceNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addParallelChain() {
+    if (ModelInterface::addParallelChain(manager)) {
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
         }
@@ -322,10 +534,7 @@ void SyndicateAudioProcessor::addParallelChain() {
 }
 
 void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
-    if (SplitterInterface::removeParallelChain(splitter, chainNumber)) {
-        // Update the headers
-        _splitterParameters->rebuildChainParameters();
-
+    if (ModelInterface::removeParallelChain(manager, chainNumber)) {
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
         }
@@ -333,20 +542,14 @@ void SyndicateAudioProcessor::removeParallelChain(int chainNumber) {
 }
 
 void SyndicateAudioProcessor::addCrossoverBand() {
-    SplitterInterface::addCrossoverBand(splitter);
-    // Update the headers
-    _splitterParameters->rebuildChainParameters();
-
+    ModelInterface::addCrossoverBand(manager);
     if (_editor != nullptr) {
         _editor->needsGraphRebuild();
     }
 }
 
 void SyndicateAudioProcessor::removeCrossoverBand(int bandNumber) {
-    if (SplitterInterface::removeCrossoverBand(splitter, bandNumber)) {
-        // Update the headers
-        _splitterParameters->rebuildChainParameters();
-
+    if (ModelInterface::removeCrossoverBand(manager, bandNumber)) {
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
         }
@@ -357,7 +560,7 @@ void SyndicateAudioProcessor::setCrossoverFrequency(size_t index, float val) {
     // Changing the frequency of one crossover may affect others if they also need to be
     // moved - so we set the splitter first, it will update all the frequencies internally,
     // then update the parameter
-    if (SplitterInterface::setCrossoverFrequency(splitter, index, val)) {
+    if (ModelInterface::setCrossoverFrequency(manager, index, val)) {
         _splitterParameters->triggerUpdate();
     }
 }
@@ -373,7 +576,7 @@ bool SyndicateAudioProcessor::onPluginSelectedByUser(std::shared_ptr<juce::Audio
         juce::Logger::writeToLog("SyndicateAudioProcessor::onPluginSelectedByUser: Plugin configured");
 
         // Hand the plugin over to the splitter
-        if (SplitterInterface::replacePlugin(splitter, std::move(plugin), chainNumber, pluginNumber)) {
+        if (ModelInterface::replacePlugin(manager, std::move(plugin), chainNumber, pluginNumber)) {
             // Ideally we'd like to handle plugin selection like any other parameter - just update the
             // parameter and just action the update in the callback
             // We can't do that though as the splitters are stateful, but we still update the parameter
@@ -397,7 +600,7 @@ bool SyndicateAudioProcessor::onPluginSelectedByUser(std::shared_ptr<juce::Audio
 void SyndicateAudioProcessor::removePlugin(int chainNumber, int pluginNumber) {
     juce::Logger::writeToLog("Removing slot from graph: " + juce::String(chainNumber) + " " + juce::String(pluginNumber));
 
-    if (SplitterInterface::removeSlot(splitter, chainNumber, pluginNumber)) {
+    if (ModelInterface::removeSlot(manager, chainNumber, pluginNumber)) {
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
         }
@@ -407,7 +610,7 @@ void SyndicateAudioProcessor::removePlugin(int chainNumber, int pluginNumber) {
 void SyndicateAudioProcessor::insertGainStage(int chainNumber, int pluginNumber) {
     juce::Logger::writeToLog("Inserting gain stage: " + juce::String(chainNumber) + " " + juce::String(pluginNumber));
 
-    if (SplitterInterface::insertGainStage(splitter, chainNumber, pluginNumber)) {
+    if (ModelInterface::insertGainStage(manager, chainNumber, pluginNumber)) {
         if (_editor != nullptr) {
             _editor->needsGraphRebuild();
         }
@@ -421,11 +624,11 @@ void SyndicateAudioProcessor::copySlot(int fromChainNumber, int fromSlotNumber, 
         }
     };
 
-    SplitterInterface::copySlot(splitter, onSuccess, formatManager, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
+    ModelInterface::copySlot(manager, onSuccess, formatManager, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 }
 
 void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber) {
-    SplitterInterface::moveSlot(splitter, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
+    ModelInterface::moveSlot(manager, fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 
     if (_editor != nullptr) {
         _editor->needsGraphRebuild();
@@ -433,12 +636,26 @@ void SyndicateAudioProcessor::moveSlot(int fromChainNumber, int fromSlotNumber, 
 }
 
 void SyndicateAudioProcessor::moveChain(int fromChainNumber, int toChainNumber) {
-    SplitterInterface::moveChain(splitter, fromChainNumber, toChainNumber);
-
-    _splitterParameters->rebuildChainParameters();
+    ModelInterface::moveChain(manager, fromChainNumber, toChainNumber);
 
     if (_editor != nullptr) {
         _editor->needsGraphRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::undo() {
+    ModelInterface::undo(manager, getSampleRate(), getBlockSize(), getBusesLayout());
+
+    if (_editor != nullptr) {
+        _editor->needsToRefreshAll();
+    }
+}
+
+void SyndicateAudioProcessor::redo() {
+    ModelInterface::redo(manager, getSampleRate(), getBlockSize(), getBusesLayout());
+
+    if (_editor != nullptr) {
+        _editor->needsToRefreshAll();
     }
 }
 
@@ -457,58 +674,25 @@ void SyndicateAudioProcessor::_migrateParamValues(std::vector<float>& /*paramVal
 
 void SyndicateAudioProcessor::_onParameterUpdate() {
     _outputGainLinear = WECore::CoreMath::dBToLinear(outputGainLog->get());
-
-    // Set the bypass/mute/solo for each chain
-    switch (SplitterInterface::getSplitType(splitter)) {
-        case SPLIT_TYPE::SERIES:
-            SplitterInterface::setChainBypass(splitter, 0, chainParameters[0].getBypass());
-            break;
-        case SPLIT_TYPE::PARALLEL:
-        case SPLIT_TYPE::MULTIBAND:
-            for (size_t chainIndex {0}; chainIndex < chainParameters.size(); chainIndex++) {
-                const ChainParameters& params = chainParameters[chainIndex];
-
-                SplitterInterface::setChainBypass(splitter, chainIndex, params.getBypass());
-                SplitterInterface::setChainMute(splitter, chainIndex, params.getMute());
-                SplitterInterface::setChainSolo(splitter, chainIndex, params.getSolo());
-            }
-            break;
-        case SPLIT_TYPE::LEFTRIGHT:
-        case SPLIT_TYPE::MIDSIDE:
-            SplitterInterface::setChainBypass(splitter, 0, chainParameters[0].getBypass());
-            SplitterInterface::setChainMute(splitter, 0, chainParameters[0].getMute());
-            SplitterInterface::setChainSolo(splitter, 0, chainParameters[0].getSolo());
-
-            SplitterInterface::setChainBypass(splitter, 1, chainParameters[1].getBypass());
-            SplitterInterface::setChainMute(splitter, 1, chainParameters[1].getMute());
-            SplitterInterface::setChainSolo(splitter, 1, chainParameters[1].getSolo());
-            break;
-    }
 }
 
-void SyndicateAudioProcessor::SplitterParameters::rebuildChainParameters() {
-    const size_t numChains {SplitterInterface::getNumChains(_processor->splitter)};
-    while (_processor->chainParameters.size() > numChains) {
-        // More parameters than chains, delete them
-        _processor->chainParameters.erase(_processor->chainParameters.begin());
-    }
-
-    for (int chainNumber {0}; chainNumber < numChains; chainNumber++) {
-        // Add parameters if needed
-        if (_processor->chainParameters.size() <= chainNumber) {
-            _processor->chainParameters.emplace_back([&]() { triggerUpdate(); });
-        }
-
-        _processor->chainParameters[chainNumber].setBypass(SplitterInterface::getChainBypass(_processor->splitter, chainNumber));
-        _processor->chainParameters[chainNumber].setMute(SplitterInterface::getChainMute(_processor->splitter, chainNumber));
-        _processor->chainParameters[chainNumber].setSolo(SplitterInterface::getChainSolo(_processor->splitter, chainNumber));
-    }
+void SyndicateAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
+#ifdef DEMO_BUILD
+    juce::Logger::writeToLog("Not saving state - demo build");
+#else
+    WECore::JUCEPlugin::CoreAudioProcessor::getStateInformation(destData);
+#endif
 }
 
-void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElement* element) {
+void SyndicateAudioProcessor::setStateInformation(const void* data, int sizeInBytes) {
 #ifdef DEMO_BUILD
     juce::Logger::writeToLog("Not restoring state - demo build");
 #else
+    WECore::JUCEPlugin::CoreAudioProcessor::setStateInformation(data, sizeInBytes);
+#endif
+}
+
+void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElement* element) {
     juce::Logger::writeToLog("Restoring plugin state from XML");
 
     if (_processor != nullptr) {
@@ -516,9 +700,6 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
         if (splitterElement != nullptr) {
             // Restore the splitter first as we need to know how many chains there are
             _restoreSplitterFromXml(splitterElement);
-
-            // Now make sure the chain parameters are configured
-            rebuildChainParameters();
         } else {
             juce::Logger::writeToLog("Missing element " + juce::String(XML_SPLITTER_STR));
         }
@@ -565,13 +746,9 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
     } else {
         juce::Logger::writeToLog("Restore failed - no processor");
     }
-#endif
 }
 
 void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* element) {
-#ifdef DEMO_BUILD
-    juce::Logger::writeToLog("Not writing state - demo build");
-#else
     juce::Logger::writeToLog("Writing plugin state to XML");
 
     if (_processor != nullptr) {
@@ -599,14 +776,13 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
     } else {
         juce::Logger::writeToLog("Writing failed - no processor");
     }
-#endif
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::XmlElement* element) {
     SyndicateAudioProcessor* tmpProcessor = _processor;
 
-    SplitterInterface::restoreFromXml(
-        _processor->splitter,
+    ModelInterface::restoreSplitterFromXml(
+        _processor->manager,
         element,
         [tmpProcessor](int id, MODULATION_TYPE type) { return tmpProcessor->getModulationValueForSource(id, type); },
         [tmpProcessor](int newLatencySamples) { tmpProcessor->onLatencyChange(newLatencySamples); },
@@ -617,8 +793,8 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_restoreModulationSourcesFromXml(juce::XmlElement* element) {
-    ModulationInterface::restoreFromXml(
-        _processor->modulationSources,
+    ModelInterface::restoreSourcesFromXml(
+        _processor->manager,
         element,
         {_processor->getBusesLayout(), _processor->getSampleRate(), _processor->getBlockSize()}
     );
@@ -684,11 +860,11 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreMainWindowStateFromXml
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeSplitterToXml(juce::XmlElement* element) {
-    SplitterInterface::writeToXml(_processor->splitter, element);
+    ModelInterface::writeSplitterToXml(_processor->manager, element);
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeModulationSourcesToXml(juce::XmlElement* element) {
-    ModulationInterface::writeToXml(_processor->modulationSources, element);
+    ModelInterface::writeSourcesToXml(_processor->manager, element);
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeMacroNamesToXml(juce::XmlElement* element) {

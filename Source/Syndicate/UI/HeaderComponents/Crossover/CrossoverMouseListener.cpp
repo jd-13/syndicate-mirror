@@ -15,10 +15,10 @@ namespace {
 
             // Check if this crossover handle is getting too close to another and move it if
             // needed
-            const size_t numCrossovers {SplitterInterface::getNumChains(processor.splitter) - 1};
+            const size_t numCrossovers {ModelInterface::getNumChains(processor.manager) - 1};
             for (int otherCrossoverNumber {0}; otherCrossoverNumber < numCrossovers; otherCrossoverNumber++) {
                 const double otherXPos {
-                    UIUtils::Crossover::sliderValueToXPos(SplitterInterface::getCrossoverFrequency(processor.splitter, otherCrossoverNumber), componentWidth)
+                    UIUtils::Crossover::sliderValueToXPos(ModelInterface::getCrossoverFrequency(processor.manager, otherCrossoverNumber), componentWidth)
                 };
 
                 constexpr double MIN_SPACING {4 * UIUtils::Crossover::SLIDER_THUMB_RADIUS};
@@ -63,11 +63,11 @@ void CrossoverMouseListener::_resolveParameterInteraction(const juce::MouseEvent
 
     // For each available band, check if the cursor landed on a crossover frequency handle or on
     // the gaps in between
-    const size_t numBands {SplitterInterface::getNumChains(_processor.splitter)};
+    const size_t numBands {ModelInterface::getNumChains(_processor.manager)};
 
     for (size_t bandIndex {0}; bandIndex < numBands; bandIndex++) {
         const double crossoverXPos {bandIndex < numBands - 1 ?
-            UIUtils::Crossover::sliderValueToXPos(SplitterInterface::getCrossoverFrequency(_processor.splitter, bandIndex), event.eventComponent->getWidth()) :
+            UIUtils::Crossover::sliderValueToXPos(ModelInterface::getCrossoverFrequency(_processor.manager, bandIndex), event.eventComponent->getWidth()) :
             event.eventComponent->getWidth()
         };
 

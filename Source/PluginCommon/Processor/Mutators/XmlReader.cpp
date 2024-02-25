@@ -410,7 +410,7 @@ namespace XmlReader {
         return std::make_unique<PluginParameterModulationSource>(definition, modulationAmount);
     }
 
-    void restoreModulationSourcesFromXml(ModulationInterface::ModulationSourcesState& state,
+    void restoreModulationSourcesFromXml(ModelInterface::ModulationSourcesState& state,
                                          juce::XmlElement* element,
                                          HostConfiguration configuration) {
 
@@ -434,7 +434,7 @@ namespace XmlReader {
                     continue;
                 }
 
-                std::shared_ptr<WECore::Richter::RichterLFO> newLfo {new WECore::Richter::RichterLFO()};
+                std::shared_ptr<ModelInterface::CloneableLFO> newLfo {new ModelInterface::CloneableLFO()};
                 newLfo->setBypassSwitch(thisLfoElement->getBoolAttribute(XML_LFO_BYPASS_STR));
                 newLfo->setPhaseSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_PHASE_SYNC_STR));
                 newLfo->setTempoSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR));
@@ -471,13 +471,13 @@ namespace XmlReader {
                     continue;
                 }
 
-                std::shared_ptr<ModulationInterface::EnvelopeWrapper> newEnv {new ModulationInterface::EnvelopeWrapper()};
-                newEnv->envelope.setAttackTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR));
-                newEnv->envelope.setReleaseTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR));
-                newEnv->envelope.setFilterEnabled(thisEnvelopeElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR));
-                newEnv->envelope.setLowCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR));
-                newEnv->envelope.setHighCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR));
-                newEnv->envelope.setSampleRate(configuration.sampleRate);
+                std::shared_ptr<ModelInterface::EnvelopeWrapper> newEnv(new ModelInterface::EnvelopeWrapper());
+                newEnv->envelope->setAttackTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR));
+                newEnv->envelope->setReleaseTimeMs(thisEnvelopeElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR));
+                newEnv->envelope->setFilterEnabled(thisEnvelopeElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR));
+                newEnv->envelope->setLowCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR));
+                newEnv->envelope->setHighCutHz(thisEnvelopeElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR));
+                newEnv->envelope->setSampleRate(configuration.sampleRate);
 
                 newEnv->amount = thisEnvelopeElement->getDoubleAttribute(XML_ENV_AMOUNT_STR);
                 newEnv->useSidechainInput = thisEnvelopeElement->getBoolAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR);

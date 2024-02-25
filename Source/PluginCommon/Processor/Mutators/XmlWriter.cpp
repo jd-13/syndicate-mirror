@@ -124,7 +124,7 @@ namespace XmlWriter {
         element->setAttribute(XML_MODULATION_SOURCE_AMOUNT, source->modulationAmount);
     }
 
-    void write(ModulationInterface::ModulationSourcesState& state, juce::XmlElement* element) {
+    void write(ModelInterface::ModulationSourcesState& state, juce::XmlElement* element) {
         // LFOs
         juce::XmlElement* lfosElement = element->createNewChildElement(XML_LFOS_STR);
         for (int index {0}; index < state.lfos.size(); index++) {
@@ -149,13 +149,13 @@ namespace XmlWriter {
         juce::XmlElement* envelopesElement = element->createNewChildElement(XML_ENVELOPES_STR);
         for (int index {0}; index < state.envelopes.size(); index++) {
             juce::XmlElement* thisEnvelopeElement = envelopesElement->createNewChildElement(getEnvelopeXMLName(index));
-            std::shared_ptr<ModulationInterface::EnvelopeWrapper> thisEnvelope = state.envelopes[index];
+            std::shared_ptr<ModelInterface::EnvelopeWrapper> thisEnvelope = state.envelopes[index];
 
-            thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, thisEnvelope->envelope.getAttackTimeMs());
-            thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, thisEnvelope->envelope.getReleaseTimeMs());
-            thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, thisEnvelope->envelope.getFilterEnabled());
-            thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, thisEnvelope->envelope.getLowCutHz());
-            thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, thisEnvelope->envelope.getHighCutHz());
+            thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, thisEnvelope->envelope->getAttackTimeMs());
+            thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, thisEnvelope->envelope->getReleaseTimeMs());
+            thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, thisEnvelope->envelope->getFilterEnabled());
+            thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, thisEnvelope->envelope->getLowCutHz());
+            thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, thisEnvelope->envelope->getHighCutHz());
             thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, thisEnvelope->amount);
             thisEnvelopeElement->setAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR, thisEnvelope->useSidechainInput);
         }

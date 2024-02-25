@@ -16,10 +16,9 @@
 #include "PluginScanClient.h"
 #include "PluginSelectorState.h"
 #include "PluginParameterSelectorState.h"
-#include "ChainParameters.h"
 #include "ParameterData.h"
 #include "PluginConfigurator.hpp"
-#include "SplitterInterface.hpp"
+#include "ModelInterface.hpp"
 
 class SyndicateAudioProcessorEditor;
 
@@ -31,7 +30,7 @@ struct MainWindowState {
     int envButtonsScrollPosition;
     std::optional<ModulationSourceDefinition> selectedModulationSource;
 
-    MainWindowState() : bounds(0, 0, 700, 550),
+    MainWindowState() : bounds(0, 0, 700, 620),
                         graphViewScrollPosition(0),
                         lfoButtonsScrollPosition(0),
                         envButtonsScrollPosition(0) {}
@@ -46,9 +45,7 @@ public:
     PluginScanClient pluginScanClient;
     PluginSelectorState pluginSelectorState; // TODO convert this to a custom parameter
     PluginParameterSelectorState pluginParameterSelectorState;
-    SplitterInterface::Splitter splitter;
-    ModulationInterface::ModulationSourcesState modulationSources;
-    std::vector<ChainParameters> chainParameters;
+    ModelInterface::StateManager manager;
     PluginConfigurator pluginConfigurator;
     std::array<juce::String, NUM_MACROS> macroNames;
     std::array<WECore::AREnv::AREnvelopeFollowerSquareLaw, 2> meterEnvelopes;
@@ -96,11 +93,47 @@ public:
     void setEditor(SyndicateAudioProcessorEditor* editor) { _editor = editor; }
     void removeEditor() { _editor = nullptr; }
 
+    // Sources
+    void addLfo();
+    void setLfoTempoSyncSwitch(int lfoIndex, bool val);
+    void setLfoInvertSwitch(int lfoIndex, bool val);
+    void setLfoWave(int lfoIndex, int val);
+    void setLfoTempoNumer(int lfoIndex, int val);
+    void setLfoTempoDenom (int lfoIndex, int val);
+    void setLfoFreq(int lfoIndex, double val);
+    void setLfoDepth(int lfoIndex, double val);
+    void setLfoManualPhase(int lfoIndex, double val);
+
+    void addEnvelope();
+    void setEnvAttackTimeMs(int envIndex, double val);
+    void setEnvReleaseTimeMs(int envIndex, double val);
+    void setEnvFilterEnabled(int envIndex, bool val);
+    void setEnvFilterHz(int envIndex, double lowCut, double highCut);
+    void setEnvAmount(int envIndex, float val);
+    void setEnvUseSidechainInput(int envIndex, bool val);
+
     float getModulationValueForSource(int id, MODULATION_TYPE type);
     void removeModulationSource(ModulationSourceDefinition definition);
 
     void setSplitType(SPLIT_TYPE splitType);
-    SPLIT_TYPE getSplitType() { return SplitterInterface::getSplitType(splitter); }
+    SPLIT_TYPE getSplitType() { return ModelInterface::getSplitType(manager); }
+
+    void setChainBypass(int chainNumber, bool val);
+    void setChainMute(int chainNumber, bool val);
+    void setChainSolo(int chainNumber, bool val);
+
+    void setSlotBypass(int chainNumber, int positionInChain, bool bypass);
+    void setSlotGainLinear(int chainNumber, int positionInChain, float gain);
+    void setSlotPan(int chainNumber, int positionInChain, float pan);
+
+    // Modulation tray
+    void setPluginModulationIsActive(int chainNumber, int pluginNumber, bool val);
+    void setModulationTarget(int chainNumber, int pluginNumber, int targetNumber, juce::String targetName);
+    void removeModulationTarget(int chainNumber, int pluginNumber, int targetNumber);
+    void addModulationSourceToTarget(int chainNumber, int pluginNumber, int targetNumber, ModulationSourceDefinition source);
+    void removeModulationSourceFromTarget(int chainNumber, int pluginNumber, int targetNumber, ModulationSourceDefinition source);
+    void setModulationTargetValue(int chainNumber, int pluginNumber, int targetNumber, float val);
+    void setModulationSourceValue(int chainNumber, int pluginNumber, int targetNumber, int sourceNumber, float val);
 
     // Parallel Split
     void addParallelChain();
@@ -126,11 +159,21 @@ public:
 
     void moveChain(int fromChainNumber, int toChainNumber);
 
+    void undo();
+    void redo();
+
     /**
      * Called by a splitter when its latency has changed, so this processor can update the latency
      * it reports back to the host.
      */
     void onLatencyChange(int newLatencySamples);
+
+    /**
+     * Override so we can disable conventional save/restore in the demo but still allow it manually using the
+     * import/export buttons.
+     */
+    virtual void getStateInformation(juce::MemoryBlock& destData) override;
+    virtual void setStateInformation(const void* data, int sizeInBytes) override;
 
 private:
     /**
@@ -143,8 +186,6 @@ private:
         ~SplitterParameters() = default;
 
         void triggerUpdate() { _updateListener(); }
-
-        void rebuildChainParameters();
 
         void setProcessor(SyndicateAudioProcessor* processor) { _processor = processor; }
 

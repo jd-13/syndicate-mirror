@@ -10,6 +10,8 @@ struct ChainSlotBase {
 
     ChainSlotBase(bool newIsBypassed) : isBypassed(newIsBypassed) {}
     virtual ~ChainSlotBase() = default;
+
+    virtual ChainSlotBase* clone() const = 0;
 };
 
 /**
@@ -27,7 +29,17 @@ struct ChainSlotGainStage : ChainSlotBase {
 
     ChainSlotGainStage(float newGain, float newPan, bool newIsBypassed, const juce::AudioProcessor::BusesLayout& busesLayout)
         : ChainSlotBase(newIsBypassed), gain(newGain), pan(newPan), numMainChannels(busesLayout.getMainInputChannels()) {
+        _setUpEnvelopes();
+    }
 
+    ~ChainSlotGainStage() = default;
+
+    ChainSlotGainStage* clone() const override {
+        return new ChainSlotGainStage(gain, pan, isBypassed, numMainChannels);
+    }
+
+private:
+    void _setUpEnvelopes() {
         for (auto& env : meterEnvelopes) {
             env.setAttackTimeMs(1);
             env.setReleaseTimeMs(50);
@@ -35,22 +47,14 @@ struct ChainSlotGainStage : ChainSlotBase {
         }
     }
 
-    ~ChainSlotGainStage() = default;
-};
-
-/**
- * Provides an interface for the UI to access values needed to draw the level meter for this gain stage.
- */
-class GainStageLevelsInterface {
-public:
-    explicit GainStageLevelsInterface(const std::shared_ptr<ChainSlotGainStage> gainStage) : _gainStage(gainStage) {}
-    ~GainStageLevelsInterface() = default;
-
-    int getNumChannels() const { return _gainStage->numMainChannels; }
-    float getOutputAmplitude(int channel) const { return static_cast<float>(_gainStage->meterEnvelopes[channel].getLastOutput()); }
-
-private:
-    const std::shared_ptr<ChainSlotGainStage> _gainStage;
+    ChainSlotGainStage(
+        float newGain,
+        float newPan,
+        bool newIsBypassed,
+        int newNumMainChannels)
+            : ChainSlotBase(newIsBypassed), gain(newGain), pan(newPan), numMainChannels(newNumMainChannels) {
+        _setUpEnvelopes();
+    }
 };
 
 struct PluginParameterModulationSource {
@@ -82,6 +86,18 @@ struct PluginParameterModulationConfig {
     static constexpr int PLUGIN_PARAMETER_NAME_LENGTH_LIMIT {30};
 
     PluginParameterModulationConfig() : restValue(0) {}
+
+    PluginParameterModulationConfig* clone() const {
+        auto newConfig = new PluginParameterModulationConfig();
+        newConfig->targetParameterName = targetParameterName;
+        newConfig->restValue = restValue;
+
+        for (auto& source : sources) {
+            newConfig->sources.push_back(std::make_shared<PluginParameterModulationSource>(source->definition, source->modulationAmount));
+        }
+
+        return newConfig;
+    }
 };
 
 struct PluginModulationConfig {
@@ -95,6 +111,17 @@ struct PluginModulationConfig {
         parameterConfigs = other.parameterConfigs;
 
         return *this;
+    }
+
+    PluginModulationConfig* clone() const {
+        auto newConfig = new PluginModulationConfig();
+        newConfig->isActive = isActive;
+
+        for (auto& parameterConfig : parameterConfigs) {
+            newConfig->parameterConfigs.push_back(std::shared_ptr<PluginParameterModulationConfig>(parameterConfig->clone()));
+        }
+
+        return newConfig;
     }
 };
 
@@ -129,4 +156,21 @@ struct ChainSlotPlugin : ChainSlotBase {
           editorBounds(new PluginEditorBounds()) {}
 
     ~ChainSlotPlugin() = default;
+
+    ChainSlotPlugin* clone() const override {
+        return new ChainSlotPlugin(plugin, isBypassed, modulationConfig, getModulationValueCallback, editorBounds);
+    }
+
+private:
+    ChainSlotPlugin(
+        std::shared_ptr<juce::AudioPluginInstance> newPlugin,
+        bool newIsBypassed,
+        std::shared_ptr<PluginModulationConfig> newModulationConfig,
+        std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+        std::shared_ptr<PluginEditorBounds> newEditorBounds)
+            : ChainSlotBase(newIsBypassed),
+              plugin(newPlugin),
+              modulationConfig(std::shared_ptr<PluginModulationConfig>(newModulationConfig->clone())),
+              getModulationValueCallback(newGetModulationValueCallback),
+              editorBounds(newEditorBounds) {}
 };

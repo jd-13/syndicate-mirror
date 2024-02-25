@@ -5,13 +5,14 @@
 #include "RichterLFO/UI/RichterWaveViewer.h"
 #include "RichterLFO/RichterLFO.h"
 #include "UIUtils.h"
+#include "PluginProcessor.h"
 
 class ModulationBarLfo : public juce::Component,
                          public juce::Slider::Listener,
                          public juce::ComboBox::Listener,
                          public juce::Button::Listener {
 public:
-    ModulationBarLfo(std::shared_ptr<WECore::Richter::RichterLFO> lfo);
+    ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIndex);
     ~ModulationBarLfo() override;
 
     void resized() override;
@@ -38,7 +39,8 @@ private:
         juce::Label* createSliderTextBox(juce::Slider& slider) override;
     };
 
-    std::shared_ptr<WECore::Richter::RichterLFO> _lfo;
+    SyndicateAudioProcessor& _processor;
+    int _lfoIndex;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     UIUtils::ToggleButtonLookAndFeel _buttonLookAndFeel;
     UIUtils::StandardComboBoxLookAndFeel _comboBoxLookAndFeel;

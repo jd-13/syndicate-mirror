@@ -1,5 +1,4 @@
 #include <JuceHeader.h>
-#include "ChainParameters.h"
 #include "BaseSlotComponent.h"
 #include "PluginChain.hpp"
 #include "PluginSelectionInterface.h"

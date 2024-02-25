@@ -3,7 +3,8 @@
 
 #include "ModulationBarEnvelope.h"
 
-EnvelopeViewer::EnvelopeViewer(std::shared_ptr<ModulationInterface::EnvelopeWrapper> envelope) : _envelope(envelope) {
+EnvelopeViewer::EnvelopeViewer(SyndicateAudioProcessor& processor, int envIndex) :
+        _processor(processor), _envIndex(envIndex) {
     std::fill(_envelopeValues.begin(), _envelopeValues.end(), 0);
 
     start();
@@ -35,12 +36,14 @@ void EnvelopeViewer::_onTimerCallback() {
     _stopEvent.reset();
 
     std::rotate(_envelopeValues.rbegin(), _envelopeValues.rbegin() + 1, _envelopeValues.rend());
-    _envelopeValues[0] = _envelope->envelope.getLastOutput() * _envelope->amount;
+    _envelopeValues[0] = ModelInterface::getEnvLastOutput(_processor.manager, _envIndex) *
+        ModelInterface::getEnvAmount(_processor.manager, _envIndex);
 
     _stopEvent.signal();
 }
 
-ModulationBarEnvelope::ModulationBarEnvelope(std::shared_ptr<ModulationInterface::EnvelopeWrapper> envelope) : _envelope(envelope) {
+ModulationBarEnvelope::ModulationBarEnvelope(SyndicateAudioProcessor& processor, int envIndex) :
+        _processor(processor), _envIndex(envIndex) {
 
     namespace AP = WECore::AREnv::Parameters;
     constexpr double INTERVAL {0.01};
@@ -125,7 +128,7 @@ ModulationBarEnvelope::ModulationBarEnvelope(std::shared_ptr<ModulationInterface
     scInButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     scInButton->addListener(this);
 
-    _envView.reset(new EnvelopeViewer(_envelope));
+    _envView.reset(new EnvelopeViewer(_processor, _envIndex));
     addAndMakeVisible(_envView.get());
     _envView->setTooltip(TRANS("Output of this envelope follower"));
 
@@ -136,14 +139,14 @@ ModulationBarEnvelope::ModulationBarEnvelope(std::shared_ptr<ModulationInterface
     filterSlider->start(filterButton.get(), filterButton->getButtonText());
 
     // Load UI state
-    attackSlider->setValue(_envelope->envelope.getAttackTimeMs(), juce::dontSendNotification);
-    releaseSlider->setValue(_envelope->envelope.getReleaseTimeMs(), juce::dontSendNotification);
-    amountSlider->setValue(_envelope->amount, juce::dontSendNotification);
-    filterSlider->setMinValue(_envelope->envelope.getLowCutHz(), juce::dontSendNotification);
-    filterSlider->setMaxValue(_envelope->envelope.getHighCutHz(), juce::dontSendNotification);
-    filterButton->setToggleState(_envelope->envelope.getFilterEnabled(), juce::dontSendNotification);
-    filterSlider->setEnabled(_envelope->envelope.getFilterEnabled());
-    scInButton->setToggleState(_envelope->useSidechainInput, juce::dontSendNotification);
+    attackSlider->setValue(ModelInterface::getEnvAttackTimeMs(_processor.manager, _envIndex), juce::dontSendNotification);
+    releaseSlider->setValue(ModelInterface::getEnvReleaseTimeMs(_processor.manager, _envIndex), juce::dontSendNotification);
+    amountSlider->setValue(ModelInterface::getEnvAmount(_processor.manager, _envIndex), juce::dontSendNotification);
+    filterSlider->setMinValue(ModelInterface::getEnvLowCutHz(_processor.manager, _envIndex), juce::dontSendNotification, true);
+    filterSlider->setMaxValue(ModelInterface::getEnvHighCutHz(_processor.manager, _envIndex), juce::dontSendNotification);
+    filterButton->setToggleState(ModelInterface::getEnvFilterEnabled(_processor.manager, _envIndex), juce::dontSendNotification);
+    filterSlider->setEnabled(ModelInterface::getEnvFilterEnabled(_processor.manager, _envIndex));
+    scInButton->setToggleState(ModelInterface::getEnvUseSidechainInput(_processor.manager, _envIndex), juce::dontSendNotification);
 }
 
 ModulationBarEnvelope::~ModulationBarEnvelope() {
@@ -208,25 +211,24 @@ void ModulationBarEnvelope::resized() {
 
 void ModulationBarEnvelope::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
     if (sliderThatWasMoved == attackSlider.get()) {
-        _envelope->envelope.setAttackTimeMs(attackSlider->getValue());
+        _processor.setEnvAttackTimeMs(_envIndex, attackSlider->getValue());
     } else if (sliderThatWasMoved == releaseSlider.get()) {
-        _envelope->envelope.setReleaseTimeMs(releaseSlider->getValue());
+        _processor.setEnvReleaseTimeMs(_envIndex, releaseSlider->getValue());
     } else if (sliderThatWasMoved == amountSlider.get()) {
-        _envelope->amount = amountSlider->getValue();
+        _processor.setEnvAmount(_envIndex, amountSlider->getValue());
     } else if (sliderThatWasMoved == filterSlider.get()) {
-        _envelope->envelope.setLowCutHz(filterSlider->getMinValue());
-        _envelope->envelope.setHighCutHz(filterSlider->getMaxValue());
+        _processor.setEnvFilterHz(_envIndex, filterSlider->getMinValue(), filterSlider->getMaxValue());
     }
 }
 
 void ModulationBarEnvelope::buttonClicked(juce::Button* buttonThatWasClicked) {
     if (buttonThatWasClicked == filterButton.get()) {
         filterButton->setToggleState(!filterButton->getToggleState(), juce::dontSendNotification);
-        _envelope->envelope.setFilterEnabled(filterButton->getToggleState());
+        _processor.setEnvFilterEnabled(_envIndex, filterButton->getToggleState());
         filterSlider->setEnabled(filterButton->getToggleState());
     } else if (buttonThatWasClicked == scInButton.get()) {
         scInButton->setToggleState(!scInButton->getToggleState(), juce::dontSendNotification);
-        _envelope->useSidechainInput = scInButton->getToggleState();
+        _processor.setEnvUseSidechainInput(_envIndex, scInButton->getToggleState());
     }
 }
 

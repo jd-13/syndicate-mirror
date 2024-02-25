@@ -7,8 +7,6 @@
 class LeftrightSplitterSubComponent : public SplitterHeaderComponent {
 public:
     LeftrightSplitterSubComponent(SyndicateAudioProcessor& processor,
-                                  ChainParameters& leftChainParams,
-                                  ChainParameters& rightChainParams,
                                   UIUtils::LinkedScrollView* graphView);
     ~LeftrightSplitterSubComponent() = default;
 

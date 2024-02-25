@@ -4,18 +4,20 @@
 #include "CoreJUCEPlugin/LabelReadoutSlider.h"
 #include "UIUtils.h"
 #include "DataModelInterface.hpp"
+#include "PluginProcessor.h"
 
 /**
  * Displays the envelope follower output.
  */
 class EnvelopeViewer : public UIUtils::SafeAnimatedComponent {
 public:
-    EnvelopeViewer(std::shared_ptr<ModulationInterface::EnvelopeWrapper> envelope);
+    EnvelopeViewer(SyndicateAudioProcessor& processor, int envIndex);
 
     void paint(juce::Graphics& g) override;
 
 private:
-    std::shared_ptr<ModulationInterface::EnvelopeWrapper> _envelope;
+    SyndicateAudioProcessor& _processor;
+    int _envIndex;
     std::array<float, 20> _envelopeValues;
 
     void _onTimerCallback() override;
@@ -25,7 +27,7 @@ class ModulationBarEnvelope  : public juce::Component,
                                public juce::Slider::Listener,
                                public juce::Button::Listener {
 public:
-    ModulationBarEnvelope(std::shared_ptr<ModulationInterface::EnvelopeWrapper> envelope);
+    ModulationBarEnvelope(SyndicateAudioProcessor& processor, int envIndex);
     ~ModulationBarEnvelope() override;
 
     void resized() override;
@@ -54,7 +56,8 @@ private:
         virtual void _updateLabel(const juce::MouseEvent& event) override;
     };
 
-    std::shared_ptr<ModulationInterface::EnvelopeWrapper> _envelope;
+    SyndicateAudioProcessor& _processor;
+    int _envIndex;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     UIUtils::MidAnchoredSliderLookAndFeel _midAnchorSliderLookAndFeel;
     UIUtils::ToggleButtonLookAndFeel _buttonLookAndFeel;

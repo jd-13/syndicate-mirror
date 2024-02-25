@@ -55,6 +55,9 @@ public:
     //==============================================================================
     //[UserMethods]     -- You can add your own custom methods in this section.
     void needsGraphRebuild();
+    void needsModulationBarRebuild();
+    void needsChainButtonsRefresh();
+    void needsUndoRedoRefresh();
     void needsToRefreshAll();
     //[/UserMethods]
 

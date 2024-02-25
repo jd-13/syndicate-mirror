@@ -36,6 +36,12 @@ SplitterHeaderComponent::~SplitterHeaderComponent() {
     _graphView->removeOtherView(_viewPort.get());
 }
 
+void SplitterHeaderComponent::refreshChainButtons() {
+    for (auto& buttons : _chainButtons) {
+        buttons->refresh();
+    }
+}
+
 void SplitterHeaderComponent::resized() {
     _viewPort->setBounds(getLocalBounds());
 
@@ -125,7 +131,7 @@ void SplitterHeaderComponent::itemDropped(const SourceDetails& dragSourceDetails
 
 void SplitterHeaderComponent::onParameterUpdate() {
     for (auto& buttons : _chainButtons) {
-        buttons->onParameterUpdate();
+        buttons->refresh();
     }
 }
 

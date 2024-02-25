@@ -1,7 +1,8 @@
 #include "ChainButtonsComponent.h"
+#include "ModelInterface.hpp"
 
-ChainButtonsComponent::ChainButtonsComponent(int chainNumber, ChainParameters& headerParams) :
-        _chainNumber(chainNumber), _headerParams(headerParams) {
+ChainButtonsComponent::ChainButtonsComponent(SyndicateAudioProcessor& processor, int chainNumber) :
+        _processor(processor), _chainNumber(chainNumber) {
     chainLabel.reset(new juce::Label("Chain Label", TRANS("")));
     addAndMakeVisible(chainLabel.get());
     UIUtils::setDefaultLabelStyle(chainLabel);
@@ -16,36 +17,44 @@ ChainButtonsComponent::ChainButtonsComponent(int chainNumber, ChainParameters& h
 
     bypassBtn.reset(new ChainButton(CHAIN_BUTTON_TYPE::BYPASS));
     addAndMakeVisible(bypassBtn.get());
-    bypassBtn->addListener(this);
     bypassBtn->setTooltip("Bypass this chain");
     bypassBtn->addMouseListener(this, false);
+    bypassBtn->onClick = [&processor, chainNumber] () {
+        processor.setChainBypass(chainNumber, !ModelInterface::getChainBypass(processor.manager, chainNumber));
+    };
 
     muteBtn.reset(new ChainButton(CHAIN_BUTTON_TYPE::MUTE));
     addAndMakeVisible(muteBtn.get());
-    muteBtn->addListener(this);
     muteBtn->setTooltip("Mute this chain");
     muteBtn->addMouseListener(this, false);
+    muteBtn->onClick = [&processor, chainNumber] () {
+        processor.setChainMute(chainNumber, !ModelInterface::getChainMute(processor.manager, chainNumber));
+    };
 
     soloBtn.reset(new ChainButton(CHAIN_BUTTON_TYPE::SOLO));
     addAndMakeVisible(soloBtn.get());
-    soloBtn->addListener(this);
     soloBtn->setTooltip("Solo this chain");
     soloBtn->addMouseListener(this, false);
+    soloBtn->onClick = [&processor, chainNumber] () {
+        processor.setChainSolo(chainNumber, !ModelInterface::getChainSolo(processor.manager, chainNumber));
+    };
 
     removeButton.reset(new UIUtils::CrossButton("Remove Button"));
     addAndMakeVisible(removeButton.get());
-    removeButton->addListener(this);
     removeButton->setTooltip("Remove this chain");
     removeButton->setColour(UIUtils::CrossButton::enabledColour, UIUtils::highlightColour);
     removeButton->setColour(UIUtils::CrossButton::disabledColour, UIUtils::deactivatedColour);
     removeButton->addMouseListener(this, false);
     removeButton->setEnabled(false);
+    removeButton->onClick = [this] () {
+        _removeChainCallback();
+    };
 }
 
-ChainButtonsComponent::ChainButtonsComponent(int chainNumber,
-                                             ChainParameters& headerParams,
+ChainButtonsComponent::ChainButtonsComponent(SyndicateAudioProcessor& processor,
+                                             int chainNumber,
                                              std::function<void()> removeChainCallback) :
-        ChainButtonsComponent(chainNumber, headerParams) {
+        ChainButtonsComponent(processor, chainNumber) {
     _removeChainCallback = removeChainCallback;
     removeButton->setEnabled(true);
 }
@@ -83,22 +92,10 @@ void ChainButtonsComponent::resized() {
     flexBox.performLayout(availableArea.toFloat());
 }
 
-void ChainButtonsComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
-    if (buttonThatWasClicked == removeButton.get()) {
-        _removeChainCallback();
-    } else if (buttonThatWasClicked == bypassBtn.get()) {
-        _headerParams.setBypass(!bypassBtn->getToggleState());
-    } else if (buttonThatWasClicked == muteBtn.get()) {
-        _headerParams.setMute(!muteBtn->getToggleState());
-    } else if (buttonThatWasClicked == soloBtn.get()) {
-        _headerParams.setSolo(!soloBtn->getToggleState());
-    }
-}
-
-void ChainButtonsComponent::onParameterUpdate() {
-    bypassBtn->setToggleState(_headerParams.getBypass(), juce::dontSendNotification);
-    muteBtn->setToggleState(_headerParams.getMute(), juce::dontSendNotification);
-    soloBtn->setToggleState(_headerParams.getSolo(), juce::dontSendNotification);
+void ChainButtonsComponent::refresh() {
+    bypassBtn->setToggleState(ModelInterface::getChainBypass(_processor.manager, _chainNumber), juce::dontSendNotification);
+    muteBtn->setToggleState(ModelInterface::getChainMute(_processor.manager, _chainNumber), juce::dontSendNotification);
+    soloBtn->setToggleState(ModelInterface::getChainSolo(_processor.manager, _chainNumber), juce::dontSendNotification);
 }
 
 void ChainButtonsComponent::mouseDrag(const juce::MouseEvent& e) {

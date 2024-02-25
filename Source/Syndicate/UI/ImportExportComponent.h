@@ -13,12 +13,17 @@ public:
 
     void resized() override;
 
+    void refresh();
+
 private:
     UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
 
     std::unique_ptr<juce::TextButton> _exportButton;
     std::unique_ptr<juce::TextButton> _importButton;
     std::unique_ptr<juce::FileChooser> _fileChooser;
+
+    std::unique_ptr<juce::TextButton> _undoButton;
+    std::unique_ptr<juce::TextButton> _redoButton;
 
     SyndicateAudioProcessor& _processor;
     SyndicateAudioProcessorEditor& _editor;

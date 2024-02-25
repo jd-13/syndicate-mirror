@@ -46,7 +46,7 @@ namespace XmlReader {
     std::unique_ptr<PluginParameterModulationSource> restorePluginParameterModulationSource(juce::XmlElement* element);
 
     void restoreModulationSourcesFromXml(
-        ModulationInterface::ModulationSourcesState& state,
+        ModelInterface::ModulationSourcesState& state,
         juce::XmlElement* element,
         HostConfiguration configuration);
 }

@@ -55,3 +55,10 @@ void MacrosComponent::onParameterUpdate() {
         component->onParameterUpdate();
     }
 }
+
+void MacrosComponent::updateNames(std::array<juce::String, NUM_MACROS>& macroNames) {
+    for (int index {0}; index < NUM_MACROS; index++) {
+        _macroComponents[index]->updateName(macroNames[index]);
+    }
+}
+

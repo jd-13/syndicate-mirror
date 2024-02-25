@@ -24,7 +24,7 @@ SCENARIO("SplitterMutators: Chains and slots can be added, replaced, and removed
             return 0.0f;
         };
 
-        int latencyCalled {false};
+        bool latencyCalled {false};
         int receivedLatency {0};
         auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
             latencyCalled = true;
@@ -297,7 +297,7 @@ SCENARIO("SplitterMutators: Slots can be moved") {
             return 0.0f;
         };
 
-        int latencyCalled {false};
+        bool latencyCalled {false};
         int receivedLatency {0};
         auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
             latencyCalled = true;
@@ -325,9 +325,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
         receivedLatency = 0;
 
         WHEN("The slot is moved to the same position") {
-            SplitterMutators::moveSlot(splitter, 0, 0, 0, 0);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 0, 0, 0)};
 
             THEN("Nothing changes") {
+                CHECK(success);
                 CHECK(splitterSeries->chains.size() == 1);
                 CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
                 CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
@@ -338,9 +339,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
         }
 
         WHEN("The slot is moved to a position > chain.size()") {
-            SplitterMutators::moveSlot(splitter, 0, 0, 0, 10);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 0, 0, 10)};
 
             THEN("Nothing changes") {
+                CHECK(success);
                 CHECK(splitterSeries->chains.size() == 1);
                 CHECK(splitterSeries->chains[0].chain->chain.size() == 1);
                 CHECK(SplitterMutators::getPlugin(splitterSeries, 0, 0) == plugin);
@@ -360,7 +362,7 @@ SCENARIO("SplitterMutators: Slots can be moved") {
             return 0.0f;
         };
 
-        int latencyCalled {false};
+        bool latencyCalled {false};
         int receivedLatency {0};
         auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
             latencyCalled = true;
@@ -415,9 +417,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
 
             SplitterMutators::setSlotBypass(splitter, 0, 1, true);
             SplitterMutators::setPluginModulationConfig(splitter, config, 0, 1);
-            SplitterMutators::moveSlot(splitter, 0, 1, 0, 1);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 1, 0, 1)};
 
             THEN("Nothing changes") {
+                CHECK(success);
                 REQUIRE(splitterParallel->chains.size() == 2);
 
                 for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
@@ -469,9 +472,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
 
             SplitterMutators::setSlotBypass(splitter, 0, 1, true);
             SplitterMutators::setPluginModulationConfig(splitter, config, 0, 1);
-            SplitterMutators::moveSlot(splitter, 0, 1, 0, 2);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 1, 0, 2)};
 
             THEN("Nothing changes") { // Not immediately obvious, but this is correct as the chain is already in the right place
+                CHECK(success);
                 REQUIRE(splitterParallel->chains.size() == 2);
 
                 for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
@@ -523,9 +527,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
 
             SplitterMutators::setSlotBypass(splitter, 0, 0, true);
             SplitterMutators::setPluginModulationConfig(splitter, config, 0, 0);
-            SplitterMutators::moveSlot(splitter, 0, 0, 0, 2);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 0, 0, 2)};
 
             THEN("The slot is moved to the new position") {
+                CHECK(success);
                 REQUIRE(splitterParallel->chains.size() == 2);
 
                 for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
@@ -570,9 +575,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
         WHEN("A slot is moved from a higher to a lower position") {
             SplitterMutators::setGainLinear(splitter, 0, 3, 0.1f);
             SplitterMutators::setPan(splitter, 0, 3, 0.2f);
-            SplitterMutators::moveSlot(splitter, 0, 3, 0, 0);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 3, 0, 0)};
 
             THEN("The slot is moved to the new position") {
+                CHECK(success);
                 REQUIRE(splitterParallel->chains.size() == 2);
 
                 for (int chainNumber {0}; chainNumber < 2; chainNumber++) {
@@ -602,9 +608,10 @@ SCENARIO("SplitterMutators: Slots can be moved") {
         WHEN("A slot is moved from one chain to another") {
             SplitterMutators::setGainLinear(splitter, 0, 3, 0.1f);
             SplitterMutators::setPan(splitter, 0, 3, 0.2f);
-            SplitterMutators::moveSlot(splitter, 0, 3, 1, 0);
+            const bool success {SplitterMutators::moveSlot(splitter, 0, 3, 1, 0)};
 
             THEN("The slot is moved to the new position") {
+                CHECK(success);
                 REQUIRE(splitterParallel->chains.size() == 2);
                 CHECK(splitterParallel->chains[0].chain->chain.size() == 3);
                 CHECK(splitterParallel->chains[1].chain->chain.size() == 5);
@@ -645,7 +652,7 @@ SCENARIO("SplitterMutators: Chains can be moved") {
             return 0.0f;
         };
 
-        int latencyCalled {false};
+        bool latencyCalled {false};
         int receivedLatency {0};
         auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
             latencyCalled = true;
@@ -708,7 +715,7 @@ SCENARIO("SplitterMutators: Chains can be moved") {
             return 0.0f;
         };
 
-        int latencyCalled {false};
+        bool latencyCalled {false};
         int receivedLatency {0};
         auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
             latencyCalled = true;
@@ -1039,12 +1046,13 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
         receivedLatency = 0;
 
         WHEN("A plugin is bypassed") {
-            SplitterMutators::setSlotBypass(splitter, 0, 1, true);
+            const bool success {SplitterMutators::setSlotBypass(splitter, 0, 1, true)};
 
             // Allow the latency message to be sent
             messageManager->runDispatchLoopUntil(10);
 
             THEN("The plugin is bypassed correctly") {
+                CHECK(success);
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 0, 0));
                 CHECK(SplitterMutators::getSlotBypass(splitter, 0, 1));
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 1, 0));
@@ -1054,12 +1062,13 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("A gain stage is bypassed") {
-            SplitterMutators::setSlotBypass(splitter, 0, 0, true);
+            const bool success {SplitterMutators::setSlotBypass(splitter, 0, 0, true)};
 
             // Allow the latency message to be sent (though we don't expect one for a gain stage change)
             messageManager->runDispatchLoopUntil(10);
 
             THEN("The gain stage is bypassed correctly") {
+                CHECK(success);
                 CHECK(SplitterMutators::getSlotBypass(splitter, 0, 0));
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 0, 1));
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 1, 0));
@@ -1069,12 +1078,13 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("An out of bounds slot is bypassed") {
-            SplitterMutators::setSlotBypass(splitter, 10, 0, true);
+            const bool success {SplitterMutators::setSlotBypass(splitter, 10, 0, true)};
 
             // Allow the latency message to be sent (though we don't expect one here)
             messageManager->runDispatchLoopUntil(10);
 
             THEN("Nothing is bypassed") {
+                CHECK(!success);
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 0, 0));
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 0, 1));
                 CHECK(!SplitterMutators::getSlotBypass(splitter, 1, 0));
@@ -1084,12 +1094,13 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("A chain is soloed") {
-            SplitterMutators::setChainSolo(splitter, 0, true);
+            const bool success {SplitterMutators::setChainSolo(splitter, 0, true)};
 
             // Allow the latency message to be sent
             messageManager->runDispatchLoopUntil(10);
 
             THEN("The chain is soloed correctly") {
+                CHECK(success);
                 CHECK(SplitterMutators::getChainSolo(splitter, 0));
                 CHECK(!SplitterMutators::getChainSolo(splitter, 1));
                 CHECK(!latencyCalled);
@@ -1106,12 +1117,13 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
         }
 
         WHEN("An out of bounds chain is soloed") {
-            SplitterMutators::setChainSolo(splitter, 10, true);
+            const bool success {SplitterMutators::setChainSolo(splitter, 10, true)};
 
             // Allow the latency message to be sent
             messageManager->runDispatchLoopUntil(10);
 
             THEN("Nothing is soloed") {
+                CHECK(!success);
                 CHECK(!SplitterMutators::getChainSolo(splitter, 0));
                 CHECK(!SplitterMutators::getChainSolo(splitter, 1));
                 CHECK(!latencyCalled);
@@ -1159,17 +1171,19 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
             REQUIRE(splitterMultiband != nullptr);
 
             WHEN("Crossover frequency is set") {
-                SplitterMutators::setCrossoverFrequency(splitterMultiband, 0, 2500);
+                const bool success = SplitterMutators::setCrossoverFrequency(splitterMultiband, 0, 2500);
 
                 THEN("the crossover frequency is set correctly") {
+                    CHECK(success);
                     CHECK(SplitterMutators::getCrossoverFrequency(splitterMultiband, 0) == 2500);
                 }
             }
 
             WHEN("Crossover frequency is set for an out of bounds crossover") {
-                SplitterMutators::setCrossoverFrequency(splitterMultiband, 4, 4000);
+                const bool success = SplitterMutators::setCrossoverFrequency(splitterMultiband, 4, 4000);
 
                 THEN("The default value is unchanged") {
+                    CHECK(!success);
                     CHECK(SplitterMutators::getCrossoverFrequency(splitterMultiband, 0) == 1000);
                 }
             }

@@ -23,6 +23,8 @@ public:
 
     void onParameterUpdate();
 
+    void updateNames(std::array<juce::String, NUM_MACROS>& macroNames);
+
 private:
     std::vector<std::unique_ptr<MacroComponent>> _macroComponents;
 

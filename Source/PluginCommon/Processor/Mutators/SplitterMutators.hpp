@@ -18,13 +18,13 @@ namespace SplitterMutators {
 
     inline size_t getNumChains(std::shared_ptr<PluginSplitter> splitter) { return splitter->chains.size(); }
 
-    void setSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, bool isBypassed);
+    bool setSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, bool isBypassed);
     bool getSlotBypass(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
 
-    void setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val);
+    bool setChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber, bool val);
     bool getChainSolo(std::shared_ptr<PluginSplitter> splitter, int chainNumber);
 
-    void moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
+    bool moveSlot(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
     void copySlot(std::shared_ptr<PluginSplitter> splitter,
                   std::function<void(std::shared_ptr<juce::AudioPluginInstance> sharedPlugin, juce::MemoryBlock sourceState, bool isBypassed, PluginModulationConfig sourceConfig)> insertPlugin,
                   std::function<void()> onSuccess,
@@ -34,11 +34,11 @@ namespace SplitterMutators {
                   int toChainNumber,
                   int toSlotNumber);
 
-    void moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber);
+    bool moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber);
 
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain);
     float getGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
-    std::optional<GainStageLevelsInterface> getGainStageLevelsInterface(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
+    float getGainStageOutputAmplitude(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, int channelNumber);
 
     bool setPan(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float pan);
     float getPan(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
@@ -55,6 +55,6 @@ namespace SplitterMutators {
     void addBand(std::shared_ptr<PluginSplitterMultiband> splitter);
     bool removeBand(std::shared_ptr<PluginSplitterMultiband> splitter, int bandNumber);
     size_t getNumBands(std::shared_ptr<PluginSplitterMultiband> splitter);
-    void setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val);
+    bool setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val);
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index);
 }

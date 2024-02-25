@@ -1,7 +1,7 @@
 #include "CrossoverImagerComponent.h"
 #include "UIUtils.h"
 #include "UIUtilsCrossover.h"
-#include "SplitterInterface.hpp"
+#include "ModelInterface.hpp"
 
 namespace {
     int dBToYPos(float dBValue, int crossoverHeight) {
@@ -23,7 +23,7 @@ void CrossoverImagerComponent::paint(juce::Graphics& g) {
 
     g.fillAll(UIUtils::backgroundColour);
 
-    auto [fftBuffer, binWidth] = SplitterInterface::getFFTOutputs(_processor.splitter);
+    auto [fftBuffer, binWidth] = ModelInterface::getFFTOutputs(_processor.manager);
 
     // Draw a line to each point in the FFT
     juce::Path p;

@@ -66,7 +66,7 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     addAndMakeVisible(_graphView.get());
     _graphView->setName("Graph View");
 
-    _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _processor.chainParameters[0], _graphView->getViewport()));
+    _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _graphView->getViewport()));
     addAndMakeVisible(_splitterHeader.get());
     _splitterHeader->setName("Splitter Header");
 
@@ -84,7 +84,7 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _tooltipLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     //[/UserPreSize]
 
-    setSize (700, 550);
+    setSize (700, 620);
 
 
     //[Constructor] You can add your own custom stuff here..
@@ -97,7 +97,13 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
 
     // Start tooltip label
     addMouseListener(&_tooltipLabelUpdater, true);
-    _tooltipLabelUpdater.start(_tooltipLbl.get(), getAudioProcessor()->wrapperType);
+    _tooltipLabelUpdater.start(
+        _tooltipLbl.get(),
+        getAudioProcessor()->wrapperType
+#ifdef DEMO_BUILD
+        ,true
+#endif
+        );
 
     // Call this once to force an update
     needsGraphRebuild();
@@ -159,7 +165,7 @@ void SyndicateAudioProcessorEditor::resized()
     _tooltipLbl->setBounds(availableArea.removeFromBottom(TOOLTIP_HEIGHT));
 
     juce::Rectangle<int> leftArea = availableArea.removeFromLeft(SIDEBAR_WIDTH);
-    _importExportComponent->setBounds(leftArea.removeFromTop(8 + 8 + 4 + 24 + 24));
+    _importExportComponent->setBounds(leftArea.removeFromTop(8 + 8 + 4 + 24 + 24 + 16 + 24 + 4 + 24));
     _macrosSidebar->setBounds(leftArea);
 
     juce::Rectangle<int> rightArea = availableArea.removeFromRight(SIDEBAR_WIDTH).withTrimmedTop(SPLITTER_BUTTONS_HEIGHT);
@@ -185,12 +191,34 @@ void SyndicateAudioProcessorEditor::needsGraphRebuild() {
     _splitterButtonsBar->onParameterUpdate();
     _updateSplitterHeader();
     _graphView->onParameterUpdate();
+    needsChainButtonsRefresh();
+    needsUndoRedoRefresh();
+}
+
+void SyndicateAudioProcessorEditor::needsModulationBarRebuild() {
+    _modulationBar->needsRebuild();
+    needsUndoRedoRefresh();
+}
+
+void SyndicateAudioProcessorEditor::needsChainButtonsRefresh() {
+    _splitterHeader->refreshChainButtons();
+    needsUndoRedoRefresh();
+}
+
+void SyndicateAudioProcessorEditor::needsUndoRedoRefresh() {
+    _importExportComponent->refresh();
+
+    juce::Component* mouseOverComponent = getComponentAt(getMouseXYRelative());
+    if (mouseOverComponent != nullptr) {
+        _tooltipLabelUpdater.refreshTooltip(mouseOverComponent);
+    }
 }
 
 void SyndicateAudioProcessorEditor::needsToRefreshAll() {
     needsGraphRebuild();
     _onParameterUpdate();
-    _modulationBar->needsRebuild();
+    needsModulationBarRebuild();
+    _macrosSidebar->updateNames(_processor.macroNames);
 }
 
 void SyndicateAudioProcessorEditor::_enableDoubleClickToDefault() {
@@ -217,6 +245,8 @@ void SyndicateAudioProcessorEditor::_onParameterUpdate() {
 
     _outputSidebar->onParameterUpdate();
     _macrosSidebar->onParameterUpdate();
+
+    _importExportComponent->refresh();
 }
 
 void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
@@ -230,7 +260,7 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
 
         switch (_processor.getSplitType()) {
             case SPLIT_TYPE::SERIES:
-                _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _processor.chainParameters[0], _graphView->getViewport()));
+                _splitterHeader.reset(new SeriesSplitterSubComponent(_processor, _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::PARALLEL:
                 _splitterHeader.reset(new ParallelSplitterSubComponent(_processor, _headerExtensionComponent.get(), _graphView->getViewport()));
@@ -239,10 +269,10 @@ void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
                 _splitterHeader.reset(new MultibandSplitterSubComponent(_processor, _headerExtensionComponent.get(), _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::LEFTRIGHT:
-                _splitterHeader.reset(new LeftrightSplitterSubComponent(_processor, _processor.chainParameters[0], _processor.chainParameters[1], _graphView->getViewport()));
+                _splitterHeader.reset(new LeftrightSplitterSubComponent(_processor, _graphView->getViewport()));
                 break;
             case SPLIT_TYPE::MIDSIDE:
-                _splitterHeader.reset(new MidsideSplitterSubComponent(_processor, _processor.chainParameters[0], _processor.chainParameters[1], _graphView->getViewport()));
+                _splitterHeader.reset(new MidsideSplitterSubComponent(_processor, _graphView->getViewport()));
                 break;
         }
 
@@ -289,7 +319,7 @@ BEGIN_JUCER_METADATA
                  constructorParams="SyndicateAudioProcessor&amp; ownerProcessor"
                  variableInitialisers="CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false), _previousSplitType(SPLIT_TYPE::SERIES)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="1" initialWidth="700" initialHeight="550">
+                 fixedSize="1" initialWidth="700" initialHeight="620">
   <BACKGROUND backgroundColour="ff272727"/>
 </JUCER_COMPONENT>
 

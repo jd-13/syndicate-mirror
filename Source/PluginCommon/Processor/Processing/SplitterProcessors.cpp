@@ -2,10 +2,9 @@
 #include "ChainProcessors.hpp"
 
 namespace {
-        void copyBuffer(juce::AudioBuffer<float>& source, juce::AudioBuffer<float>& destination) {
+    void copyBuffer(juce::AudioBuffer<float>& source, juce::AudioBuffer<float>& destination) {
         if (source.getNumSamples() == destination.getNumSamples()) {
-
-            int channelsToCopy {std::min(source.getNumChannels(), destination.getNumChannels())};
+            const int channelsToCopy {std::min(source.getNumChannels(), destination.getNumChannels())};
 
             // For each channel, copy each sample
             for (int channelIndex {0}; channelIndex < channelsToCopy; channelIndex++) {
@@ -19,8 +18,7 @@ namespace {
 
     void addBuffers(juce::AudioBuffer<float>& source, juce::AudioBuffer<float>& destination) {
         if (source.getNumSamples() == destination.getNumSamples()) {
-
-            int channelsToCopy {std::min(source.getNumChannels(), destination.getNumChannels())};
+            const int channelsToCopy {std::min(source.getNumChannels(), destination.getNumChannels())};
 
             // For each channel, add each sample
             for (int channelIndex {0}; channelIndex < channelsToCopy; channelIndex++) {
@@ -39,25 +37,28 @@ namespace {
     void processBlockParallel(PluginSplitterParallel& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
         splitter.outputBuffer->clear();
 
-        for (PluginChainWrapper& chain : splitter.chains) {
+        // Crop the internal buffers in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+        juce::AudioBuffer<float> inputBufferCropped(splitter.inputBuffer->getArrayOfWritePointers(), splitter.inputBuffer->getNumChannels(), buffer.getNumSamples());
+        juce::AudioBuffer<float> outputBufferCropped(splitter.outputBuffer->getArrayOfWritePointers(), splitter.outputBuffer->getNumChannels(), buffer.getNumSamples());
 
+        for (PluginChainWrapper& chain : splitter.chains) {
             // Only process if no bands are soloed or this one is soloed
             if (splitter.numChainsSoloed == 0 || chain.isSoloed) {
                 // Make a copy of the input buffer for us to process, preserving the original for the other
                 // chains
                 // TODO: do the same for midi
-                copyBuffer(buffer, *(splitter.inputBuffer.get()));
+                copyBuffer(buffer, inputBufferCropped);
 
                 // Process the newly copied buffer
-                ChainProcessors::processBlock(*(chain.chain.get()), *(splitter.inputBuffer.get()), midiMessages, newPlayHead);
+                ChainProcessors::processBlock(*(chain.chain.get()), inputBufferCropped, midiMessages, newPlayHead);
 
                 // Add the output of this chain to the output buffer
-                addBuffers(*(splitter.inputBuffer.get()), *(splitter.outputBuffer.get()));
+                addBuffers(inputBufferCropped, outputBufferCropped);
             }
         }
 
         // Overwrite the original buffer with our own output
-        copyBuffer(*(splitter.outputBuffer.get()), buffer);
+        copyBuffer(outputBufferCropped, buffer);
     }
 
     void processBlockMultiband(PluginSplitterMultiband& splitter, juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages, juce::AudioPlayHead* newPlayHead) {
@@ -99,14 +100,18 @@ namespace {
 
         // Process the left chain
         if (processLeftChain) {
-            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.leftBuffer.get()), midiMessages, newPlayHead);
-            addBuffers(*(splitter.leftBuffer.get()), buffer);
+            // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+            juce::AudioBuffer<float> leftBufferCropped(splitter.leftBuffer->getArrayOfWritePointers(), splitter.leftBuffer->getNumChannels(), buffer.getNumSamples());
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), leftBufferCropped, midiMessages, newPlayHead);
+            addBuffers(leftBufferCropped, buffer);
         }
 
         // Process the right chain
         if (processRightChain) {
-            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.rightBuffer.get()), midiMessages, newPlayHead);
-            addBuffers(*(splitter.rightBuffer.get()), buffer);
+            // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+            juce::AudioBuffer<float> rightBufferCropped(splitter.rightBuffer->getArrayOfWritePointers(), splitter.rightBuffer->getNumChannels(), buffer.getNumSamples());
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), rightBufferCropped, midiMessages, newPlayHead);
+            addBuffers(rightBufferCropped, buffer);
         }
     }
 
@@ -143,14 +148,18 @@ namespace {
 
         // Process the buffers
         if (!isAnythingSoloed || splitter.chains[0].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), *(splitter.midBuffer.get()), midiMessages, newPlayHead);
+            // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+            juce::AudioBuffer<float> midBufferCropped(splitter.midBuffer->getArrayOfWritePointers(), splitter.midBuffer->getNumChannels(), numSamples);
+            ChainProcessors::processBlock(*(splitter.chains[0].chain.get()), midBufferCropped, midiMessages, newPlayHead);
         } else {
             // Mute the mid channel if only the other one is soloed
             juce::FloatVectorOperations::fill(midWrite, 0, numSamples);
         }
 
         if (!isAnythingSoloed || splitter.chains[1].isSoloed) {
-            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), *(splitter.sideBuffer.get()), midiMessages, newPlayHead);
+            // Crop the internal buffer in case the DAW has provided a buffer smaller than the specified block size in prepareToPlay
+            juce::AudioBuffer<float> sideBufferCropped(splitter.sideBuffer->getArrayOfWritePointers(), splitter.sideBuffer->getNumChannels(), numSamples);
+            ChainProcessors::processBlock(*(splitter.chains[1].chain.get()), sideBufferCropped, midiMessages, newPlayHead);
         } else {
             // Mute the side channel if only the other one is soloed
             juce::FloatVectorOperations::fill(sideWrite, 0, numSamples);
