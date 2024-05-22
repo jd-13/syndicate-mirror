@@ -46,6 +46,11 @@ namespace ModelInterface {
                   int toSlotNumber);
 
     void moveChain(StateManager& manager, int fromChainNumber, int toChainNumber);
+    void copyChain(StateManager& manager,
+                   std::function<void()> onSuccess,
+                   juce::AudioPluginFormatManager& formatManager,
+                   int fromChainNumber,
+                   int toChainNumber);
 
     size_t getNumChains(StateManager& manager);
 
@@ -56,6 +61,9 @@ namespace ModelInterface {
     bool removeCrossoverBand(StateManager& manager, int bandNumber);
     bool setCrossoverFrequency(StateManager& manager, size_t index, float val);
     float getCrossoverFrequency(StateManager& manager, size_t index);
+
+    bool setChainCustomName(StateManager& manager, int chainNumber, const juce::String& name);
+    juce::String getChainCustomName(StateManager& manager, int chainNumber);
 
     std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(StateManager& manager);
 
@@ -71,6 +79,7 @@ namespace ModelInterface {
         std::function<void(int)> latencyChangeCallback,
         HostConfiguration config,
         const PluginConfigurator& pluginConfigurator,
+        juce::Array<juce::PluginDescription> availableTypes,
         std::function<void(juce::String)> onErrorCallback);
 
     void createDefaultSources(StateManager& manager);
@@ -89,6 +98,18 @@ namespace ModelInterface {
     void setLfoFreq(StateManager& manager, int lfoIndex, double val);
     void setLfoDepth(StateManager& manager, int lfoIndex, double val);
     void setLfoManualPhase(StateManager& manager, int lfoIndex, double val);
+    void addSourceToLFOFreq(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFOFreq(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void setLFOFreqModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOFreqModulationSources(StateManager& manager, int lfoIndex);
+    void addSourceToLFODepth(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFODepth(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void setLFODepthModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFODepthModulationSources(StateManager& manager, int lfoIndex);
+    void addSourceToLFOPhase(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFOPhase(StateManager& manager, int lfoIndex, ModulationSourceDefinition source);
+    void setLFOPhaseModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOPhaseModulationSources(StateManager& manager, int lfoIndex);
 
     bool getLfoTempoSyncSwitch(StateManager& manager, int lfoIndex);
     bool getLfoInvertSwitch(StateManager& manager, int lfoIndex);
@@ -96,8 +117,11 @@ namespace ModelInterface {
     double getLfoTempoNumer(StateManager& manager, int lfoIndex);
     double getLfoTempoDenom(StateManager& manager, int lfoIndex);
     double getLfoFreq(StateManager& manager, int lfoIndex);
+    double getLFOModulatedFreqValue(StateManager& manager, int lfoIndex);
     double getLfoDepth(StateManager& manager, int lfoIndex);
+    double getLFOModulatedDepthValue(StateManager& manager, int lfoIndex);
     double getLfoManualPhase(StateManager& manager, int lfoIndex);
+    double getLFOModulatedPhaseValue(StateManager& manager, int lfoIndex);
 
     void setEnvAttackTimeMs(StateManager& manager, int envIndex, double val);
     void setEnvReleaseTimeMs(StateManager& manager, int envIndex, double val);

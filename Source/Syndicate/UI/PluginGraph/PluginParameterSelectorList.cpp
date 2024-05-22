@@ -49,7 +49,8 @@ PluginParameterSelectorTableListBoxModel::PluginParameterSelectorTableListBoxMod
         PluginParameterSelectorListParameters selectorListParameters)
             : _parameterListSorter(selectorListParameters.state,
                                    selectorListParameters.fullParameterList),
-              _parameterSelectedCallback(selectorListParameters.parameterSelectedCallback) {
+              _parameterSelectedCallback(selectorListParameters.parameterSelectedCallback),
+              _isReplacingParameter(selectorListParameters.isReplacingParameter) {
     _parameterList = _parameterListSorter.getFilteredParameterList();
 }
 
@@ -86,7 +87,8 @@ void PluginParameterSelectorTableListBoxModel::paintCell(juce::Graphics& g,
 void PluginParameterSelectorTableListBoxModel::cellDoubleClicked(int rowNumber,
                                                                  int /*columnId*/,
                                                                  const juce::MouseEvent& /*event*/) {
-    _parameterSelectedCallback(_parameterList[rowNumber]);
+    const bool shouldCloseWindow {!juce::ModifierKeys::currentModifiers.isCommandDown() || _isReplacingParameter};
+    _parameterSelectedCallback(_parameterList[rowNumber], shouldCloseWindow);
 }
 
 PluginParameterSelectorTableListBox::PluginParameterSelectorTableListBox(

@@ -5,13 +5,11 @@
 LeftrightSplitterSubComponent::LeftrightSplitterSubComponent(SyndicateAudioProcessor& processor,
                                                              UIUtils::LinkedScrollView* graphView)
         : SplitterHeaderComponent(processor, graphView) {
-    auto leftChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 0);
+    auto leftChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 0, "Left");
     _viewPort->getViewedComponent()->addAndMakeVisible(leftChainbuttons.get());
-    leftChainbuttons->chainLabel->setText("Left", juce::dontSendNotification);
     _chainButtons.push_back(std::move(leftChainbuttons));
 
-    auto rightChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 1);
+    auto rightChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 1, "Right");
     _viewPort->getViewedComponent()->addAndMakeVisible(rightChainbuttons.get());
-    rightChainbuttons->chainLabel->setText("Right", juce::dontSendNotification);
     _chainButtons.push_back(std::move(rightChainbuttons));
 }

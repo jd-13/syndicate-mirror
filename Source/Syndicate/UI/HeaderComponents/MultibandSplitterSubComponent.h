@@ -18,6 +18,8 @@ public:
     void resized() override;
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
+    void refreshChainButtons() override;
+
 private:
     UIUtils::AddButtonLookAndFeel _buttonLookAndFeel;
 

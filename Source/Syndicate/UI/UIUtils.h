@@ -315,4 +315,5 @@ namespace UIUtils {
     };
 
     juce::String getCopyKeyName();
+    juce::String getCmdKeyName();
 }

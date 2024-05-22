@@ -6,6 +6,9 @@
 SCENARIO("CloneableLFO: Clone works correctly") {
     GIVEN("A CloneableLFO") {
         ModelInterface::CloneableLFO lfo;
+        const auto freqSourceLFO = std::make_shared<ModelInterface::CloneableLFO>();
+        const auto depthSourceLFO = std::make_shared<ModelInterface::CloneableLFO>();
+        const auto phaseSourceLFO = std::make_shared<ModelInterface::CloneableLFO>();
 
         // Set some unique values so we can test for them later
         lfo.setBypassSwitch(true);
@@ -16,11 +19,15 @@ SCENARIO("CloneableLFO: Clone works correctly") {
         lfo.setTempoNumer(2);
         lfo.setTempoDenom(3);
         lfo.setFreq(4.5);
-        lfo.setFreqMod(0.6);
         lfo.setDepth(0.7);
-        lfo.setDepthMod(0.8);
         lfo.setManualPhase(250);
         lfo.setSampleRate(48000);
+        lfo.addFreqModulationSource(freqSourceLFO);
+        lfo.setFreqModulationAmount(0, 0.3);
+        lfo.addDepthModulationSource(depthSourceLFO);
+        lfo.setDepthModulationAmount(0, 0.4);
+        lfo.addPhaseModulationSource(phaseSourceLFO);
+        lfo.setPhaseModulationAmount(0, 0.5);
 
         // Set up some internal state
         lfo.prepareForNextBuffer(110, 5);
@@ -40,13 +47,20 @@ SCENARIO("CloneableLFO: Clone works correctly") {
                 CHECK(clonedLFO->getTempoNumer() == lfo.getTempoNumer());
                 CHECK(clonedLFO->getTempoDenom() == lfo.getTempoDenom());
                 CHECK(clonedLFO->getFreq() == lfo.getFreq());
-                CHECK(clonedLFO->getFreqMod() == lfo.getFreqMod());
                 CHECK(clonedLFO->getDepth() == lfo.getDepth());
-                CHECK(clonedLFO->getDepthMod() == lfo.getDepthMod());
                 CHECK(clonedLFO->getManualPhase() == lfo.getManualPhase());
                 // CHECK(clonedLFO->getSampleRate() == lfo.getSampleRate());
                 CHECK(clonedLFO->getLastOutput() == lfo.getLastOutput());
                 CHECK(clonedLFO->getNextOutput(0.5) == lfo.getNextOutput(0.5));
+                REQUIRE(clonedLFO->getFreqModulationSources().size() == 1);
+                CHECK(clonedLFO->getFreqModulationSources()[0].source == freqSourceLFO);
+                CHECK(clonedLFO->getFreqModulationSources()[0].amount == 0.3);
+                REQUIRE(clonedLFO->getFreqModulationSources().size() == 1);
+                CHECK(clonedLFO->getDepthModulationSources()[0].source == depthSourceLFO);
+                CHECK(clonedLFO->getDepthModulationSources()[0].amount == 0.4);
+                REQUIRE(clonedLFO->getPhaseModulationSources().size() == 1);
+                CHECK(clonedLFO->getPhaseModulationSources()[0].source == phaseSourceLFO);
+                CHECK(clonedLFO->getPhaseModulationSources()[0].amount == 0.5);
             }
 
             delete clonedLFO;

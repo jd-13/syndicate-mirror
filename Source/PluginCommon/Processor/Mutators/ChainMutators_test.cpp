@@ -50,6 +50,12 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
     auto messageManager = juce::MessageManager::getInstance();
 
     GIVEN("An empty chain") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 0.0f;
@@ -67,7 +73,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
             {
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(10);
-                ChainMutators::insertPlugin(chain, plugin, 0);
+                ChainMutators::insertPlugin(chain, plugin, 0, hostConfig);
 
                 // THEN("The chain contains a single plugin")
                 CHECK(chain->chain.size() == 1);
@@ -81,7 +87,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
             {
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(15);
-                ChainMutators::insertPlugin(chain, plugin, 5);
+                ChainMutators::insertPlugin(chain, plugin, 5, hostConfig);
 
                 // THEN("The new plugin is added at the end")
                 CHECK(chain->chain.size() == 2);
@@ -95,7 +101,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
             {
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(20);
-                ChainMutators::insertPlugin(chain, plugin, 1);
+                ChainMutators::insertPlugin(chain, plugin, 1, hostConfig);
 
                 // THEN("The new plugin is added in the correct place")
                 CHECK(chain->chain.size() == 3);
@@ -134,7 +140,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 plugin->setLatencySamples(25);
 
                 auto oldPlugin = std::dynamic_pointer_cast<MutatorTestPluginInstance>(ChainMutators::getPlugin(chain, 1));
-                ChainMutators::replacePlugin(chain, plugin, 1);
+                ChainMutators::replacePlugin(chain, plugin, 1, hostConfig);
 
                 // THEN("The new plugin is in the correct place")
                 CHECK(chain->chain.size() == 5);
@@ -150,7 +156,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
                 REQUIRE(ChainMutators::getPlugin(chain, 2) == nullptr);
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(30);
-                ChainMutators::replacePlugin(chain, plugin, 2);
+                ChainMutators::replacePlugin(chain, plugin, 2, hostConfig);
 
                 // THEN("The new plugin is in the correct place")
                 CHECK(chain->chain.size() == 5);
@@ -164,7 +170,7 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
             {
                 auto plugin = std::make_shared<MutatorTestPluginInstance>();
                 plugin->setLatencySamples(35);
-                ChainMutators::replacePlugin(chain, plugin, 10);
+                ChainMutators::replacePlugin(chain, plugin, 10, hostConfig);
 
                 // THEN("The new plugin is added at the end")
                 CHECK(chain->chain.size() == 6);
@@ -251,6 +257,12 @@ SCENARIO("ChainMutators: Slots can be added, replaced, and removed") {
 
 SCENARIO("ChainMutators: Modulation config can be set and retrieved") {
     GIVEN("A chain with three plugins and a gain stage") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 0.0f;
@@ -259,10 +271,10 @@ SCENARIO("ChainMutators: Modulation config can be set and retrieved") {
         const auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::stereo());
 
         auto chain = std::make_shared<PluginChain>(modulationCallback);
-        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 0);
+        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 0, hostConfig);
         ChainMutators::insertGainStage(chain, 1, {layout, SAMPLE_RATE, NUM_SAMPLES});
-        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 2);
-        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 3);
+        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 2, hostConfig);
+        ChainMutators::insertPlugin(chain, std::make_shared<MutatorTestPluginInstance>(), 3, hostConfig);
 
         WHEN("The config is set for a plugin") {
             PluginModulationConfig config;
@@ -310,6 +322,12 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
     auto messageManager = juce::MessageManager::getInstance();
 
     GIVEN("A chain with two plugins and two gain stages") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 0.0f;
@@ -324,7 +342,7 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
         {
             auto plugin = std::make_shared<MutatorTestPluginInstance>();
             plugin->setLatencySamples(10);
-            ChainMutators::insertPlugin(chain, plugin, 0);
+            ChainMutators::insertPlugin(chain, plugin, 0, hostConfig);
         }
 
         ChainMutators::insertGainStage(chain, 1, {layout, SAMPLE_RATE, NUM_SAMPLES});
@@ -332,7 +350,7 @@ SCENARIO("ChainMutators: Slot parameters can be modified and retrieved") {
         {
             auto plugin = std::make_shared<MutatorTestPluginInstance>();
             plugin->setLatencySamples(15);
-            ChainMutators::insertPlugin(chain, plugin, 2);
+            ChainMutators::insertPlugin(chain, plugin, 2, hostConfig);
         }
 
         ChainMutators::insertGainStage(chain, 3, {layout, SAMPLE_RATE, NUM_SAMPLES});
@@ -429,6 +447,12 @@ SCENARIO("ChainMutators: The chain can be bypassed and muted") {
     auto messageManager = juce::MessageManager::getInstance();
 
     GIVEN("An empty chain") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
         };
@@ -441,7 +465,7 @@ SCENARIO("ChainMutators: The chain can be bypassed and muted") {
 
         auto plugin = std::make_shared<MutatorTestPluginInstance>();
         plugin->setLatencySamples(10);
-        ChainMutators::insertPlugin(chain, plugin, 0);
+        ChainMutators::insertPlugin(chain, plugin, 0, hostConfig);
 
         REQUIRE(chain->latencyListener.calculatedTotalPluginLatency == 10);
 
@@ -477,6 +501,12 @@ SCENARIO("ChainMutators: The chain can be bypassed and muted") {
 
 SCENARIO("ChainMutators: Chains are removed from plugins as latency listeners on destruction") {
     GIVEN("A plugin chain with a single plugin") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
         };
@@ -484,7 +514,7 @@ SCENARIO("ChainMutators: Chains are removed from plugins as latency listeners on
         auto chain = std::make_shared<PluginChain>(modulationCallback);
         auto plugin = std::make_shared<MutatorTestPluginInstance>();
 
-        ChainMutators::insertPlugin(chain, plugin, 0);
+        ChainMutators::insertPlugin(chain, plugin, 0, hostConfig);
 
         WHEN("The chain is deleted") {
             // Get a pointer to the chain as a AudioProcessorListener before resetting

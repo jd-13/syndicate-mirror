@@ -135,6 +135,23 @@ void ModulationBar::needsRebuild() {
     }
 }
 
+void ModulationBar::needsSelectedSourceRebuild() {
+    // Find the selected source and reselect it
+    for (std::unique_ptr<ModulationButton>& button : _lfoButtons) {
+        if (button->getIsSelected()) {
+            _selectModulationSource(button.get());
+            return;
+        }
+    }
+
+    for (std::unique_ptr<ModulationButton>& button : _envelopeButtons) {
+        if (button->getIsSelected()) {
+            _selectModulationSource(button.get());
+            return;
+        }
+    }
+}
+
 void ModulationBar::AddButtonLookAndFeel::drawButtonBackground(juce::Graphics& g,
                                                                juce::Button& button,
                                                                const juce::Colour& /*backgroundColour*/,

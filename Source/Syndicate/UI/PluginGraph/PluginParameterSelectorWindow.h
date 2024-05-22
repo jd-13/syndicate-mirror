@@ -8,7 +8,7 @@ class PluginParameterSelectorWindow : public juce::DocumentWindow {
 public:
     PluginParameterSelectorWindow(std::function<void()> onCloseCallback,
                                   PluginParameterSelectorListParameters selectorListParameters,
-                                  juce::String pluginName);
+                                  juce::String title);
     virtual ~PluginParameterSelectorWindow();
 
     virtual void closeButtonPressed() override;

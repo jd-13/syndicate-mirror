@@ -20,5 +20,5 @@ void CrossoverWrapperComponent::resized() {
 }
 
 void CrossoverWrapperComponent::onParameterUpdate() {
-    _parameterComponent->repaint();
+    _parameterComponent->onParameterUpdate();
 }

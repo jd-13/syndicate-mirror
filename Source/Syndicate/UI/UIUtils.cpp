@@ -628,4 +628,16 @@ namespace UIUtils {
     #error "Unknown OS"
 #endif
     }
+
+    juce::String getCmdKeyName() {
+#if _WIN32
+        return "Ctrl";
+#elif __APPLE__
+        return "Cmd";
+#elif __linux__
+        return "Ctrl";
+#else
+    #error "Unknown OS"
+#endif
+    }
 }

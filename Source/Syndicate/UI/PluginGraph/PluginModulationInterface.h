@@ -28,5 +28,5 @@ private:
     SyndicateAudioProcessor& _processor;
     std::unique_ptr<PluginParameterSelectorWindow> _parameterSelectorWindow;
 
-    void _onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber);
+    void _onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber, bool shouldClose);
 };

@@ -7,12 +7,18 @@ SCENARIO("PluginChain: Clone works correctly") {
     auto messageManager = juce::MessageManager::getInstance();
 
     GIVEN("A chain with one plugin slot and one gain stage") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto plugin = std::make_shared<TestUtils::TestPluginInstance>();
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 1.2f;
         };
-        auto pluginSlot = std::make_shared<ChainSlotPlugin>(plugin, false, modulationCallback);
+        auto pluginSlot = std::make_shared<ChainSlotPlugin>(plugin, false, modulationCallback, hostConfig);
 
         auto chain = std::make_shared<PluginChain>(modulationCallback);
         plugin->setLatencySamples(15);

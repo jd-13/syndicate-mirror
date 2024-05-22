@@ -43,6 +43,6 @@ private:
     int _pluginNumber;
     int _chainNumber;
 
-    void _onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error);
+    void _onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error, bool shouldClose);
     void _onPluginWindowClose(std::shared_ptr<juce::AudioPluginInstance> plugin);
 };

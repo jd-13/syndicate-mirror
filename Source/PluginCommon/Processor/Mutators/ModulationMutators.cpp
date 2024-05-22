@@ -1,5 +1,49 @@
 #include "ModulationMutators.hpp"
 
+namespace {
+    std::vector<WECore::ModulationSourceWrapper<double>> deleteSourceFromTargetSources(
+            std::vector<WECore::ModulationSourceWrapper<double>> sources,
+            ModulationSourceDefinition definition,
+            std::function<float(int, MODULATION_TYPE)> getModulationValueCallback) {
+        bool needsToDelete {false};
+        int indexToDelete {0};
+
+        // Iterate through each configured source
+        for (int sourceIndex {0}; sourceIndex < sources.size(); sourceIndex++) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(sources[sourceIndex].source);
+
+            if (thisSource == nullptr) {
+                continue;
+            }
+
+            if (thisSource->definition == definition) {
+                // We need to come back and delete this one
+                needsToDelete = true;
+                indexToDelete = sourceIndex;
+            } else if (thisSource->definition.type == definition.type &&
+                       thisSource->definition.id > definition.id) {
+                // We need to renumber this one since a source below it is being deleted
+                // We create a new source rather than modifying the existing one, since that would break undo/redo
+                ModulationSourceDefinition newDefinition(thisSource->definition.id - 1, thisSource->definition.type);
+                WECore::ModulationSourceWrapper<double> newSource;
+
+                newSource.source = std::make_shared<ModulationSourceProvider>(
+                    newDefinition, getModulationValueCallback);
+
+                newSource.amount = sources[sourceIndex].amount;
+
+                sources[sourceIndex] = newSource;
+            }
+        }
+
+        if (needsToDelete) {
+            sources.erase(sources.begin() + indexToDelete);
+        }
+
+        return sources;
+    }
+}
+
 namespace ModulationMutators {
     void addLfo(std::shared_ptr<ModelInterface::ModulationSourcesState> sources) {
         std::shared_ptr<ModelInterface::CloneableLFO> newLfo {new ModelInterface::CloneableLFO()};
@@ -79,6 +123,147 @@ namespace ModulationMutators {
         return false;
     }
 
+    bool addSourceToLFOFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->lfos[lfoIndex]->addFreqModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromLFOFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->lfos[lfoIndex]->getFreqModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->lfos[lfoIndex]->removeFreqModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setLFOFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->setFreqModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->lfos.size() > lfoIndex) {
+            for (const auto& source : sources->lfos[lfoIndex]->getFreqModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    bool addSourceToLFODepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->lfos[lfoIndex]->addDepthModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromLFODepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->lfos[lfoIndex]->getDepthModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->lfos[lfoIndex]->removeDepthModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setLFODepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->setDepthModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFODepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->lfos.size() > lfoIndex) {
+            for (const auto& source : sources->lfos[lfoIndex]->getDepthModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    bool addSourceToLFOPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->lfos[lfoIndex]->addPhaseModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromLFOPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source) {
+        if (sources->lfos.size() <= lfoIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->lfos[lfoIndex]->getPhaseModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->lfos[lfoIndex]->removePhaseModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setLFOPhaseModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->setPhaseModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOPhaseModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->lfos.size() > lfoIndex) {
+            for (const auto& source : sources->lfos[lfoIndex]->getPhaseModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
     bool getLfoTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
         if (sources->lfos.size() > lfoIndex) {
             return sources->lfos[lfoIndex]->getTempoSyncSwitch();
@@ -127,6 +312,14 @@ namespace ModulationMutators {
         return 0;
     }
 
+    double getLFOModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->getModulatedFreqValue();
+        }
+
+        return 0;
+    }
+
     double getLfoDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
         if (sources->lfos.size() > lfoIndex) {
             return sources->lfos[lfoIndex]->getDepth();
@@ -135,9 +328,25 @@ namespace ModulationMutators {
         return 0;
     }
 
+    double getLFOModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->getModulatedDepthValue();
+        }
+
+        return 0;
+    }
+
     double getLfoManualPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
         if (sources->lfos.size() > lfoIndex) {
             return sources->lfos[lfoIndex]->getManualPhase();
+        }
+
+        return 0;
+    }
+
+    double getLFOModulatedPhaseValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->getModulatedPhaseValue();
         }
 
         return 0;
@@ -269,6 +478,24 @@ namespace ModulationMutators {
     }
 
     bool removeModulationSource(ModelInterface::ModulationSourcesState& state, ModulationSourceDefinition definition) {
+        // First remove/renumber any modulation sources that reference this one
+        for (std::shared_ptr<ModelInterface::CloneableLFO> lfo : state.lfos) {
+            // Freq
+            std::vector<WECore::ModulationSourceWrapper<double>> lfoFreqSources = lfo->getFreqModulationSources();
+            lfoFreqSources = deleteSourceFromTargetSources(lfoFreqSources, definition, state.getModulationValueCallback);
+            lfo->setFreqModulationSources(lfoFreqSources);
+
+            // Depth
+            std::vector<WECore::ModulationSourceWrapper<double>> lfoDepthSources = lfo->getDepthModulationSources();
+            lfoDepthSources = deleteSourceFromTargetSources(lfoDepthSources, definition, state.getModulationValueCallback);
+            lfo->setDepthModulationSources(lfoDepthSources);
+
+            // Phase
+            std::vector<WECore::ModulationSourceWrapper<double>> lfoPhaseSources = lfo->getPhaseModulationSources();
+            lfoPhaseSources = deleteSourceFromTargetSources(lfoPhaseSources, definition, state.getModulationValueCallback);
+            lfo->setPhaseModulationSources(lfoPhaseSources);
+        }
+
         const int index {definition.id - 1};
         if (definition.type == MODULATION_TYPE::LFO) {
             if (state.lfos.size() > index) {

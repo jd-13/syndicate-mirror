@@ -32,4 +32,5 @@ private:
 
     std::unique_ptr<juce::TextEditor> _searchTextEditor;
     std::unique_ptr<PluginParameterSelectorTableListBox> _parameterTableListBox;
+    std::unique_ptr<juce::Label> _hintLabel;
 };

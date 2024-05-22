@@ -17,6 +17,10 @@ inline int getTotalNumInputChannels(const juce::AudioProcessor::BusesLayout& lay
     return retVal;
 }
 
+inline bool layoutHasSidechain(const juce::AudioProcessor::BusesLayout& layout) {
+    return layout.getBuses(true).size() > 1 && layout.getBuses(true)[1].size() > 0;
+}
+
 struct HostConfiguration {
     juce::AudioProcessor::BusesLayout layout;
     double sampleRate;

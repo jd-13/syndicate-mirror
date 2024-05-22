@@ -12,6 +12,18 @@ namespace ModelInterface {
             return new CloneableLFO(*this);
         }
 
+         void setFreqModulationSources(std::vector<WECore::ModulationSourceWrapper<double>> sources) {
+            _freqModulationSources = sources;
+        }
+
+        void setDepthModulationSources(std::vector<WECore::ModulationSourceWrapper<double>> sources) {
+            _depthModulationSources = sources;
+        }
+
+        void setPhaseModulationSources(std::vector<WECore::ModulationSourceWrapper<double>> sources) {
+            _phaseModulationSources = sources;
+        }
+
     private:
         CloneableLFO(const CloneableLFO& other) {
             _wave = other._wave;
@@ -26,9 +38,7 @@ namespace ModelInterface {
             _tempoNumer = other._tempoNumer;
             _tempoDenom = other._tempoDenom;
             _rawFreq = other._rawFreq;
-            _freqMod = other._freqMod;
             _rawDepth = other._rawDepth;
-            _depthMod = other._depthMod;
             _manualPhase = other._manualPhase;
             _sampleRate = other._sampleRate;
             _bpm = other._bpm;
@@ -36,10 +46,11 @@ namespace ModelInterface {
 
             _waveArrayPointer = other._waveArrayPointer;
 
-            // Not used
-            // _modulationSource = other._modulationSource;
-
             _cachedOutput = other._cachedOutput;
+
+            _freqModulationSources = other._freqModulationSources;
+            _depthModulationSources = other._depthModulationSources;
+            _phaseModulationSources = other._phaseModulationSources;
         }
     };
 

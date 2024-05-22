@@ -8,7 +8,8 @@ class PluginSelectorWindow : public juce::DocumentWindow {
 public:
     PluginSelectorWindow(std::function<void()> onCloseCallback,
                          PluginSelectorListParameters selectorListParameters,
-                         std::unique_ptr<SelectorComponentStyle> style);
+                         std::unique_ptr<SelectorComponentStyle> style,
+                         juce::String title);
     virtual ~PluginSelectorWindow();
 
     virtual void closeButtonPressed() override;

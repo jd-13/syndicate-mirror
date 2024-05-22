@@ -5,6 +5,7 @@
 #include <optional>
 
 #include "XmlConsts.hpp"
+#include "WEFilters/ModulationSource.h"
 
 enum class MODULATION_TYPE {
     MACRO,
@@ -66,7 +67,7 @@ public:
         }
     }
 
-    void writeToXml(juce::XmlElement* element) {
+    void writeToXml(juce::XmlElement* element) const {
         element->setAttribute(XML_MODULATION_SOURCE_ID, id);
         element->setAttribute(XML_MODULATION_SOURCE_TYPE, _modulationTypeToString(type));
     }
@@ -94,4 +95,29 @@ private:
             return MODULATION_TYPE::ENVELOPE;
         }
     }
+};
+
+/**
+ * Provides a way for sources (LFOs, envelopes) to lookup the modulation values for sources assigned
+ * to their parameters.
+ */
+class ModulationSourceProvider : public WECore::ModulationSource<double> {
+public:
+    ModulationSourceDefinition definition;
+
+    ModulationSourceProvider(
+        ModulationSourceDefinition newDefinition,
+        std::function<float(int, MODULATION_TYPE)> getModulationValueCallback):
+            definition(newDefinition), _getModulationValueCallback(getModulationValueCallback) { }
+
+    double getLastOutput() const override {
+        return _getModulationValueCallback(definition.id, definition.type);
+    }
+
+private:
+    std::function<float(int, MODULATION_TYPE)> _getModulationValueCallback;
+
+    virtual double _getNextOutputImpl(double /*inSample*/) override { return 0.0; }
+
+    virtual void _resetImpl() override {}
 };

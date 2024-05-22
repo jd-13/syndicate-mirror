@@ -40,6 +40,20 @@ PluginParameterSelectorComponent::PluginParameterSelectorComponent(
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
     _parameterTableListBox->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
 
+    _hintLabel.reset(new juce::Label("Hint Label", juce::String()));
+    addAndMakeVisible(_hintLabel.get());
+    _hintLabel->setFont(juce::Font (15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+    _hintLabel->setJustificationType(juce::Justification::centred);
+    _hintLabel->setEditable(false, false, false);
+    _hintLabel->setColour(juce::Label::textColourId, UIUtils::tooltipColour);
+    _hintLabel->setColour(juce::TextEditor::textColourId, juce::Colours::black);
+    _hintLabel->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
+    if (selectorListParameters.isReplacingParameter) {
+        _hintLabel->setText("Double click a parameter to select it", juce::NotificationType::dontSendNotification);
+    } else {
+        _hintLabel->setText("Double click a parameter to select it\nHold " + UIUtils::getCmdKeyName() + " to keep the window open and select another", juce::NotificationType::dontSendNotification);
+    }
+
     // Recall UI from state
     _searchTextEditor->setText(_state.filterString, false);
 }
@@ -53,6 +67,7 @@ PluginParameterSelectorComponent::~PluginParameterSelectorComponent() {
 
     _searchTextEditor = nullptr;
     _parameterTableListBox = nullptr;
+    _hintLabel = nullptr;
 }
 
 void PluginParameterSelectorComponent::resized() {
@@ -61,7 +76,8 @@ void PluginParameterSelectorComponent::resized() {
 
     juce::Rectangle<int> area = getLocalBounds().reduced(MARGIN_SIZE);
     _searchTextEditor->setBounds(area.removeFromTop(ROW_HEIGHT));
-    area.removeFromTop(MARGIN_SIZE);
+    _hintLabel->setBounds(area.removeFromBottom(ROW_HEIGHT * 2));
+    area.removeFromTop(MARGIN_SIZE).removeFromBottom(MARGIN_SIZE);
     _parameterTableListBox->setBounds(area);
 }
 

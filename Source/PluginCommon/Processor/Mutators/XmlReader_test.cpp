@@ -5,6 +5,7 @@
 #include "XmlWriter.hpp"
 #include "TestUtils.hpp"
 #include "SplitterMutators.hpp"
+#include "ModulationMutators.hpp"
 
 namespace {
     // Use values that would never be sensible  defaults so we know if they were actually set
@@ -60,8 +61,9 @@ SCENARIO("XmlReader: Can restore PluginSplitter") {
         };
 
         WHEN("Asked to restore a PluginSplitter from it") {
+            const juce::Array<juce::PluginDescription> pluginTypes;
             std::shared_ptr<PluginSplitter> splitter = XmlReader::restoreSplitterFromXml(
-                &e, modulationCallback, latencyCallback, config, configurator, errorCallback);
+                &e, modulationCallback, latencyCallback, config, configurator, pluginTypes, errorCallback);
 
             THEN("A PluginSplitter with default values is created") {
                 CHECK(std::dynamic_pointer_cast<PluginSplitterSeries>(splitter) != nullptr);
@@ -144,8 +146,9 @@ SCENARIO("XmlReader: Can restore PluginSplitter") {
         }
 
         WHEN("Asked to restore a PluginSplitter from it") {
+            const juce::Array<juce::PluginDescription> pluginTypes;
             std::shared_ptr<PluginSplitter> splitter = XmlReader::restoreSplitterFromXml(
-                &e, modulationCallback, latencyCallback, config, configurator, errorCallback);
+                &e, modulationCallback, latencyCallback, config, configurator, pluginTypes, errorCallback);
 
             THEN("A PluginSplitter with the correct values is created") {
                 if (splitTypeString == XML_SPLIT_TYPE_SERIES_STR) {
@@ -177,6 +180,8 @@ SCENARIO("XmlReader: Can restore PluginSplitter") {
 }
 
 SCENARIO("XmlReader: Can restore PluginChain") {
+    const juce::Array<juce::PluginDescription> pluginTypes;
+
     GIVEN("An XmlElement that has no attributes") {
         juce::XmlElement e("test");
 
@@ -197,7 +202,7 @@ SCENARIO("XmlReader: Can restore PluginChain") {
 
         WHEN("Asked to restore a PluginChain from it") {
             auto chain = XmlReader::restoreChainFromXml(
-                &e, config, configurator, modulationCallback, errorCallback);
+                &e, config, configurator, modulationCallback, pluginTypes, errorCallback);
 
             THEN("A PluginChain with default values is created") {
                 CHECK(chain->isChainBypassed == false);
@@ -234,7 +239,7 @@ SCENARIO("XmlReader: Can restore PluginChain") {
 
         WHEN("Asked to restore a PluginChain from it") {
             auto chain = XmlReader::restoreChainFromXml(
-                &e, config, configurator, modulationCallback, errorCallback);
+                &e, config, configurator, modulationCallback, pluginTypes, errorCallback);
 
             THEN("A PluginChain with default values is created") {
                 CHECK(chain->isChainBypassed == false);
@@ -248,6 +253,7 @@ SCENARIO("XmlReader: Can restore PluginChain") {
     GIVEN("An XmlElement that has attributes set correctly") {
         const bool isChainBypassed = GENERATE(false, true);
         const bool isChainMuted = GENERATE(false, true);
+        const bool includeCustomName = GENERATE(false, true); // Test for backwards compatibility as this was added in 1.3.0
 
         // Only test loading gain stages - we can't test loading a real plugin here
         const int numGainStages = GENERATE(0, 1, 2);
@@ -271,6 +277,9 @@ SCENARIO("XmlReader: Can restore PluginChain") {
 
         e.setAttribute(XML_IS_CHAIN_BYPASSED_STR, isChainBypassed);
         e.setAttribute(XML_IS_CHAIN_MUTED_STR, isChainMuted);
+        if (includeCustomName) {
+            e.setAttribute(XML_CHAIN_CUSTOM_NAME_STR, "testChainName");
+        }
 
         auto* pluginsElement = e.createNewChildElement(XML_PLUGINS_STR);
 
@@ -284,11 +293,12 @@ SCENARIO("XmlReader: Can restore PluginChain") {
 
         WHEN("Asked to restore a PluginChain from it") {
             auto chain = XmlReader::restoreChainFromXml(
-                &e, config, configurator, modulationCallback, errorCallback);
+                &e, config, configurator, modulationCallback, pluginTypes, errorCallback);
 
             THEN("A PluginChain with default values is created") {
                 CHECK(chain->isChainBypassed == isChainBypassed);
                 CHECK(chain->isChainMuted == isChainMuted);
+                CHECK(chain->customName == (includeCustomName ? "testChainName" : ""));
                 CHECK(chain->chain.size() == numGainStages);
                 CHECK(chain->getModulationValueCallback(0, MODULATION_TYPE::MACRO) == 1.234f);
 
@@ -730,6 +740,132 @@ SCENARIO("XmlReader: Can restore ModulationSourceDefinition") {
             THEN("A PluginParameterModulationSource with the correct values is created") {
                 CHECK(definition.id == modulationId);
                 CHECK(definition.type == modulationType);
+            }
+        }
+    }
+}
+
+
+SCENARIO("XmlReader: Can restore ModulationSourcesState") {
+    GIVEN("An XmlElement that has no attributes") {
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = 44100;
+        config.blockSize = 64;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+
+        WHEN("Asked to restore a ModulationSourcesState from it") {
+            ModelInterface::ModulationSourcesState state(modulationCallback);
+            XmlReader::restoreModulationSourcesFromXml(state, &e, config);
+
+            THEN("Nothing is restored") {
+                CHECK(state.lfos.size() == 0);
+                CHECK(state.envelopes.size() == 0);
+            }
+        }
+    }
+
+    GIVEN("An XmlElement with an LFO and an envelope follower") {
+        juce::XmlElement e("test");
+
+        HostConfiguration config;
+        config.sampleRate = 44100;
+        config.blockSize = 64;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            return 0.0f;
+        };
+
+        // LFOs
+        auto lfosElement = e.createNewChildElement(XML_LFOS_STR);
+        auto thisLfoElement = lfosElement->createNewChildElement("LFO_0");
+        thisLfoElement->setAttribute(XML_LFO_BYPASS_STR, true);
+        thisLfoElement->setAttribute(XML_LFO_PHASE_SYNC_STR, true);
+        thisLfoElement->setAttribute(XML_LFO_TEMPO_SYNC_STR, true);
+        thisLfoElement->setAttribute(XML_LFO_INVERT_STR, true);
+        thisLfoElement->setAttribute(XML_LFO_WAVE_STR, 2);
+        thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, 3);
+        thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, 4);
+        thisLfoElement->setAttribute(XML_LFO_FREQ_STR, 0.5);
+        thisLfoElement->setAttribute(XML_LFO_DEPTH_STR, 0.6);
+        thisLfoElement->setAttribute(XML_LFO_MANUAL_PHASE_STR, 100);
+
+        juce::XmlElement* freqModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_FREQ_MODULATION_SOURCES_STR);
+        juce::XmlElement* thisFreqSourceElement = freqModSourcesElement->createNewChildElement("Source_0");
+        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 2);
+        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "lfo");
+        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.3);
+
+        juce::XmlElement* depthModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
+        juce::XmlElement* thisDepthSourceElement = depthModSourcesElement->createNewChildElement("Source_0");
+        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 3);
+        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "envelope");
+        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.4);
+
+        juce::XmlElement* phaseModsourcesElement = thisLfoElement->createNewChildElement(XML_LFO_PHASE_MODULATION_SOURCES_STR);
+        juce::XmlElement* thisPhaseSourceElement = phaseModsourcesElement->createNewChildElement("Source_0");
+        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 4);
+        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "macro");
+        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.5);
+
+        // Envelopes
+        auto envelopesElement = e.createNewChildElement(XML_ENVELOPES_STR);
+        auto thisEnvelopeElement = envelopesElement->createNewChildElement("Envelope_0");
+        thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, 0.1);
+        thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, 0.2);
+        thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, true);
+        thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, 100);
+        thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, 200);
+        thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, 0.3);
+        thisEnvelopeElement->setAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR, true);
+
+        WHEN("Asked to restore a ModulationSourcesState from it") {
+            auto state = std::make_shared<ModelInterface::ModulationSourcesState>(modulationCallback);
+            XmlReader::restoreModulationSourcesFromXml(*state.get(), &e, config);
+
+            THEN("The LFO and envelope are restored") {
+                REQUIRE(state->lfos.size() == 1);
+                auto lfo = state->lfos[0];
+                CHECK(lfo->getBypassSwitch() == true);
+                CHECK(lfo->getPhaseSyncSwitch() == true);
+                CHECK(lfo->getTempoSyncSwitch() == true);
+                CHECK(lfo->getInvertSwitch() == true);
+                CHECK(lfo->getWave() == 2);
+                CHECK(lfo->getTempoNumer() == 3);
+                CHECK(lfo->getTempoDenom() == 4);
+                CHECK(lfo->getFreq() == 0.5);
+                CHECK(lfo->getDepth() == 0.6);
+                CHECK(lfo->getManualPhase() == 100);
+
+                std::vector<std::shared_ptr<PluginParameterModulationSource>> freqModSources =  ModulationMutators::getLFOFreqModulationSources(state, 0);
+                REQUIRE(freqModSources.size() == 1);
+                CHECK(freqModSources[0]->definition == ModulationSourceDefinition(2, MODULATION_TYPE::LFO));
+                CHECK(freqModSources[0]->modulationAmount == 0.3f);
+
+                std::vector<std::shared_ptr<PluginParameterModulationSource>> depthModSources =  ModulationMutators::getLFODepthModulationSources(state, 0);
+                REQUIRE(depthModSources.size() == 1);
+                CHECK(depthModSources[0]->definition == ModulationSourceDefinition(3, MODULATION_TYPE::ENVELOPE));
+                CHECK(depthModSources[0]->modulationAmount == 0.4f);
+
+                std::vector<std::shared_ptr<PluginParameterModulationSource>> phaseModSources =  ModulationMutators::getLFOPhaseModulationSources(state, 0);
+                REQUIRE(phaseModSources.size() == 1);
+                CHECK(phaseModSources[0]->definition == ModulationSourceDefinition(4, MODULATION_TYPE::MACRO));
+                CHECK(phaseModSources[0]->modulationAmount == 0.5f);
+
+                REQUIRE(state->envelopes.size() == 1);
+                auto envelope = state->envelopes[0];
+                CHECK(envelope->envelope->getAttackTimeMs() == 0.1);
+                CHECK(envelope->envelope->getReleaseTimeMs() == 0.2);
+                CHECK(envelope->envelope->getFilterEnabled() == true);
+                CHECK(envelope->envelope->getLowCutHz() == 100);
+                CHECK(envelope->envelope->getHighCutHz() == 200);
+                CHECK(envelope->amount == 0.3f);
+                CHECK(envelope->useSidechainInput == true);
             }
         }
     }

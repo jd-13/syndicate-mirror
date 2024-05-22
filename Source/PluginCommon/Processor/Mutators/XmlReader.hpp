@@ -15,6 +15,7 @@ namespace XmlReader {
         std::function<void(int)> latencyChangeCallback,
         HostConfiguration configuration,
         const PluginConfigurator& pluginConfigurator,
+        juce::Array<juce::PluginDescription> availableTypes,
         std::function<void(juce::String)> onErrorCallback);
 
     std::unique_ptr<PluginChain> restoreChainFromXml(
@@ -22,6 +23,7 @@ namespace XmlReader {
         HostConfiguration configuration,
         const PluginConfigurator& pluginConfigurator,
         std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+        juce::Array<juce::PluginDescription> availableTypes,
         std::function<void(juce::String)> onErrorCallback);
 
     bool XmlElementIsPlugin(juce::XmlElement* element);

@@ -1193,6 +1193,51 @@ SCENARIO("SplitterMutators: Slot parameters can be modified and retrieved") {
     juce::MessageManager::deleteInstance();
 }
 
+SCENARIO("SplitterMutators: Chain custom names can be set and retrieved") {
+    GIVEN("A parallel splitter with two chains") {
+        HostConfiguration config;
+        config.sampleRate = SAMPLE_RATE;
+        config.blockSize = NUM_SAMPLES;
+
+        auto modulationCallback = [](int, MODULATION_TYPE) {
+            // Return something unique we can test for later
+            return 1.234f;
+        };
+
+        bool latencyCalled {false};
+        int receivedLatency {0};
+        auto latencyCallback = [&latencyCalled, &receivedLatency](int latency) {
+            latencyCalled = true;
+            receivedLatency = latency;
+        };
+
+        auto splitterParallel = std::make_shared<PluginSplitterParallel>(config, modulationCallback, latencyCallback);
+        SplitterMutators::addChain(splitterParallel);
+
+        auto splitter = std::dynamic_pointer_cast<PluginSplitter>(splitterParallel);
+
+        WHEN("A custom name is set for a chain") {
+            const bool success {SplitterMutators::setChainCustomName(splitter, 0, "Test Chain")};
+
+            THEN("The new name can be retrieved") {
+                CHECK(success);
+                CHECK(SplitterMutators::getChainCustomName(splitter, 0) == "Test Chain");
+                CHECK(SplitterMutators::getChainCustomName(splitter, 1) == "");
+            }
+        }
+
+        WHEN("A custom name is set for an out of bounds chain") {
+            const bool success {SplitterMutators::setChainCustomName(splitter, 10, "Test Chain")};
+
+            THEN("The default name is unchanged") {
+                CHECK(!success);
+                CHECK(SplitterMutators::getChainCustomName(splitter, 0) == "");
+                CHECK(SplitterMutators::getChainCustomName(splitter, 1) == "");
+            }
+        }
+    }
+}
+
 
 SCENARIO("SplitterMutators: PluginEditorBounds can be retrieved") {
     GIVEN("A parallel splitter with two chains") {

@@ -2,6 +2,7 @@
 #include "XmlConsts.hpp"
 
 #include "SplitterMutators.hpp"
+#include "ModulationMutators.hpp"
 
 namespace XmlWriter {
     void write(std::shared_ptr<PluginSplitter> splitter, juce::XmlElement* element) {
@@ -44,9 +45,10 @@ namespace XmlWriter {
     }
 
     void write(std::shared_ptr<PluginChain> chain, juce::XmlElement* element) {
-        // Store chain level bypass and mute
+        // Store chain level bypass, mute, and name
         element->setAttribute(XML_IS_CHAIN_BYPASSED_STR, chain->isChainBypassed);
         element->setAttribute(XML_IS_CHAIN_MUTED_STR, chain->isChainMuted);
+        element->setAttribute(XML_CHAIN_CUSTOM_NAME_STR, chain->customName);
 
         // Store each plugin
         juce::XmlElement* pluginsElement = element->createNewChildElement(XML_PLUGINS_STR);
@@ -139,10 +141,50 @@ namespace XmlWriter {
             thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, thisLfo->getTempoNumer());
             thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, thisLfo->getTempoDenom());
             thisLfoElement->setAttribute(XML_LFO_FREQ_STR, thisLfo->getFreq());
-            thisLfoElement->setAttribute(XML_LFO_FREQ_MOD_STR, thisLfo->getFreqMod());
             thisLfoElement->setAttribute(XML_LFO_DEPTH_STR, thisLfo->getDepth());
-            thisLfoElement->setAttribute(XML_LFO_DEPTH_MOD_STR, thisLfo->getDepthMod());
             thisLfoElement->setAttribute(XML_LFO_MANUAL_PHASE_STR, thisLfo->getManualPhase());
+
+            // Freq modulation sources
+            juce::XmlElement* freqModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_FREQ_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> freqModSources = thisLfo->getFreqModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < freqModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = freqModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(freqModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, freqModSources[sourceIndex].amount);
+                }
+            }
+
+            // Depth modulation sources
+            juce::XmlElement* depthModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> depthModSources = thisLfo->getDepthModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < depthModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = depthModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(depthModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, depthModSources[sourceIndex].amount);
+                }
+            }
+
+            // Phase modulation sources
+            juce::XmlElement* phaseModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_PHASE_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> phaseModSources = thisLfo->getPhaseModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < phaseModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = phaseModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(phaseModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, phaseModSources[sourceIndex].amount);
+                }
+            }
         }
 
         // Envelopes

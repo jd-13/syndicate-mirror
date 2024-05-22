@@ -32,7 +32,7 @@ public:
 
 private:
     juce::Array<juce::PluginDescription> _fullPluginList;
-    
+
     bool _passesFilter(const juce::PluginDescription& plugin) const;
 };
 
@@ -60,12 +60,13 @@ private:
     PluginScanClient& _scanner;
     PluginListSorter _pluginListSorter;
     juce::Array<juce::PluginDescription> _pluginList;
-    juce::AudioPluginFormat::PluginCreationCallback _pluginCreationCallback;
+    std::function<void(std::unique_ptr<juce::AudioPluginInstance>, const juce::String&, bool)> _pluginCreationCallback;
     std::function<double()> _getSampleRateCallback;
     std::function<int()> _getBlockSizeCallback;
     juce::AudioPluginFormatManager& _formatManager;
     juce::Colour _rowBackgroundColour;
     juce::Colour _rowTextColour;
+    const bool _isReplacingParameter;
 };
 
 class PluginSelectorTableListBox : public juce::TableListBox,

@@ -35,6 +35,7 @@ namespace SplitterMutators {
                   int toSlotNumber);
 
     bool moveChain(std::shared_ptr<PluginSplitter> splitter, int fromChainNumber, int toChainNumber);
+    void copyChain(std::shared_ptr<PluginSplitter> splitter, std::function<void()> onSuccess, juce::AudioPluginFormatManager& formatManager, int fromChainNumber, int toChainNumber);
 
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain);
     float getGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain);
@@ -48,7 +49,7 @@ namespace SplitterMutators {
     SPLIT_TYPE getSplitType(const std::shared_ptr<PluginSplitter> splitter);
 
     // PluginSplitterParallel
-    void addChain(std::shared_ptr<PluginSplitterParallel> splitter);
+    void addChain(std::shared_ptr<PluginSplitter> splitter);
     bool removeChain(std::shared_ptr<PluginSplitterParallel> splitter, int chainNumber);
 
     // PluginSplitterMultiband
@@ -57,4 +58,7 @@ namespace SplitterMutators {
     size_t getNumBands(std::shared_ptr<PluginSplitterMultiband> splitter);
     bool setCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index, double val);
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index);
+
+    bool setChainCustomName(std::shared_ptr<PluginSplitter> splitter, int chainNumber, const juce::String& name);
+    juce::String getChainCustomName(std::shared_ptr<PluginSplitter> splitter, int chainNumber);
 }

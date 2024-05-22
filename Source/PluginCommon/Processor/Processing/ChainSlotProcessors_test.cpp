@@ -26,14 +26,28 @@ namespace {
 
         std::function<void(juce::AudioBuffer<float>&, juce::MidiBuffer&)> onProcess;
 
-        ProcessorTestPluginInstance() {
+        void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+            onProcess(buffer, midiMessages);
+        }
+
+        static ProcessorTestPluginInstance* create() {
+            return new ProcessorTestPluginInstance(
+                juce::AudioProcessor::BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
+                                                       .withOutput("Output", juce::AudioChannelSet::stereo(), true));
+        }
+
+        static ProcessorTestPluginInstance* createWithSidechain() {
+            return new ProcessorTestPluginInstance(
+                juce::AudioProcessor::BusesProperties().withInput("Input", juce::AudioChannelSet::stereo(), true)
+                                                       .withOutput("Output", juce::AudioChannelSet::stereo(), true)
+                                                       .withInput("Sidechain", juce::AudioChannelSet::stereo(), true));
+        }
+
+    private:
+        ProcessorTestPluginInstance(BusesProperties buses) : TestUtils::TestPluginInstance(buses) {
             addHostedParameter(std::make_unique<PluginParameter>("param1"));
             addHostedParameter(std::make_unique<PluginParameter>("param2"));
             addHostedParameter(std::make_unique<PluginParameter>("param3"));
-        }
-
-        void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
-            onProcess(buffer, midiMessages);
         }
     };
 }
@@ -222,12 +236,17 @@ SCENARIO("ChainProcessors: Gain stage panning isn't applied when bypassed") {
 
 SCENARIO("ChainProcessors: Plugin isn't applied when bypassed") {
     GIVEN("A plugin but bypassed and a buffer of 1's") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
 
         juce::AudioBuffer<float> buffer(2, NUM_SAMPLES);
         juce::FloatVectorOperations::fill(buffer.getWritePointer(0), 1, buffer.getNumSamples());
         juce::FloatVectorOperations::fill(buffer.getWritePointer(1), 1, buffer.getNumSamples());
 
-        auto plugin = std::make_shared<ProcessorTestPluginInstance>();
+        std::shared_ptr<ProcessorTestPluginInstance> plugin(ProcessorTestPluginInstance::create());
         plugin->onProcess = [](juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
             // This should never be called while bypassed
             CHECK(false);
@@ -235,13 +254,13 @@ SCENARIO("ChainProcessors: Plugin isn't applied when bypassed") {
 
         ChainSlotPlugin slot(plugin,
                              true,
-                             [](int, MODULATION_TYPE) { return 0.0f; });
+                             [](int, MODULATION_TYPE) { return 0.0f; },
+                             hostConfig);
 
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
-            auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
 
-            ChainProcessors::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::prepareToPlay(slot, {hostConfig.layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessors::processBlock(slot, buffer, midiBuffer, nullptr);
 
             THEN("The buffer is unchanged") {
@@ -259,13 +278,18 @@ SCENARIO("ChainProcessors: Plugin isn't applied when bypassed") {
 
 SCENARIO("ChainProcessors: Plugin is applied correctly with modulation") {
     GIVEN("A plugin with three parameters (two which are modulated) and a buffer of 1's") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
 
         juce::AudioBuffer<float> buffer(2, NUM_SAMPLES);
         juce::FloatVectorOperations::fill(buffer.getWritePointer(0), 1, buffer.getNumSamples());
         juce::FloatVectorOperations::fill(buffer.getWritePointer(1), 1, buffer.getNumSamples());
 
         bool didCallProcess {false};
-        auto plugin = std::make_shared<ProcessorTestPluginInstance>();
+        std::shared_ptr<ProcessorTestPluginInstance> plugin(ProcessorTestPluginInstance::create());
         plugin->onProcess = [&didCallProcess](juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
             didCallProcess = true;
 
@@ -296,7 +320,14 @@ SCENARIO("ChainProcessors: Plugin is applied correctly with modulation") {
             CHECK(false);
 
             return 0.0f;
-        });
+        },
+        hostConfig);
+
+        // Configure the plugin without a sidechain input
+        juce::AudioProcessor::BusesLayout pluginLayout;
+        pluginLayout.inputBuses.add(juce::AudioChannelSet::stereo());
+        pluginLayout.outputBuses.add(juce::AudioChannelSet::stereo());
+        REQUIRE(plugin->setBusesLayout(pluginLayout));
 
         // Set up the modulation
         slot.modulationConfig->isActive = true;
@@ -321,9 +352,8 @@ SCENARIO("ChainProcessors: Plugin is applied correctly with modulation") {
 
         WHEN("The buffer is processed") {
             juce::MidiBuffer midiBuffer;
-            auto layout = TestUtils::createLayoutWithInputChannels(juce::AudioChannelSet::mono());
 
-            ChainProcessors::prepareToPlay(slot, {layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::prepareToPlay(slot, {hostConfig.layout, SAMPLE_RATE, NUM_SAMPLES});
             ChainProcessors::processBlock(slot, buffer, midiBuffer, nullptr);
 
             THEN("The buffer is processed and modulation is applied correctly") {
@@ -343,6 +373,64 @@ SCENARIO("ChainProcessors: Plugin is applied correctly with modulation") {
                 CHECK(slot.plugin->getHostedParameter(0)->getValue() == Approx(0.11 + 0.12 * 0.13));
                 CHECK(slot.plugin->getHostedParameter(1)->getValue() == Approx(0.21 + 0.22 * 0.23 + 0.32 * 0.33));
                 CHECK(slot.plugin->getHostedParameter(2)->getValue() == Approx(0.5));
+            }
+        }
+    }
+}
+
+SCENARIO("ChainProcessors: Spare SC buffer is used when plugin is expecting a sidechain input and Syndicate can't provide one") {
+    GIVEN("A plugin with three parameters (two which are modulated) and a buffer of 1's") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+
+        juce::AudioBuffer<float> buffer(2, NUM_SAMPLES);
+        juce::FloatVectorOperations::fill(buffer.getWritePointer(0), 1, buffer.getNumSamples());
+        juce::FloatVectorOperations::fill(buffer.getWritePointer(1), 1, buffer.getNumSamples());
+
+        bool didCallProcess {false};
+        std::shared_ptr<ProcessorTestPluginInstance> plugin(ProcessorTestPluginInstance::createWithSidechain());
+        plugin->onProcess = [&didCallProcess](juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) {
+            didCallProcess = true;
+
+            // TODO Add checks for midi
+            CHECK(buffer.getNumChannels() == 4);
+            CHECK(buffer.getNumSamples() == 64);
+
+            juce::FloatVectorOperations::fill(buffer.getWritePointer(0), 0.1, buffer.getNumSamples());
+            juce::FloatVectorOperations::fill(buffer.getWritePointer(1), 0.2, buffer.getNumSamples());
+        };
+
+        // Configure the plugin to expect a sidechain input
+        juce::AudioProcessor::BusesLayout pluginLayout;
+        pluginLayout.inputBuses.add(juce::AudioChannelSet::stereo());
+        pluginLayout.inputBuses.add(juce::AudioChannelSet::stereo());
+        pluginLayout.outputBuses.add(juce::AudioChannelSet::stereo());
+        REQUIRE(plugin->setBusesLayout(pluginLayout));
+
+        ChainSlotPlugin slot(plugin, false, [](int id, MODULATION_TYPE type) { return 0.0f; }, hostConfig);
+        REQUIRE(slot.spareSCBuffer->getNumChannels() == 4);
+
+        WHEN("The buffer is processed") {
+            juce::MidiBuffer midiBuffer;
+
+            ChainProcessors::prepareToPlay(slot, {hostConfig.layout, SAMPLE_RATE, NUM_SAMPLES});
+            ChainProcessors::processBlock(slot, buffer, midiBuffer, nullptr);
+
+            THEN("The buffer is processed and modulation is applied correctly") {
+                CHECK(didCallProcess);
+
+                // Check the buffer
+                for (int channelIdx {0}; channelIdx < buffer.getNumChannels(); channelIdx++) {
+                    const auto readPtr = buffer.getReadPointer(channelIdx);
+                    const float expectedValue = channelIdx == 0 ? 0.1 : 0.2;
+
+                    for (int sampleIdx {0}; sampleIdx < buffer.getNumSamples(); sampleIdx++) {
+                        CHECK(readPtr[sampleIdx] == expectedValue);
+                    }
+                }
             }
         }
     }

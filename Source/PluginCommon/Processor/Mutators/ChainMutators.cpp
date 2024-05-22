@@ -2,19 +2,19 @@
 #include "ChainSlotProcessors.hpp"
 
 namespace ChainMutators {
-    void insertPlugin(std::shared_ptr<PluginChain> chain, std::shared_ptr<juce::AudioPluginInstance> plugin, int position) {
+    void insertPlugin(std::shared_ptr<PluginChain> chain, std::shared_ptr<juce::AudioPluginInstance> plugin, int position, HostConfiguration config) {
         if (chain->chain.size() > position) {
-            chain->chain.insert(chain->chain.begin() + position, std::make_shared<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback));
+            chain->chain.insert(chain->chain.begin() + position, std::make_shared<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback, config));
         } else {
             // If the position is bigger than the chain just add it to the end
-            chain->chain.push_back(std::make_shared<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback));
+            chain->chain.push_back(std::make_shared<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback, config));
         }
 
         plugin->addListener(&chain->latencyListener);
         chain->latencyListener.onPluginChainUpdate();
     }
 
-    void replacePlugin(std::shared_ptr<PluginChain> chain, std::shared_ptr<juce::AudioPluginInstance> plugin, int position) {
+    void replacePlugin(std::shared_ptr<PluginChain> chain, std::shared_ptr<juce::AudioPluginInstance> plugin, int position, HostConfiguration config) {
         if (chain->chain.size() > position) {
             // If it's a plugin remove the listener so we don't continue getting updates if it's kept
             // alive somewhere else
@@ -22,10 +22,10 @@ namespace ChainMutators {
                 oldPluginSlot->plugin->removeListener(&chain->latencyListener);
             }
 
-            chain->chain[position] = std::make_unique<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback);
+            chain->chain[position] = std::make_unique<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback, config);
         } else {
             // If the position is bigger than the chain just add it to the end
-            chain->chain.push_back(std::make_unique<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback));
+            chain->chain.push_back(std::make_unique<ChainSlotPlugin>(plugin, false, chain->getModulationValueCallback, config));
         }
 
         plugin->addListener(&chain->latencyListener);

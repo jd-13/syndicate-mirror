@@ -24,6 +24,8 @@ namespace TestUtils {
         TestPluginInstance() = default;
         virtual ~TestPluginInstance() = default;
 
+        TestPluginInstance(BusesProperties supportedBuses) : juce::AudioPluginInstance(supportedBuses) {}
+
         virtual void fillInPluginDescription(juce::PluginDescription& desc) const { desc.name = "TestPlugin"; }
         virtual const juce::String getName() const { return "TestPlugin"; }
         virtual void prepareToPlay(double sampleRate, int maximumExpectedSamplesPerBlock) {}

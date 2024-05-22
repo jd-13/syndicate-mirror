@@ -27,7 +27,7 @@ SCENARIO("CrossoverState: Clone works correctly") {
             return 1.2f;
         });
         auto plugin = std::make_shared<TestUtils::TestPluginInstance>();
-        ChainMutators::insertPlugin(chain, plugin, 0);
+        ChainMutators::insertPlugin(chain, plugin, 0, hostConfig);
         CrossoverMutators::setPluginChain(crossover, 1, chain);
 
         // Set the host configuration (and filter states)

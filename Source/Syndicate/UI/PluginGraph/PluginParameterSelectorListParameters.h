@@ -7,5 +7,6 @@
 struct PluginParameterSelectorListParameters {
     PluginParameterSelectorState& state;
     const juce::Array<juce::AudioProcessorParameter*> fullParameterList;
-    std::function<void(juce::AudioProcessorParameter*)> parameterSelectedCallback;
+    std::function<void(juce::AudioProcessorParameter*, bool)> parameterSelectedCallback;
+    bool isReplacingParameter;
 };

@@ -17,6 +17,7 @@ public:
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
     void needsRebuild();
+    void needsSelectedSourceRebuild();
 
 private:
     class AddButtonLookAndFeel : public juce::LookAndFeel_V2 {

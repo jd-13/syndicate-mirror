@@ -45,6 +45,12 @@ namespace {
 
 SCENARIO("ChainProcessors: Silence in = silence out") {
     GIVEN("Some slots and a buffer of silence") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
         };
@@ -93,7 +99,7 @@ SCENARIO("ChainProcessors: Silence in = silence out") {
                     CHECK(buffer.getNumChannels() == expectedNumChannels);
                     CHECK(buffer.getNumSamples() == NUM_SAMPLES);
                 };
-                ChainMutators::insertPlugin(chain, plugin, slotIndex);
+                ChainMutators::insertPlugin(chain, plugin, slotIndex, hostConfig);
             }
         }
 
@@ -123,6 +129,12 @@ SCENARIO("ChainProcessors: Silence in = silence out") {
 
 SCENARIO("ChainProcessors: Gain stage and plugin processing is applied correctly") {
     GIVEN("A gain stage and a buffer of 1's") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
         };
@@ -171,7 +183,7 @@ SCENARIO("ChainProcessors: Gain stage and plugin processing is applied correctly
                        juce::FloatVectorOperations::add(buffer.getWritePointer(channelIdx), 0.3, buffer.getNumSamples());
                     }
                 };
-                ChainMutators::insertPlugin(chain, plugin, slotIndex);
+                ChainMutators::insertPlugin(chain, plugin, slotIndex, hostConfig);
             }
         }
 
@@ -282,6 +294,12 @@ SCENARIO("ChainProcessors: Latency is applied correctly") {
 
 SCENARIO("ChainProcessors: Plugin methods are called correctly") {
     GIVEN("A chain of plugins") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+        
         auto modulationCallback = [](int, MODULATION_TYPE) {
             return 0.0f;
         };
@@ -291,8 +309,8 @@ SCENARIO("ChainProcessors: Plugin methods are called correctly") {
         auto chain = std::make_shared<PluginChain>(modulationCallback);
         auto plugin1 = std::make_shared<ProcessorTestPluginInstance>();
         auto plugin2 = std::make_shared<ProcessorTestPluginInstance>();
-        ChainMutators::insertPlugin(chain, plugin1, 0);
-        ChainMutators::insertPlugin(chain, plugin2, 1);
+        ChainMutators::insertPlugin(chain, plugin1, 0, hostConfig);
+        ChainMutators::insertPlugin(chain, plugin2, 1, hostConfig);
 
         WHEN("prepareToPlay is called") {
             bool calledPrepareToPlay1 {false};

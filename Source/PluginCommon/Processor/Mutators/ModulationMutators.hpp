@@ -12,6 +12,18 @@ namespace ModulationMutators {
     bool setLfoFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, double val);
     bool setLfoDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, double val);
     bool setLfoManualPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, double val);
+    bool addSourceToLFOFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool removeSourceFromLFOFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool setLFOFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    bool addSourceToLFODepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool removeSourceFromLFODepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool setLFODepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFODepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    bool addSourceToLFOPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool removeSourceFromLFOPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, ModulationSourceDefinition source);
+    bool setLFOPhaseModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOPhaseModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
 
     bool getLfoTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     bool getLfoInvertSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
@@ -19,8 +31,11 @@ namespace ModulationMutators {
     double getLfoTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    double getLFOModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    double getLFOModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoManualPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    double getLFOModulatedPhaseValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
 
     void addEnvelope(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
     bool setEnvAttackTimeMs(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex, double val);

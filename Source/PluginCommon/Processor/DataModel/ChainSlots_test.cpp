@@ -35,13 +35,23 @@ SCENARIO("ChainSlotGainStage: Clone works correctly") {
 
 SCENARIO("ChainSlotPlugin: Clone works correctly") {
     GIVEN("A plugin slot with some basic modulation") {
+        HostConfiguration hostConfig;
+        hostConfig.sampleRate = 44100;
+        hostConfig.blockSize = 10;
+        hostConfig.layout = TestUtils::createLayoutWithChannels(
+            juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
+
         auto plugin = std::make_shared<TestUtils::TestPluginInstance>();
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 1.2f;
         };
 
-        auto pluginSlot = std::make_shared<ChainSlotPlugin>(plugin, false, modulationCallback);
+        auto pluginSlot = std::make_shared<ChainSlotPlugin>(plugin, false, modulationCallback, hostConfig);
+
+        REQUIRE(pluginSlot->spareSCBuffer != nullptr);
+        REQUIRE(pluginSlot->spareSCBuffer->getNumChannels() == 4);
+        REQUIRE(pluginSlot->spareSCBuffer->getNumSamples() == 10);
 
         auto modulationConfig = std::make_shared<PluginModulationConfig>();
         modulationConfig->isActive = true;
@@ -67,6 +77,9 @@ SCENARIO("ChainSlotPlugin: Clone works correctly") {
                 CHECK(clonedPluginSlot->modulationConfig != pluginSlot->modulationConfig); // Should be a different shared pointer
                 CHECK(clonedPluginSlot->getModulationValueCallback(0, MODULATION_TYPE::MACRO) == 1.2f);
                 CHECK(clonedPluginSlot->editorBounds == pluginSlot->editorBounds); // Should be the same shared pointer
+                CHECK(clonedPluginSlot->spareSCBuffer != pluginSlot->spareSCBuffer); // Should be a different shared pointer
+                CHECK(clonedPluginSlot->spareSCBuffer->getNumChannels() == pluginSlot->spareSCBuffer->getNumChannels());
+                CHECK(clonedPluginSlot->spareSCBuffer->getNumSamples() == pluginSlot->spareSCBuffer->getNumSamples());
 
                 // Check all the modulation
                 auto clonedModulationConfig = clonedPluginSlot->modulationConfig;

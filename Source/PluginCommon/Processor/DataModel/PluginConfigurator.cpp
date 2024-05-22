@@ -27,12 +27,24 @@ bool PluginConfigurator::configure(std::shared_ptr<juce::AudioPluginInstance> pl
         configuration.layout.getMainInputChannels() == 2 && configuration.layout.getMainOutputChannels() == 2
     };
 
+    const bool isSyndicateSidechain {layoutHasSidechain(configuration.layout)};
+
     if (isSyndicateStereo) {
-        rankedLayouts.push_back(&stereoInStereoOutSC);
-        rankedLayouts.push_back(&stereoInStereoOut);
+        if (isSyndicateSidechain) {
+            rankedLayouts.push_back(&stereoInStereoOutSC);
+            rankedLayouts.push_back(&stereoInStereoOut);
+        } else {
+            rankedLayouts.push_back(&stereoInStereoOut);
+            rankedLayouts.push_back(&stereoInStereoOutSC);
+        }
     } else {
-        rankedLayouts.push_back(&monoInMonoOutSC);
-        rankedLayouts.push_back(&monoInMonoOut);
+        if (isSyndicateSidechain) {
+            rankedLayouts.push_back(&monoInMonoOutSC);
+            rankedLayouts.push_back(&monoInMonoOut);
+        } else {
+            rankedLayouts.push_back(&monoInMonoOut);
+            rankedLayouts.push_back(&monoInMonoOutSC);
+        }
     }
 
     // Try each layout in order

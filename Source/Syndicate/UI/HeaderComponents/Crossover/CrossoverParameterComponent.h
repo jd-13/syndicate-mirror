@@ -18,13 +18,22 @@ public:
     virtual ~CrossoverParameterComponent() = default;
 
     void paint(juce::Graphics& g) override;
+    void resized() override;
+
+    void onParameterUpdate() {
+        _resizeChainLabels();
+        _setLabelsText();
+        repaint();
+    }
 
 private:
     SyndicateAudioProcessor& _processor;
+    std::vector<std::unique_ptr<juce::Label>> _chainLabels;
+    std::vector<std::unique_ptr<juce::Label>> _secondaryLabels;
 
     void _drawSliderThumbs(juce::Graphics& g);
-
     void _drawFrequencyText(juce::Graphics& g);
 
-    void _drawBandText(juce::Graphics& g);
+    void _resizeChainLabels();
+    void _setLabelsText();
 };

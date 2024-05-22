@@ -9,6 +9,34 @@
 #include "XmlWriter.hpp"
 
 namespace {
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> deleteSourceFromTargetSources(std::vector<std::shared_ptr<PluginParameterModulationSource>> sources, ModulationSourceDefinition definition) {
+        bool needsToDelete {false};
+        int indexToDelete {0};
+
+        // Iterate through each configured source
+        for (int sourceIndex {0}; sourceIndex < sources.size(); sourceIndex++) {
+            std::shared_ptr<PluginParameterModulationSource> thisSource = sources[sourceIndex];
+
+            if (thisSource->definition == definition) {
+                // We need to come back and delete this one
+                needsToDelete = true;
+                indexToDelete = sourceIndex;
+            } else if (thisSource->definition.type == definition.type &&
+                       thisSource->definition.id > definition.id) {
+                // We need to renumber this one
+                thisSource->definition.id--;
+            }
+        }
+
+        if (needsToDelete) {
+            sources.erase(sources.begin() + indexToDelete);
+        }
+
+        return sources;
+    }
+}
+
+namespace {
     constexpr int MAX_HISTORY_SIZE = 20;
 
     void pushState(ModelInterface::StateManager& manager,
@@ -652,6 +680,28 @@ namespace ModelInterface {
         }
     }
 
+    void copyChain(StateManager& manager,
+                   std::function<void()> onSuccess,
+                   juce::AudioPluginFormatManager& formatManager,
+                   int fromChainNumber,
+                   int toChainNumber) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<SplitterState> splitter = cloneSplitterState(manager);
+
+        if (splitter == nullptr || splitter->splitter == nullptr) {
+            return;
+        }
+
+        const juce::String operation = "copy chain " + juce::String(fromChainNumber + 1) + " to " + juce::String(toChainNumber + 1);
+
+        auto wrappedOnSuccess = [onSuccess, &manager, splitter, operation]() {
+            pushSplitter(manager, splitter, operation);
+            onSuccess();
+        };
+
+        SplitterMutators::copyChain(splitter->splitter, wrappedOnSuccess, formatManager, fromChainNumber, toChainNumber);
+    }
+
     size_t getNumChains(StateManager& manager) {
         std::scoped_lock lock(manager.mutatorsMutex);
         SplitterState& splitter = manager.getSplitterStateUnsafe();
@@ -777,6 +827,33 @@ namespace ModelInterface {
         return 0.0f;
     }
 
+    bool setChainCustomName(StateManager& manager, int chainNumber, const juce::String& name) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<SplitterState> splitter = cloneSplitterState(manager);
+
+        if (splitter == nullptr || splitter->splitter == nullptr) {
+            return false;
+        }
+
+        if (SplitterMutators::setChainCustomName(splitter->splitter, chainNumber, name)) {
+            pushSplitter(manager, splitter, "set chain " + juce::String(chainNumber + 1) + " name");
+            return true;
+        }
+
+        return false;
+    }
+
+    juce::String getChainCustomName(StateManager& manager, int chainNumber) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        SplitterState& splitter = manager.getSplitterStateUnsafe();
+
+        if (splitter.splitter != nullptr) {
+            return SplitterMutators::getChainCustomName(splitter.splitter, chainNumber);
+        }
+
+        return "";
+    }
+
     std::pair<std::array<float, FFTProvider::NUM_OUTPUTS>, float> getFFTOutputs(StateManager& manager) {
         std::scoped_lock lock(manager.mutatorsMutex);
         SplitterState& splitter = manager.getSplitterStateUnsafe();
@@ -854,6 +931,7 @@ namespace ModelInterface {
                                 std::function<void(int)> latencyChangeCallback,
                                 HostConfiguration config,
                                 const PluginConfigurator& pluginConfigurator,
+                                juce::Array<juce::PluginDescription> availableTypes,
                                 std::function<void(juce::String)> onErrorCallback) {
         std::scoped_lock lock(manager.mutatorsMutex);
         WECore::AudioSpinLock sharedLock(manager.sharedMutex);
@@ -879,6 +957,7 @@ namespace ModelInterface {
             latencyChangeCallback,
             config,
             pluginConfigurator,
+            availableTypes,
             onErrorCallback);
 
         // Make sure prepareToPlay has been called on the splitter as we don't actually know if the host
@@ -944,27 +1023,7 @@ namespace ModelInterface {
 
                 // Iterate through each configured parameter
                 for (std::shared_ptr<PluginParameterModulationConfig> parameterConfig : thisPluginConfig.parameterConfigs) {
-                    bool needsToDelete {false};
-                    int indexToDelete {0};
-
-                    // Iterate through each configured source
-                    for (int sourceIndex {0}; sourceIndex < parameterConfig->sources.size(); sourceIndex++) {
-                        std::shared_ptr<PluginParameterModulationSource> thisSource = parameterConfig->sources[sourceIndex];
-
-                        if (thisSource->definition == definition) {
-                            // We need to come back and delete this one
-                            needsToDelete = true;
-                            indexToDelete = sourceIndex;
-                        } else if (thisSource->definition.type == definition.type &&
-                                thisSource->definition.id > definition.id) {
-                            // We need to renumber this one
-                            thisSource->definition.id--;
-                        }
-                    }
-
-                    if (needsToDelete) {
-                        parameterConfig->sources.erase(parameterConfig->sources.begin() + indexToDelete);
-                    }
+                    parameterConfig->sources = deleteSourceFromTargetSources(parameterConfig->sources, definition);
                 }
 
                 ChainMutators::setPluginModulationConfig(chain.chain, thisPluginConfig, slotIndex);
@@ -1106,6 +1165,144 @@ namespace ModelInterface {
         }
     }
 
+    void addSourceToLFOFreq(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToLFOFreq(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "add modulation source to LFO " + juce::String(lfoIndex + 1) + " rate");
+        }
+    }
+
+    void removeSourceFromLFOFreq(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromLFOFreq(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from LFO " + juce::String(lfoIndex + 1) + " rate");
+        }
+    }
+
+    void setLFOFreqModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set LFO " + juce::String(lfoIndex + 1) + " rate modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setLFOFreqModulationAmount(sources, lfoIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOFreqModulationSources(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFOFreqModulationSources(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
+    void addSourceToLFODepth(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToLFODepth(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "add modulation source to LFO " + juce::String(lfoIndex + 1) + " depth");
+        }
+    }
+
+    void removeSourceFromLFODepth(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromLFODepth(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from LFO " + juce::String(lfoIndex + 1) + " depth");
+        }
+    }
+
+    void setLFODepthModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set LFO " + juce::String(lfoIndex + 1) + " depth modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setLFODepthModulationAmount(sources, lfoIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFODepthModulationSources(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFODepthModulationSources(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
+    void addSourceToLFOPhase(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToLFOPhase(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "add modulation source to LFO " + juce::String(lfoIndex + 1) + " phase");
+        }
+    }
+
+    void removeSourceFromLFOPhase(StateManager& manager, int lfoIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromLFOPhase(sources, lfoIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from LFO " + juce::String(lfoIndex + 1) + " phase");
+        }
+    }
+
+    void setLFOPhaseModulationAmount(StateManager& manager, int lfoIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set LFO " + juce::String(lfoIndex + 1) + " phase modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setLFOPhaseModulationAmount(sources, lfoIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getLFOPhaseModulationSources(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFOPhaseModulationSources(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
     bool getLfoTempoSyncSwitch(StateManager& manager, int lfoIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getLfoTempoSyncSwitch(manager.getSourcesStateUnsafe(), lfoIndex);
@@ -1136,14 +1333,29 @@ namespace ModelInterface {
         return ModulationMutators::getLfoFreq(manager.getSourcesStateUnsafe(), lfoIndex);
     }
 
+    double getLFOModulatedFreqValue(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFOModulatedFreqValue(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
     double getLfoDepth(StateManager& manager, int lfoIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getLfoDepth(manager.getSourcesStateUnsafe(), lfoIndex);
     }
 
+    double getLFOModulatedDepthValue(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFOModulatedDepthValue(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
     double getLfoManualPhase(StateManager& manager, int lfoIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getLfoManualPhase(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
+    double getLFOModulatedPhaseValue(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLFOModulatedPhaseValue(manager.getSourcesStateUnsafe(), lfoIndex);
     }
 
     void setEnvAttackTimeMs(StateManager& manager, int envIndex, double val) {

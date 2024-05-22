@@ -12,8 +12,8 @@ namespace {
 PluginParameterSelectorWindow::PluginParameterSelectorWindow(
         std::function<void()> onCloseCallback,
         PluginParameterSelectorListParameters selectorListParameters,
-        juce::String pluginName) :
-            juce::DocumentWindow(pluginName + " Parameter Selection",
+        juce::String title) :
+            juce::DocumentWindow(title,
                              BACKGROUND_COLOUR,
                              TITLE_BAR_BUTTONS,
                              true),
@@ -26,7 +26,7 @@ PluginParameterSelectorWindow::PluginParameterSelectorWindow(
         setBounds(_state.bounds.value());
     } else {
         // Default to the centre
-        constexpr int DEFAULT_WIDTH {250};
+        constexpr int DEFAULT_WIDTH {300};
         constexpr int DEFAULT_HEIGHT {500};
         centreWithSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }

@@ -22,6 +22,8 @@ public:
 
     PluginChainLatencyListener latencyListener;
 
+    juce::String customName;
+
     PluginChain(std::function<float(int, MODULATION_TYPE)> getModulationValueCallback) :
             isChainBypassed(false),
             isChainMuted(false),
@@ -42,7 +44,14 @@ public:
     }
 
     PluginChain* clone() const {
-        return new PluginChain(chain, isChainBypassed, isChainMuted, getModulationValueCallback, std::unique_ptr<CloneableDelayLineType>(latencyCompLine->clone()));
+        return new PluginChain(
+            chain,
+            isChainBypassed,
+            isChainMuted,
+            getModulationValueCallback,
+            std::unique_ptr<CloneableDelayLineType>(latencyCompLine->clone()),
+            customName
+        );
     }
 
 private:
@@ -51,12 +60,14 @@ private:
         bool newIsChainBypassed,
         bool newIsChainMuted,
         std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
-        std::unique_ptr<CloneableDelayLineType> newLatencyCompLine) :
+        std::unique_ptr<CloneableDelayLineType> newLatencyCompLine,
+        const juce::String& newCustomName) :
             isChainBypassed(newIsChainBypassed),
             isChainMuted(newIsChainMuted),
             getModulationValueCallback(newGetModulationValueCallback),
             latencyCompLine(std::move(newLatencyCompLine)),
-            latencyListener(this) {
+            latencyListener(this),
+            customName(newCustomName) {
         for (auto& slot : newChain) {
             chain.push_back(std::shared_ptr<ChainSlotBase>(slot->clone()));
 

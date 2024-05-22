@@ -146,19 +146,27 @@ struct ChainSlotPlugin : ChainSlotBase {
     std::function<float(int, MODULATION_TYPE)> getModulationValueCallback;
     std::shared_ptr<PluginEditorBounds> editorBounds;
 
+    // AUs always require a sidechain input, but if Syndicate is loaded as a VST3 it might not have
+    // one, as VST3s don't require a sidechain input. So we keep this empty buffer to provide as a
+    // sidechain for AUs if needed.
+    std::unique_ptr<juce::AudioBuffer<float>> spareSCBuffer;
+
     ChainSlotPlugin(std::shared_ptr<juce::AudioPluginInstance> newPlugin,
                     bool newIsBypassed,
-                    std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback)
+                    std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
+                    HostConfiguration config)
         : ChainSlotBase(newIsBypassed),
           plugin(newPlugin),
           modulationConfig(std::make_shared<PluginModulationConfig>()),
           getModulationValueCallback(newGetModulationValueCallback),
-          editorBounds(new PluginEditorBounds()) {}
+          editorBounds(new PluginEditorBounds()),
+          spareSCBuffer(new juce::AudioBuffer<float>(config.layout.getMainInputChannels() * 2, config.blockSize)) {}
 
     ~ChainSlotPlugin() = default;
 
     ChainSlotPlugin* clone() const override {
-        return new ChainSlotPlugin(plugin, isBypassed, modulationConfig, getModulationValueCallback, editorBounds);
+        auto newSpareSCBuffer = std::make_unique<juce::AudioBuffer<float>>(spareSCBuffer->getNumChannels(), spareSCBuffer->getNumSamples());
+        return new ChainSlotPlugin(plugin, isBypassed, modulationConfig, getModulationValueCallback, editorBounds, std::move(newSpareSCBuffer));
     }
 
 private:
@@ -167,10 +175,12 @@ private:
         bool newIsBypassed,
         std::shared_ptr<PluginModulationConfig> newModulationConfig,
         std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback,
-        std::shared_ptr<PluginEditorBounds> newEditorBounds)
+        std::shared_ptr<PluginEditorBounds> newEditorBounds,
+        std::unique_ptr<juce::AudioBuffer<float>> newSpareSCBuffer)
             : ChainSlotBase(newIsBypassed),
               plugin(newPlugin),
               modulationConfig(std::shared_ptr<PluginModulationConfig>(newModulationConfig->clone())),
               getModulationValueCallback(newGetModulationValueCallback),
-              editorBounds(newEditorBounds) {}
+              editorBounds(newEditorBounds),
+              spareSCBuffer(std::move(newSpareSCBuffer)) {}
 };

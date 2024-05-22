@@ -93,7 +93,8 @@ PluginSelectorTableListBoxModel::PluginSelectorTableListBoxModel(
           _getBlockSizeCallback(selectorListParameters.getBlockSize),
           _formatManager(selectorListParameters.formatManager),
           _rowBackgroundColour(style.backgroundColour),
-          _rowTextColour(style.neutralColour) {
+          _rowTextColour(style.neutralColour),
+          _isReplacingParameter(selectorListParameters.isReplacingPlugin) {
     _pluginListSorter.setPluginList(_scanner.getPluginTypes());
     _pluginList = _pluginListSorter.getFilteredPluginList();
 
@@ -145,10 +146,11 @@ void PluginSelectorTableListBoxModel::cellDoubleClicked(int rowNumber,
                                                         const juce::MouseEvent& event) {
 
     juce::Logger::writeToLog("PluginSelectorTableListBoxModel: Row " + juce::String(rowNumber) + " clicked, attempting to load plugin: " + _pluginList[rowNumber].name);
+    const bool shouldCloseWindow {!juce::ModifierKeys::currentModifiers.isCommandDown() || _isReplacingParameter};
     _formatManager.createPluginInstanceAsync(_pluginList[rowNumber],
                                              _getSampleRateCallback(),
                                              _getBlockSizeCallback(),
-                                             _pluginCreationCallback);
+                                             [&, shouldCloseWindow](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) { _pluginCreationCallback(std::move(plugin), error, shouldCloseWindow); });
 };
 
 

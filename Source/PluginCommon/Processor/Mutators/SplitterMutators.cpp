@@ -3,10 +3,46 @@
 #include "ChainProcessors.hpp"
 #include "MONSTRFilters/MONSTRParameters.h"
 
+namespace {
+    void copyNextSlot(std::shared_ptr<PluginSplitter> splitter, std::function<void()> onSuccess, juce::AudioPluginFormatManager& formatManager, int fromChainNumber, int toChainNumber, int slotIndex) {
+        const int numSlotsToCopy = splitter->chains[fromChainNumber].chain->chain.size();
+        if (slotIndex >= numSlotsToCopy) {
+            // We're done
+            onSuccess();
+            return;
+        }
+
+        auto next = [splitter, onSuccess, &formatManager, fromChainNumber, toChainNumber, slotIndex]() {
+            copyNextSlot(splitter, onSuccess, formatManager, fromChainNumber, toChainNumber, slotIndex + 1);
+        };
+
+        auto insertThisPlugin = [splitter, toChainNumber, slotIndex, next](std::shared_ptr<juce::AudioPluginInstance> sharedPlugin, juce::MemoryBlock sourceState, bool isBypassed, PluginModulationConfig sourceConfig) {
+            // Hand the plugin over to the splitter
+            if (SplitterMutators::insertPlugin(splitter, sharedPlugin, toChainNumber, slotIndex)) {
+                // Apply plugin state
+                sharedPlugin->setStateInformation(sourceState.getData(), sourceState.getSize());
+
+                // Apply bypass
+                SplitterMutators::setSlotBypass(splitter, toChainNumber, slotIndex, isBypassed);
+
+                // Apply modulation
+                SplitterMutators::setPluginModulationConfig(splitter, sourceConfig, toChainNumber, slotIndex);
+
+            } else {
+                juce::Logger::writeToLog("SyndicateAudioProcessor::copySlot: Failed to insert plugin");
+            }
+
+            next();
+        };
+
+        SplitterMutators::copySlot(splitter, insertThisPlugin, next, formatManager, fromChainNumber, slotIndex, toChainNumber, slotIndex);
+    }
+}
+
 namespace SplitterMutators {
     bool insertPlugin(std::shared_ptr<PluginSplitter> splitter, std::shared_ptr<juce::AudioPluginInstance> plugin, int chainNumber, int positionInChain) {
         if (splitter->chains.size() > chainNumber) {
-            ChainMutators::insertPlugin(splitter->chains[chainNumber].chain, plugin, positionInChain);
+            ChainMutators::insertPlugin(splitter->chains[chainNumber].chain, plugin, positionInChain, splitter->config);
             return true;
         }
 
@@ -15,7 +51,7 @@ namespace SplitterMutators {
 
     bool replacePlugin(std::shared_ptr<PluginSplitter> splitter, std::shared_ptr<juce::AudioPluginInstance> plugin, int chainNumber, int positionInChain) {
         if (splitter->chains.size() > chainNumber) {
-            ChainMutators::replacePlugin(splitter->chains[chainNumber].chain, plugin, positionInChain);
+            ChainMutators::replacePlugin(splitter->chains[chainNumber].chain, plugin, positionInChain, splitter->config);
             return true;
         }
 
@@ -252,6 +288,38 @@ namespace SplitterMutators {
         return true;
     }
 
+    void copyChain(std::shared_ptr<PluginSplitter> splitter, std::function<void()> onSuccess, juce::AudioPluginFormatManager& formatManager, int fromChainNumber, int toChainNumber) {
+        if (fromChainNumber >= splitter->chains.size()) {
+            return;
+        }
+
+        // Create a copy of the chain and insert it at the new position
+        std::shared_ptr<PluginChain> chainToCopy = splitter->chains[fromChainNumber].chain;
+        const bool isSoloed = splitter->chains[fromChainNumber].isSoloed;
+
+        if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
+            // Add a new band
+            addBand(multibandSplitter);
+        } else {
+            // Add a new chain
+            addChain(splitter);
+        }
+
+        moveChain(splitter, splitter->chains.size() - 1, toChainNumber);
+        if (toChainNumber <= fromChainNumber) {
+            // When we use fromChainNumber later, we need to account for the original chain having
+            // been moved by inserting a chain below it
+            fromChainNumber++;
+        }
+
+        splitter->chains[toChainNumber].chain->isChainBypassed = chainToCopy->isChainBypassed;
+        splitter->chains[toChainNumber].chain->isChainMuted = chainToCopy->isChainMuted;
+        splitter->chains[toChainNumber].chain->customName = chainToCopy->customName;
+        splitter->chains[toChainNumber].isSoloed = isSoloed;
+
+        copyNextSlot(splitter, onSuccess, formatManager, fromChainNumber, toChainNumber, 0);
+    }
+
     bool setGainLinear(std::shared_ptr<PluginSplitter> splitter, int chainNumber, int positionInChain, float gain) {
         if (chainNumber < splitter->chains.size()) {
             return ChainMutators::setGainLinear(splitter->chains[chainNumber].chain, positionInChain, gain);
@@ -324,7 +392,7 @@ namespace SplitterMutators {
         return SPLIT_TYPE::SERIES;
     }
 
-    void addChain(std::shared_ptr<PluginSplitterParallel> splitter) {
+    void addChain(std::shared_ptr<PluginSplitter> splitter) {
         splitter->chains.emplace_back(std::make_shared<PluginChain>(splitter->getModulationValueCallback), false);
 
         ChainProcessors::prepareToPlay(*(splitter->chains[splitter->chains.size() - 1].chain.get()), splitter->config);
@@ -385,5 +453,22 @@ namespace SplitterMutators {
 
     double getCrossoverFrequency(std::shared_ptr<PluginSplitterMultiband> splitter, size_t index) {
         return CrossoverMutators::getCrossoverFrequency(splitter->crossover, index);
+    }
+
+    bool setChainCustomName(std::shared_ptr<PluginSplitter> splitter, int chainNumber, const juce::String& name) {
+        if (chainNumber >= splitter->chains.size()) {
+            return false;
+        }
+
+        splitter->chains[chainNumber].chain->customName = name;
+        return true;
+    }
+
+    juce::String getChainCustomName(std::shared_ptr<PluginSplitter> splitter, int chainNumber) {
+        if (chainNumber >= splitter->chains.size()) {
+            return juce::String();
+        }
+
+        return splitter->chains[chainNumber].chain->customName;
     }
 }

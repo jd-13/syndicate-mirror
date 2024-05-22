@@ -5,13 +5,11 @@
 MidsideSplitterSubComponent::MidsideSplitterSubComponent(SyndicateAudioProcessor& processor,
                                                          UIUtils::LinkedScrollView* graphView)
         : SplitterHeaderComponent(processor, graphView) {
-    auto midChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 0);
+    auto midChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 0, "Mid");
     _viewPort->getViewedComponent()->addAndMakeVisible(midChainbuttons.get());
-    midChainbuttons->chainLabel->setText("Mid", juce::dontSendNotification);
     _chainButtons.push_back(std::move(midChainbuttons));
 
-    auto sideChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 1);
+    auto sideChainbuttons = std::make_unique<ChainButtonsComponent>(_processor, 1, "Side");
     _viewPort->getViewedComponent()->addAndMakeVisible(sideChainbuttons.get());
-    sideChainbuttons->chainLabel->setText("Side", juce::dontSendNotification);
     _chainButtons.push_back(std::move(sideChainbuttons));
 }

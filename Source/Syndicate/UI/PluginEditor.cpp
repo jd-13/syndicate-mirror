@@ -200,6 +200,11 @@ void SyndicateAudioProcessorEditor::needsModulationBarRebuild() {
     needsUndoRedoRefresh();
 }
 
+void SyndicateAudioProcessorEditor::needsSelectedModulationSourceRebuild() {
+    _modulationBar->needsSelectedSourceRebuild();
+    needsUndoRedoRefresh();
+}
+
 void SyndicateAudioProcessorEditor::needsChainButtonsRefresh() {
     _splitterHeader->refreshChainButtons();
     needsUndoRedoRefresh();

@@ -9,14 +9,16 @@ namespace ChainMutators {
      */
     void insertPlugin(std::shared_ptr<PluginChain> chain,
                       std::shared_ptr<juce::AudioPluginInstance> plugin,
-                      int position);
+                      int position,
+                      HostConfiguration config);
 
     /**
      * Replaces an existing plugin in the chain.
      */
     void replacePlugin(std::shared_ptr<PluginChain> chain,
                        std::shared_ptr<juce::AudioPluginInstance> plugin,
-                       int position);
+                       int position,
+                       HostConfiguration config);
 
     /**
      * Removes the plugin or gain stage at the given position in the chain.

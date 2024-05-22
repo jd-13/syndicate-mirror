@@ -69,14 +69,23 @@ void PluginModulationInterface::selectModulationTarget(int chainNumber, int plug
 
     if (plugin != nullptr) {
         // Create the selector
+        const PluginModulationConfig config = ModelInterface::getPluginModulationConfig(_processor.manager, chainNumber, pluginNumber);
+
+        const bool isReplacingParameter {targetNumber < config.parameterConfigs.size()};
+
         PluginParameterSelectorListParameters parameters {
             _processor.pluginParameterSelectorState,
-            getParamsExcludingSelected(plugin->getParameters(), ModelInterface::getPluginModulationConfig(_processor.manager, chainNumber, pluginNumber)),
-            [&, chainNumber, pluginNumber, targetNumber](juce::AudioProcessorParameter* parameter) { _onPluginParameterSelected(parameter, chainNumber, pluginNumber, targetNumber); }
+            getParamsExcludingSelected(plugin->getParameters(), config),
+            [&, chainNumber, pluginNumber, targetNumber](juce::AudioProcessorParameter* parameter, bool shouldClose) { _onPluginParameterSelected(parameter, chainNumber, pluginNumber, targetNumber, shouldClose); },
+            isReplacingParameter
         };
 
+        const juce::String title = isReplacingParameter
+            ? "Replacing parameter " + config.parameterConfigs[targetNumber]->targetParameterName
+            : "New parameter for plugin " + plugin->getPluginDescription().name;
+
         _parameterSelectorWindow.reset(new PluginParameterSelectorWindow(
-            [&]() { _parameterSelectorWindow.reset(); }, parameters, plugin->getPluginDescription().name));
+            [&]() { _parameterSelectorWindow.reset(); }, parameters, title));
 
         _parameterSelectorWindow->takeFocus();
     }
@@ -110,7 +119,11 @@ juce::AudioProcessorParameter* PluginModulationInterface::getPluginParameterForT
     return retVal;
 }
 
-void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber) {
+void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber, bool shouldClose) {
     _processor.setModulationTarget(chainNumber, pluginNumber, targetNumber, parameter->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT));
     _parameterSelectorWindow.reset();
+
+    if (!shouldClose) {
+        selectModulationTarget(chainNumber, pluginNumber, targetNumber + 1);
+    }
 }

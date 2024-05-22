@@ -10,7 +10,7 @@ public:
     explicit SplitterHeaderComponent(SyndicateAudioProcessor& processor, UIUtils::LinkedScrollView* graphView);
     virtual ~SplitterHeaderComponent();
 
-    void refreshChainButtons();
+    virtual void refreshChainButtons();
 
     virtual void resized() override;
 

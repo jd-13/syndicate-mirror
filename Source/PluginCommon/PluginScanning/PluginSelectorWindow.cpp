@@ -10,8 +10,9 @@ namespace {
 
 PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback,
                                            PluginSelectorListParameters selectorListParameters,
-                                           std::unique_ptr<SelectorComponentStyle> style) :
-        juce::DocumentWindow("Plugin Selector", BACKGROUND_COLOUR, TITLE_BAR_BUTTONS),
+                                           std::unique_ptr<SelectorComponentStyle> style,
+                                           juce::String title) :
+        juce::DocumentWindow(title, BACKGROUND_COLOUR, TITLE_BAR_BUTTONS),
         _onCloseCallback(onCloseCallback),
         _content(nullptr),
         _style(std::move(style)),

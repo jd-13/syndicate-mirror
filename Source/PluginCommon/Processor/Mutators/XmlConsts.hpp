@@ -24,6 +24,7 @@ inline const char* XML_MODULATION_SOURCE_TYPE {"SourceType"};
 
 inline const char* XML_IS_CHAIN_BYPASSED_STR {"isChainBypassed"};
 inline const char* XML_IS_CHAIN_MUTED_STR {"isChainMuted"};
+inline const char* XML_CHAIN_CUSTOM_NAME_STR {"ChainCustomName"};
 inline const char* XML_PLUGINS_STR {"Plugins"};
 
 inline const char* XML_CHAINS_STR {"Chains"};
@@ -49,10 +50,11 @@ inline const char* XML_LFO_WAVE_STR {"lfoWave"};
 inline const char* XML_LFO_TEMPO_NUMER_STR {"lfoTempoNumer"};
 inline const char* XML_LFO_TEMPO_DENOM_STR {"lfoTempoDenom"};
 inline const char* XML_LFO_FREQ_STR {"lfoFreq"};
-inline const char* XML_LFO_FREQ_MOD_STR {"lfoFreqMod"};
 inline const char* XML_LFO_DEPTH_STR {"lfoDepth"};
-inline const char* XML_LFO_DEPTH_MOD_STR {"lfoDepthMod"};
 inline const char* XML_LFO_MANUAL_PHASE_STR {"lfoManualPhase"};
+inline const char* XML_LFO_FREQ_MODULATION_SOURCES_STR {"lfoFreqModulationSources"};
+inline const char* XML_LFO_DEPTH_MODULATION_SOURCES_STR {"lfoDepthModulationSources"};
+inline const char* XML_LFO_PHASE_MODULATION_SOURCES_STR {"lfoPhaseModulationSources"};
 
 inline const char* XML_ENVELOPES_STR {"Envelopes"};
 inline const char* XML_ENV_ATTACK_TIME_STR {"envelopeAttack"};

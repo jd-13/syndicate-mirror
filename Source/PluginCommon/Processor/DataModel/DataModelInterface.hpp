@@ -61,14 +61,17 @@ namespace ModelInterface {
         // Needed for the envelope followers to figure out which buffers to read from
         HostConfiguration hostConfig;
 
-        ModulationSourcesState() { }
+        std::function<float(int, MODULATION_TYPE)> getModulationValueCallback;
+
+        ModulationSourcesState(std::function<float(int, MODULATION_TYPE)> newGetModulationValueCallback) :
+            getModulationValueCallback(newGetModulationValueCallback) { }
 
         ModulationSourcesState* clone() const {
             return new ModulationSourcesState(*this);
         }
 
     private:
-        ModulationSourcesState(const ModulationSourcesState& other) : hostConfig(other.hostConfig) {
+        ModulationSourcesState(const ModulationSourcesState& other) : hostConfig(other.hostConfig), getModulationValueCallback(other.getModulationValueCallback) {
             for (std::shared_ptr<CloneableLFO> lfo : other.lfos) {
                 lfos.emplace_back(lfo->clone());
             }
@@ -90,7 +93,7 @@ namespace ModelInterface {
                      std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
                      std::function<void(int)> latencyChangeCallback) :
                 splitterState(new SplitterState(config, getModulationValueCallback, latencyChangeCallback)),
-                modulationSourcesState(new ModulationSourcesState()),
+                modulationSourcesState(new ModulationSourcesState(getModulationValueCallback)),
                 operation("") { }
 
         StateWrapper(std::shared_ptr<SplitterState> newSplitterState,

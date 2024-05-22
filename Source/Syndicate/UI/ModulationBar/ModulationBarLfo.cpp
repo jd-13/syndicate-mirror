@@ -9,27 +9,60 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     constexpr double INTERVAL {0.01};
     const juce::Colour& baseColour = UIUtils::getColourForModulationType(MODULATION_TYPE::LFO);
 
-    depthSlider.reset(new WECore::JUCEPlugin::LabelReadoutSlider<double>("LFO Depth Slider"));
+    depthSlider.reset(new ModulatableParameter(
+        ModelInterface::getLFODepthModulationSources(_processor.manager, _lfoIndex),
+        [&](ModulationSourceDefinition definition) {
+            _processor.addSourceToLFODepth(_lfoIndex, definition);
+        },
+        [&](ModulationSourceDefinition definition) {
+            _processor.removeSourceFromLFODepth(_lfoIndex, definition);
+        },
+        [&](int sourceIndex, float value) {
+            _processor.setLFODepthModulationAmount(_lfoIndex, sourceIndex, value);
+        },
+        [&]() {
+            return ModelInterface::getLFOModulatedDepthValue(_processor.manager, _lfoIndex);
+        },
+        "LFO Depth Slider",
+        "LFO Depth Label",
+        "Depth"));
     addAndMakeVisible(depthSlider.get());
-    depthSlider->setTooltip(TRANS("Depth of the LFO"));
-    depthSlider->setRange(RP::DEPTH.minValue, RP::DEPTH.maxValue, INTERVAL);
-    depthSlider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::DEPTH.defaultValue);
-    depthSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    depthSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
-    depthSlider->addListener(this);
-    depthSlider->setLookAndFeel(&_sliderLookAndFeel);
-    depthSlider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
+    depthSlider->slider->setTooltip(TRANS("Depth of the LFO"));
+    depthSlider->slider->setRange(RP::DEPTH.minValue, RP::DEPTH.maxValue, INTERVAL);
+    depthSlider->slider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::DEPTH.defaultValue);
+    depthSlider->slider->setLookAndFeel(&_sliderLookAndFeel);
+    depthSlider->slider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
+    depthSlider->slider->onValueChange = [&]() {
+        _processor.setLfoDepth(_lfoIndex, depthSlider->slider->getValue());
+        _updateWaveView();
+    };
 
-    freqSlider.reset(new WECore::JUCEPlugin::LabelReadoutSlider<double>("LFO Freq Slider"));
+    freqSlider.reset(new ModulatableParameter(
+        ModelInterface::getLFOFreqModulationSources(_processor.manager, _lfoIndex),
+        [&](ModulationSourceDefinition definition) {
+            _processor.addSourceToLFOFreq(_lfoIndex, definition);
+        },
+        [&](ModulationSourceDefinition definition) {
+            _processor.removeSourceFromLFOFreq(_lfoIndex, definition);
+        },
+        [&](int sourceIndex, float value) {
+            _processor.setLFOFreqModulationAmount(_lfoIndex, sourceIndex, value);
+        },
+        [&]() {
+            return ModelInterface::getLFOModulatedFreqValue(_processor.manager, _lfoIndex);
+        },
+        "LFO Freq Slider",
+        "LFO Freq Label",
+        "Rate"));
     addAndMakeVisible(freqSlider.get());
-    freqSlider->setTooltip(TRANS("Frequency of the LFO in Hz"));
-    freqSlider->setRange(RP::FREQ.minValue, RP::FREQ.maxValue, INTERVAL);
-    freqSlider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::FREQ.defaultValue);
-    freqSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    freqSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
-    freqSlider->addListener(this);
-    freqSlider->setLookAndFeel(&_sliderLookAndFeel);
-    freqSlider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
+    freqSlider->slider->setTooltip(TRANS("Frequency of the LFO in Hz"));
+    freqSlider->slider->setRange(RP::FREQ.minValue, RP::FREQ.maxValue, INTERVAL);
+    freqSlider->slider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::FREQ.defaultValue);
+    freqSlider->slider->setLookAndFeel(&_sliderLookAndFeel);
+    freqSlider->slider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
+    freqSlider->slider->onValueChange = [&]() {
+        _processor.setLfoFreq(_lfoIndex, freqSlider->slider->getValue());
+    };
 
     waveComboBox.reset(new juce::ComboBox("LFO Wave"));
     addAndMakeVisible(waveComboBox.get());
@@ -52,14 +85,6 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     _comboBoxLookAndFeel.setColour(juce::PopupMenu::highlightedBackgroundColourId, baseColour);
     _comboBoxLookAndFeel.setColour(juce::PopupMenu::highlightedTextColourId, UIUtils::slotBackgroundColour);
 
-    freqLabel.reset(new juce::Label("LFO Freq Label", TRANS("Rate")));
-    addAndMakeVisible(freqLabel.get());
-    UIUtils::setDefaultLabelStyle(freqLabel);
-
-    depthLabel.reset(new juce::Label("LFO Depth Label", TRANS("Depth")));
-    addAndMakeVisible(depthLabel.get());
-    UIUtils::setDefaultLabelStyle(depthLabel);
-
     tempoSyncButton.reset(new juce::TextButton("LFO Tempo Sync Button"));
     addAndMakeVisible(tempoSyncButton.get());
     tempoSyncButton->setTooltip(TRANS("Sync LFO frequency to host tempo"));
@@ -73,7 +98,7 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     tempoNumerSlider.reset(new juce::Slider("LFO Tempo Numer Slider"));
     addAndMakeVisible(tempoNumerSlider.get());
     tempoNumerSlider->setTooltip(TRANS("Numerator of the tempo sync value"));
-    tempoNumerSlider->setRange(1, 16, 1);
+    tempoNumerSlider->setRange(RP::TEMPONUMER.minValue, RP::TEMPONUMER.maxValue, 1);
     tempoNumerSlider->setSliderStyle(juce::Slider::IncDecButtons);
     tempoNumerSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 40, 20);
     tempoNumerSlider->setColour(juce::Slider::textBoxTextColourId, baseColour);
@@ -87,7 +112,7 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     tempoDenomSlider.reset(new juce::Slider("LFO Tempo Denom Slider"));
     addAndMakeVisible(tempoDenomSlider.get());
     tempoDenomSlider->setTooltip(TRANS("Denominator of the tempo sync value"));
-    tempoDenomSlider->setRange(1, 32, 1);
+    tempoDenomSlider->setRange(RP::TEMPODENOM.minValue, RP::TEMPODENOM.maxValue, 1);
     tempoDenomSlider->setSliderStyle(juce::Slider::IncDecButtons);
     tempoDenomSlider->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 40, 20);
     tempoDenomSlider->setColour(juce::Slider::textBoxTextColourId, baseColour);
@@ -98,21 +123,33 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     tempoDenomSlider->setIncDecButtonsMode(juce::Slider::incDecButtonsDraggable_Vertical);
     tempoDenomSlider->setLookAndFeel(&_tempoSliderLookAndFeel);
 
-    phaseSlider.reset(new WECore::JUCEPlugin::LabelReadoutSlider<double>("LFO Phase Slider"));
+    phaseSlider.reset(new ModulatableParameter(
+        ModelInterface::getLFOPhaseModulationSources(_processor.manager, _lfoIndex),
+        [&](ModulationSourceDefinition definition) {
+            _processor.addSourceToLFOPhase(_lfoIndex, definition);
+        },
+        [&](ModulationSourceDefinition definition) {
+            _processor.removeSourceFromLFOPhase(_lfoIndex, definition);
+        },
+        [&](int sourceIndex, float value) {
+            _processor.setLFOPhaseModulationAmount(_lfoIndex, sourceIndex, value);
+        },
+        [&]() {
+            return ModelInterface::getLFOModulatedPhaseValue(_processor.manager, _lfoIndex);
+        },
+        "LFO Phase Slider",
+        "LFO Phase Label",
+        "Phase"));
     addAndMakeVisible(phaseSlider.get());
-    phaseSlider->setTooltip(TRANS("Phase shift the LFO by up to 360 degrees"));
-    phaseSlider->setRange(RP::PHASE.minValue, RP::PHASE.maxValue, INTERVAL);
-    phaseSlider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::PHASE.defaultValue);
-    phaseSlider->setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    phaseSlider->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
-    phaseSlider->setColour(juce::Slider::thumbColourId, juce::Colour(0xffbdffbb));
-    phaseSlider->addListener(this);
-    phaseSlider->setLookAndFeel(&_sliderLookAndFeel);
-    phaseSlider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
-
-    phaseLabel.reset(new juce::Label("LFO Phase Label", TRANS("Phase")));
-    addAndMakeVisible(phaseLabel.get());
-    UIUtils::setDefaultLabelStyle(phaseLabel);
+    phaseSlider->slider->setTooltip(TRANS("Phase shift the LFO by up to 360 degrees"));
+    phaseSlider->slider->setRange(RP::PHASE.minValue, RP::PHASE.maxValue, INTERVAL);
+    phaseSlider->slider->setDoubleClickReturnValue(true, WECore::Richter::Parameters::PHASE.defaultValue);
+    phaseSlider->slider->setLookAndFeel(&_sliderLookAndFeel);
+    phaseSlider->slider->setColour(juce::Slider::rotarySliderFillColourId, baseColour);
+    phaseSlider->slider->onValueChange = [&]() {
+        _processor.setLfoManualPhase(_lfoIndex, phaseSlider->slider->getValue());
+        _updateWaveView();
+    };
 
     waveView.reset(new WECore::Richter::WaveViewer());
     addAndMakeVisible(waveView.get());
@@ -137,16 +174,11 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     tempoSyncButton->setToggleState(ModelInterface::getLfoTempoSyncSwitch(_processor.manager, _lfoIndex), juce::dontSendNotification);
     invertButton->setToggleState(ModelInterface::getLfoInvertSwitch(_processor.manager, _lfoIndex), juce::dontSendNotification);
     waveComboBox->setSelectedId(ModelInterface::getLfoWave(_processor.manager, _lfoIndex), juce::dontSendNotification);
-    depthSlider->setValue(ModelInterface::getLfoDepth(_processor.manager, _lfoIndex), juce::dontSendNotification);
-    freqSlider->setValue(ModelInterface::getLfoFreq(_processor.manager, _lfoIndex), juce::dontSendNotification);
-    phaseSlider->setValue(ModelInterface::getLfoManualPhase(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    depthSlider->slider->setValue(ModelInterface::getLfoDepth(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    freqSlider->slider->setValue(ModelInterface::getLfoFreq(_processor.manager, _lfoIndex), juce::dontSendNotification);
+    phaseSlider->slider->setValue(ModelInterface::getLfoManualPhase(_processor.manager, _lfoIndex), juce::dontSendNotification);
     tempoNumerSlider->setValue(ModelInterface::getLfoTempoNumer(_processor.manager, _lfoIndex), juce::dontSendNotification);
     tempoDenomSlider->setValue(ModelInterface::getLfoTempoDenom(_processor.manager, _lfoIndex), juce::dontSendNotification);
-
-    // Start slider label readouts
-    freqSlider->start(freqLabel.get(), freqLabel->getText());
-    depthSlider->start(depthLabel.get(), depthLabel->getText());
-    phaseSlider->start(phaseLabel.get(), phaseLabel->getText());
 
     _tempoSliderLookAndFeel.setColour(juce::TextButton::textColourOnId, baseColour);
 
@@ -155,29 +187,21 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
 }
 
 ModulationBarLfo::~ModulationBarLfo() {
-    // Stop slider label readouts
-    freqSlider->stop();
-    depthSlider->stop();
-    phaseSlider->stop();
-
-    freqSlider->setLookAndFeel(nullptr);
-    depthSlider->setLookAndFeel(nullptr);
-    phaseSlider->setLookAndFeel(nullptr);
+    freqSlider->slider->setLookAndFeel(nullptr);
+    depthSlider->slider->setLookAndFeel(nullptr);
+    phaseSlider->slider->setLookAndFeel(nullptr);
     invertButton->setLookAndFeel(nullptr);
     waveComboBox->setLookAndFeel(nullptr);
     tempoNumerSlider->setLookAndFeel(nullptr);
     tempoDenomSlider->setLookAndFeel(nullptr);
 
-    depthSlider = nullptr;
     freqSlider = nullptr;
+    depthSlider = nullptr;
     waveComboBox = nullptr;
-    freqLabel = nullptr;
-    depthLabel = nullptr;
     tempoSyncButton = nullptr;
     tempoNumerSlider = nullptr;
     tempoDenomSlider = nullptr;
     phaseSlider = nullptr;
-    phaseLabel = nullptr;
     waveView = nullptr;
     invertButton = nullptr;
 }
@@ -191,8 +215,10 @@ void ModulationBarLfo::resized() {
 
     constexpr int BUTTON_HEIGHT {24};
 
+    const int minParameterWidth {availableArea.getWidth() / 6};
+
     // Freq/tempo area
-    juce::Rectangle<int> freqArea = availableArea.removeFromLeft(availableArea.getWidth() / 5);
+    juce::Rectangle<int> freqArea = availableArea.removeFromLeft(minParameterWidth);
 
     // Enforce the max width for this section (otherwise buttons look silly)
     constexpr int MAX_FREQ_AREA_WIDTH {100};
@@ -205,11 +231,7 @@ void ModulationBarLfo::resized() {
     // Copy this now, we'll need it later
     juce::Rectangle<int> tempoSlidersArea = freqArea;
 
-    const int emptyHeight {freqArea.getHeight() - freqSliderSize - BUTTON_HEIGHT};
-    freqArea.removeFromTop(emptyHeight / 2);
-    freqArea.removeFromBottom(emptyHeight / 2);
-    freqLabel->setBounds(freqArea.removeFromBottom(BUTTON_HEIGHT));
-    freqSlider->setBounds(freqArea.removeFromBottom(freqSliderSize));
+    freqSlider->setBounds(freqArea);
 
     // Now the tempo sliders
     juce::FlexBox tempoSlidersFlexBox;
@@ -223,15 +245,8 @@ void ModulationBarLfo::resized() {
 
     tempoSlidersFlexBox.performLayout(tempoSlidersArea);
 
-    // Depth/phase area
-    juce::Rectangle<int> depthPhaseArea = availableArea.removeFromLeft(availableArea.getWidth() / 5);
-
-    juce::Rectangle<int> depthArea = depthPhaseArea.removeFromTop(depthPhaseArea.getHeight() / 2);
-    depthLabel->setBounds(depthArea.removeFromBottom(BUTTON_HEIGHT));
-    depthSlider->setBounds(depthArea);
-
-    phaseLabel->setBounds(depthPhaseArea.removeFromBottom(BUTTON_HEIGHT));
-    phaseSlider->setBounds(depthPhaseArea);
+    depthSlider->setBounds(availableArea.removeFromLeft(minParameterWidth).withTrimmedTop(BUTTON_HEIGHT));
+    phaseSlider->setBounds(availableArea.removeFromLeft(minParameterWidth).withTrimmedTop(BUTTON_HEIGHT));
 
     // Wave area
     constexpr int MAX_WAVE_AREA_WIDTH {450};
@@ -254,17 +269,10 @@ void ModulationBarLfo::resized() {
 }
 
 void ModulationBarLfo::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
-
-    if (sliderThatWasMoved == depthSlider.get()) {
-        _processor.setLfoDepth(_lfoIndex, depthSlider->getValue());
-    } else if (sliderThatWasMoved == freqSlider.get()) {
-        _processor.setLfoFreq(_lfoIndex, freqSlider->getValue());
-    } else if (sliderThatWasMoved == tempoNumerSlider.get()) {
+    if (sliderThatWasMoved == tempoNumerSlider.get()) {
         _processor.setLfoTempoNumer(_lfoIndex, tempoNumerSlider->getValue());
     } else if (sliderThatWasMoved == tempoDenomSlider.get()) {
         _processor.setLfoTempoDenom(_lfoIndex, tempoDenomSlider->getValue());
-    } else if (sliderThatWasMoved == phaseSlider.get()) {
-        _processor.setLfoManualPhase(_lfoIndex, phaseSlider->getValue());
     }
 
     _updateWaveView();
@@ -370,12 +378,10 @@ void ModulationBarLfo::_updateWaveView() {
 void ModulationBarLfo::_updateTempoToggles() {
     if (tempoSyncButton->getToggleState()) {
         freqSlider->setVisible(false);
-        freqLabel->setVisible(false);
         tempoNumerSlider->setVisible(true);
         tempoDenomSlider->setVisible(true);
     } else {
         freqSlider->setVisible(true);
-        freqLabel->setVisible(true);
         tempoNumerSlider->setVisible(false);
         tempoDenomSlider->setVisible(false);
     }

@@ -19,7 +19,8 @@ struct PluginSelectorListParameters {
     PluginScanClient& scanner;
     PluginSelectorState& state;
     juce::AudioPluginFormatManager& formatManager;
-    juce::AudioPluginFormat::PluginCreationCallback pluginCreationCallback;
+    std::function<void(std::unique_ptr<juce::AudioPluginInstance>, const juce::String&, bool)> pluginCreationCallback;
     std::function<double()> getSampleRate;
     std::function<int()> getBlockSize;
+    bool isReplacingPlugin;
 };

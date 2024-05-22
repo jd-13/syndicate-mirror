@@ -6,6 +6,42 @@
 #include "SplitTypes.hpp"
 #include "RichterLFO/RichterLFO.h"
 
+namespace {
+    int comparePluginDescriptionAgainstTarget(const juce::PluginDescription& description, const juce::PluginDescription& target) {
+        // Format is most important for compatibility when loading settings
+        if (description.pluginFormatName == target.pluginFormatName) {
+            return 2;
+        }
+
+        if (description.version == target.version) {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    class AvailableTypesSorter {
+    public:
+        AvailableTypesSorter(const juce::PluginDescription& target) : _target(target) {}
+
+        int compareElements(const juce::PluginDescription& a, const juce::PluginDescription& b) {
+            return comparePluginDescriptionAgainstTarget(b, _target) - comparePluginDescriptionAgainstTarget(a, _target);
+        }
+
+    private:
+        const juce::PluginDescription& _target;
+    };
+
+    juce::String pluginTypesToString(const juce::Array<juce::PluginDescription>& types) {
+        juce::String retVal;
+        for (const juce::PluginDescription& type : types) {
+            retVal += type.pluginFormatName + " " + type.version + ", ";
+        }
+
+        return retVal;
+    }
+}
+
 namespace XmlReader {
     std::shared_ptr<PluginSplitter> restoreSplitterFromXml(
             juce::XmlElement* element,
@@ -13,6 +49,7 @@ namespace XmlReader {
             std::function<void(int)> latencyChangeCallback,
             HostConfiguration configuration,
             const PluginConfigurator& pluginConfigurator,
+            juce::Array<juce::PluginDescription> availableTypes,
             std::function<void(juce::String)> onErrorCallback) {
 
         // Default to series
@@ -81,7 +118,7 @@ namespace XmlReader {
                 // Add the chain to the vector
                 splitter->chains.emplace_back(std::make_shared<PluginChain>(getModulationValueCallback), false);
                 PluginChainWrapper& thisChain = splitter->chains[splitter->chains.size() - 1];
-                thisChain.chain = XmlReader::restoreChainFromXml(thisChainElement, configuration, pluginConfigurator, getModulationValueCallback, onErrorCallback);
+                thisChain.chain = XmlReader::restoreChainFromXml(thisChainElement, configuration, pluginConfigurator, getModulationValueCallback, availableTypes, onErrorCallback);
 
                 if (auto multibandSplitter = std::dynamic_pointer_cast<PluginSplitterMultiband>(splitter)) {
                     // Since we deleted all chains at the start to make sure we have a
@@ -132,11 +169,12 @@ namespace XmlReader {
             HostConfiguration configuration,
             const PluginConfigurator& pluginConfigurator,
             std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+            juce::Array<juce::PluginDescription> availableTypes,
             std::function<void(juce::String)> onErrorCallback) {
 
         auto retVal = std::make_unique<PluginChain>(getModulationValueCallback);
 
-        // Restore chain level bypass and mute
+        // Restore chain level bypass, mute, and name
         if (element->hasAttribute(XML_IS_CHAIN_BYPASSED_STR)) {
             retVal->isChainBypassed = element->getBoolAttribute(XML_IS_CHAIN_BYPASSED_STR);
         } else {
@@ -147,6 +185,12 @@ namespace XmlReader {
             retVal->isChainMuted = element->getBoolAttribute(XML_IS_CHAIN_MUTED_STR);
         } else {
             juce::Logger::writeToLog("Missing attribute " + juce::String(XML_IS_CHAIN_MUTED_STR));
+        }
+
+        if (element->hasAttribute(XML_CHAIN_CUSTOM_NAME_STR)) {
+            retVal->customName = element->getStringAttribute(XML_CHAIN_CUSTOM_NAME_STR);
+        } else {
+            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_CHAIN_CUSTOM_NAME_STR));
         }
 
         // Load each plugin
@@ -171,14 +215,49 @@ namespace XmlReader {
             }
 
             if (XmlReader::XmlElementIsPlugin(thisPluginElement)) {
-                auto loadPlugin = [](const juce::PluginDescription& description, const HostConfiguration& config) {
+                auto loadPlugin = [&availableTypes](const juce::PluginDescription& description, const HostConfiguration& config) {
                     juce::AudioPluginFormatManager formatManager;
                     formatManager.addDefaultFormats();
 
+                    // First try the exact match
                     juce::String errorMessage;
                     std::unique_ptr<juce::AudioPluginInstance> thisPlugin =
                         formatManager.createPluginInstance(
                             description, config.sampleRate, config.blockSize, errorMessage);
+
+                    // Failing that, get all possible matches from the available types
+                    if (thisPlugin == nullptr) {
+                        juce::Logger::writeToLog("Failed to load plugin " + description.name + ": " + errorMessage);
+                        juce::Logger::writeToLog("Looking for alternatives");
+
+                        juce::Array<juce::PluginDescription> possibleTypes;
+                        for (const juce::PluginDescription& availableType : availableTypes) {
+                            if (description.manufacturerName == availableType.manufacturerName &&
+                                description.name == availableType.name) {
+                                possibleTypes.add(availableType);
+                            }
+                        }
+
+                        // Sort by best match first
+                        AvailableTypesSorter sorter(description);
+                        possibleTypes.sort(sorter);
+
+                        const juce::String possibleTypesString = pluginTypesToString(possibleTypes);
+                        juce::Logger::writeToLog("Found alternatives: " + possibleTypesString);
+
+                        for (const juce::PluginDescription& possibleType : possibleTypes) {
+                            juce::String newErrorMessage;
+                            thisPlugin = formatManager.createPluginInstance(
+                                possibleType, config.sampleRate, config.blockSize, newErrorMessage);
+
+                            if (thisPlugin != nullptr) {
+                                juce::Logger::writeToLog("Loaded " + possibleType.pluginFormatName + " " + possibleType.version);
+                                break;
+                            }
+
+                            errorMessage += " - " + newErrorMessage;
+                        }
+                    }
 
                     return std::make_tuple<std::unique_ptr<juce::AudioPluginInstance>, juce::String>(
                         std::move(thisPlugin), juce::String(errorMessage));
@@ -263,7 +342,6 @@ namespace XmlReader {
             const PluginConfigurator& pluginConfigurator,
             LoadPluginFunction loadPlugin,
             std::function<void(juce::String)> onErrorCallback) {
-        std::unique_ptr<ChainSlotPlugin> retVal;
 
         // Restore the plugin level bypass
         bool isPluginBypassed {false};
@@ -273,71 +351,76 @@ namespace XmlReader {
             juce::Logger::writeToLog("Missing attribute " + juce::String(XML_SLOT_IS_BYPASSED_STR));
         }
 
+        if (element->getNumChildElements() == 0) {
+            juce::Logger::writeToLog("Plugin element missing description");
+            return nullptr;
+        }
+
         // Load the actual plugin
-        if (element->getNumChildElements() > 0) {
-            juce::XmlElement* pluginDescriptionXml = element->getChildElement(0);
-            juce::PluginDescription pluginDescription;
+        juce::XmlElement* pluginDescriptionXml = element->getChildElement(0);
+        juce::PluginDescription pluginDescription;
 
-            if (pluginDescription.loadFromXml(*pluginDescriptionXml)) {
-                auto [thisPlugin, errorMessage] = loadPlugin(pluginDescription, configuration);
+        if (!pluginDescription.loadFromXml(*pluginDescriptionXml)) {
+            juce::Logger::writeToLog("Failed to parse plugin description");
+            return nullptr;
+        }
 
-                if (thisPlugin != nullptr) {
-                    std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(thisPlugin);
+        auto [thisPlugin, errorMessage] = loadPlugin(pluginDescription, configuration);
 
-                    if (pluginConfigurator.configure(sharedPlugin, configuration)) {
-                        retVal.reset(new ChainSlotPlugin(sharedPlugin, isPluginBypassed, getModulationValueCallback));
+        if (thisPlugin == nullptr) {
+            juce::Logger::writeToLog("Failed to load plugin: " + errorMessage);
+            onErrorCallback("Failed to restore plugin: " + errorMessage);
+            return nullptr;
+        }
 
-                        // Restore the editor bounds
-                        if (element->hasAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) {
-                            const juce::String boundsString = element->getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR);
+        std::unique_ptr<ChainSlotPlugin> retVal;
 
-                            if (element->hasAttribute(XML_DISPLAY_AREA_STR)) {
-                                const juce::String displayString = element->getStringAttribute(XML_DISPLAY_AREA_STR);
+        std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(thisPlugin);
 
-                                retVal->editorBounds.reset(new PluginEditorBounds());
-                                *(retVal->editorBounds.get()) =  PluginEditorBoundsContainer(
-                                    juce::Rectangle<int>::fromString(boundsString),
-                                    juce::Rectangle<int>::fromString(displayString)
-                                );
-                            } else {
-                                juce::Logger::writeToLog("Missing attribute " + juce::String(XML_DISPLAY_AREA_STR));
-                            }
+        if (pluginConfigurator.configure(sharedPlugin, configuration)) {
+            retVal.reset(new ChainSlotPlugin(sharedPlugin, isPluginBypassed, getModulationValueCallback, configuration));
 
-                        } else {
-                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_EDITOR_BOUNDS_STR));
-                        }
+            // Restore the editor bounds
+            if (element->hasAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR)) {
+                const juce::String boundsString = element->getStringAttribute(XML_PLUGIN_EDITOR_BOUNDS_STR);
 
-                        // Restore the plugin's internal state
-                        if (element->hasAttribute(XML_PLUGIN_DATA_STR)) {
-                            const juce::String pluginDataString = element->getStringAttribute(XML_PLUGIN_DATA_STR);
-                            juce::MemoryBlock pluginData;
-                            pluginData.fromBase64Encoding(pluginDataString);
+                if (element->hasAttribute(XML_DISPLAY_AREA_STR)) {
+                    const juce::String displayString = element->getStringAttribute(XML_DISPLAY_AREA_STR);
 
-                            sharedPlugin->setStateInformation(pluginData.getData(), pluginData.getSize());
-
-                            // Now that the plugin is restored, we can restore the modulation config
-                            juce::XmlElement* modulationConfigElement = element->getChildByName(XML_MODULATION_CONFIG_STR);
-                            if (modulationConfigElement != nullptr) {
-                                retVal->modulationConfig = restorePluginModulationConfig(modulationConfigElement);
-                            } else {
-                                juce::Logger::writeToLog("Missing element " + juce::String(XML_MODULATION_CONFIG_STR));
-                            }
-                        } else {
-                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_DATA_STR));
-                        }
-                    } else {
-                        juce::Logger::writeToLog("Failed to configure plugin: " + sharedPlugin->getPluginDescription().name);
-                        onErrorCallback("Failed to restore " + sharedPlugin->getPluginDescription().name + " as it may be a mono only plugin being restored into a stereo instance of Syndicate or vice versa");
-                    }
+                    retVal->editorBounds.reset(new PluginEditorBounds());
+                    *(retVal->editorBounds.get()) =  PluginEditorBoundsContainer(
+                        juce::Rectangle<int>::fromString(boundsString),
+                        juce::Rectangle<int>::fromString(displayString)
+                    );
                 } else {
-                    juce::Logger::writeToLog("Failed to load plugin: " + errorMessage);
-                    onErrorCallback("Failed to restore plugin: " + errorMessage);
+                    juce::Logger::writeToLog("Missing attribute " + juce::String(XML_DISPLAY_AREA_STR));
+                }
+
+            } else {
+                juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_EDITOR_BOUNDS_STR));
+            }
+
+            // Restore the plugin's internal state
+            if (element->hasAttribute(XML_PLUGIN_DATA_STR)) {
+                const juce::String pluginDataString = element->getStringAttribute(XML_PLUGIN_DATA_STR);
+                juce::MemoryBlock pluginData;
+                pluginData.fromBase64Encoding(pluginDataString);
+
+                sharedPlugin->setStateInformation(pluginData.getData(), pluginData.getSize());
+
+                // Now that the plugin is restored, we can restore the modulation config
+                juce::XmlElement* modulationConfigElement = element->getChildByName(XML_MODULATION_CONFIG_STR);
+                if (modulationConfigElement != nullptr) {
+                    retVal->modulationConfig = restorePluginModulationConfig(modulationConfigElement);
+                } else {
+                    juce::Logger::writeToLog("Missing element " + juce::String(XML_MODULATION_CONFIG_STR));
                 }
             } else {
-                juce::Logger::writeToLog("Failed to parse plugin description");
+                juce::Logger::writeToLog("Missing attribute " + juce::String(XML_PLUGIN_DATA_STR));
             }
         } else {
-            juce::Logger::writeToLog("Plugin element missing description");
+            juce::Logger::writeToLog("Failed to configure plugin: " + sharedPlugin->getPluginDescription().name);
+            onErrorCallback("Failed to restore " + sharedPlugin->getPluginDescription().name + " as it may be a mono only plugin being restored into a stereo instance of Syndicate or vice versa");
         }
 
         return retVal;
@@ -435,6 +518,7 @@ namespace XmlReader {
                 }
 
                 std::shared_ptr<ModelInterface::CloneableLFO> newLfo {new ModelInterface::CloneableLFO()};
+
                 newLfo->setBypassSwitch(thisLfoElement->getBoolAttribute(XML_LFO_BYPASS_STR));
                 newLfo->setPhaseSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_PHASE_SYNC_STR));
                 newLfo->setTempoSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR));
@@ -443,11 +527,99 @@ namespace XmlReader {
                 newLfo->setTempoNumer(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR));
                 newLfo->setTempoDenom(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR));
                 newLfo->setFreq(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_STR));
-                newLfo->setFreqMod(thisLfoElement->getDoubleAttribute(XML_LFO_FREQ_MOD_STR));
                 newLfo->setDepth(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_STR));
-                newLfo->setDepthMod(thisLfoElement->getDoubleAttribute(XML_LFO_DEPTH_MOD_STR));
                 newLfo->setManualPhase(thisLfoElement->getDoubleAttribute(XML_LFO_MANUAL_PHASE_STR));
                 newLfo->setSampleRate(configuration.sampleRate);
+
+                juce::XmlElement* freqModElement = thisLfoElement->getChildByName(XML_LFO_FREQ_MODULATION_SOURCES_STR);
+                if (freqModElement != nullptr) {
+                    const int numFreqModSources {freqModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numFreqModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring LFO freq modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = freqModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newLfo->addFreqModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newLfo->setFreqModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                juce::XmlElement* depthModElement = thisLfoElement->getChildByName(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
+                if (depthModElement != nullptr) {
+                    const int numDepthModSources {depthModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numDepthModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring LFO depth modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = depthModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newLfo->addDepthModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newLfo->setDepthModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                juce::XmlElement* phaseModElement = thisLfoElement->getChildByName(XML_LFO_PHASE_MODULATION_SOURCES_STR);
+                if (phaseModElement != nullptr) {
+                    const int numPhaseModSources {phaseModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numPhaseModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring LFO phase modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = phaseModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newLfo->addPhaseModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newLfo->setPhaseModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
 
                 state.lfos.push_back(newLfo);
             }

@@ -120,12 +120,11 @@ void SplitterHeaderComponent::itemDropped(const SourceDetails& dragSourceDetails
     auto [isValid, fromChainNumber, isCopy] = chainDetailsFromVariant(dragSourceDetails.description);
 
     if (isValid) {
-        // TODO
-        // if (isCopy) {
-        //     _pluginSelectionInterface.copySlot(fromChainNumber, fromSlotNumber, _chainNumber, targetSlot);
-        // } else {
+        if (isCopy) {
+            _processor.copyChain(fromChainNumber, _dragHintChainNumber);
+        } else {
             _processor.moveChain(fromChainNumber, _dragHintChainNumber);
-        // }
+        }
     }
 }
 

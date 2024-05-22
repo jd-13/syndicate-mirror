@@ -445,6 +445,15 @@ void SyndicateAudioProcessor::setChainSolo(int chainNumber, bool val) {
     }
 }
 
+void SyndicateAudioProcessor::setChainCustomName(int chainNumber, const juce::String& name) {
+    ModelInterface::setChainCustomName(manager, chainNumber, name);
+
+    if (_editor != nullptr) {
+        _editor->needsChainButtonsRefresh();
+    }
+
+}
+
 void SyndicateAudioProcessor::setSlotBypass(int chainNumber, int positionInChain, bool bypass) {
     ModelInterface::setSlotBypass(manager, chainNumber, positionInChain, bypass);
 
@@ -519,6 +528,78 @@ void SyndicateAudioProcessor::setModulationTargetValue(int chainNumber, int plug
 
 void SyndicateAudioProcessor::setModulationSourceValue(int chainNumber, int pluginNumber, int targetNumber, int sourceNumber, float val) {
     ModelInterface::setModulationSourceValue(manager, chainNumber, pluginNumber, targetNumber, sourceNumber, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToLFOFreq(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToLFOFreq(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromLFOFreq(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromLFOFreq(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setLFOFreqModulationAmount(int lfoIndex, int sourceIndex, double val) {
+    ModelInterface::setLFOFreqModulationAmount(manager, lfoIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToLFODepth(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToLFODepth(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromLFODepth(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromLFODepth(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setLFODepthModulationAmount(int lfoIndex, int sourceIndex, double val) {
+    ModelInterface::setLFODepthModulationAmount(manager, lfoIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToLFOPhase(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToLFOPhase(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromLFOPhase(int lfoIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromLFOPhase(manager, lfoIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setLFOPhaseModulationAmount(int lfoIndex, int sourceIndex, double val) {
+    ModelInterface::setLFOPhaseModulationAmount(manager, lfoIndex, sourceIndex, val);
 
     if (_editor != nullptr) {
         _editor->needsUndoRedoRefresh();
@@ -643,6 +724,16 @@ void SyndicateAudioProcessor::moveChain(int fromChainNumber, int toChainNumber) 
     }
 }
 
+void SyndicateAudioProcessor::copyChain(int fromChainNumber, int toChainNumber) {
+    auto onSuccess = [&]() {
+        if (_editor != nullptr) {
+            _editor->needsGraphRebuild();
+        }
+    };
+
+    ModelInterface::copyChain(manager, onSuccess, formatManager, fromChainNumber, toChainNumber);
+}
+
 void SyndicateAudioProcessor::undo() {
     ModelInterface::undo(manager, getSampleRate(), getBlockSize(), getBusesLayout());
 
@@ -689,6 +780,11 @@ void SyndicateAudioProcessor::setStateInformation(const void* data, int sizeInBy
     juce::Logger::writeToLog("Not restoring state - demo build");
 #else
     WECore::JUCEPlugin::CoreAudioProcessor::setStateInformation(data, sizeInBytes);
+
+    // Some DAWs can open the UI before loading the state, so we need to make sure the UI is updated
+    if (_editor != nullptr) {
+        _editor->needsToRefreshAll();
+    }
 #endif
 }
 
@@ -788,6 +884,7 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreSplitterFromXml(juce::
         [tmpProcessor](int newLatencySamples) { tmpProcessor->onLatencyChange(newLatencySamples); },
         {_processor->getBusesLayout(), _processor->getSampleRate(), _processor->getBlockSize()},
         _processor->pluginConfigurator,
+        _processor->pluginScanClient.getPluginTypes(),
         [&](juce::String errorText) { _processor->restoreErrors.push_back(errorText); }
     );
 }

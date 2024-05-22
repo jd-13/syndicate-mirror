@@ -12,13 +12,16 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
     _chainNumber = chainNumber;
     _pluginNumber = pluginNumber;
 
+    const bool isReplacingPlugin {ModelInterface::getPlugin(_processor.manager, chainNumber, pluginNumber) != nullptr};
+
     PluginSelectorListParameters parameters {
         _processor.pluginScanClient,
         _processor.pluginSelectorState,
         _processor.formatManager,
-        [&](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) { _onPluginSelected(std::move(plugin), error); },
+        [&](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error, bool shouldClose) { _onPluginSelected(std::move(plugin), error, shouldClose); },
         [&]() { return _processor.getSampleRate(); },
         [&]() { return _processor.getBlockSize(); },
+        isReplacingPlugin
     };
 
     std::unique_ptr<SelectorComponentStyle> style = std::make_unique<SelectorComponentStyle>(
@@ -33,8 +36,16 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
         std::make_unique<UIUtils::TableHeaderLookAndFeel>()
     );
 
+
+    const juce::String title = isReplacingPlugin
+        ? "Replacing plugin " + getPluginName(chainNumber, pluginNumber)
+        : "New plugin for chain " + juce::String(chainNumber + 1);
+
     _pluginSelectorWindow = std::make_unique<PluginSelectorWindow>(
-        [&]() { _errorPopover.reset(); _pluginSelectorWindow.reset(); }, parameters, std::move(style)
+        [&]() { _errorPopover.reset(); _pluginSelectorWindow.reset(); },
+        parameters,
+        std::move(style),
+        title
     );
 
     _pluginSelectorWindow->takeFocus();
@@ -115,7 +126,7 @@ void PluginSelectionInterface::moveSlot(int fromChainNumber, int fromSlotNumber,
     _processor.moveSlot(fromChainNumber, fromSlotNumber, toChainNumber, toSlotNumber);
 }
 
-void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
+void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error, bool shouldClose) {
     auto createErrorPopover = [&](juce::String errorText) {
         if (_pluginSelectorWindow != nullptr) {
             _errorPopover.reset(new UIUtils::PopoverComponent(
@@ -165,6 +176,10 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
 
             // Close the selector window
             _pluginSelectorWindow.reset();
+
+            if (!shouldClose) {
+                selectNewPlugin(_chainNumber, _pluginNumber + 1);
+            }
         } else {
             juce::Logger::writeToLog("PluginSelectionInterface::_onPluginSelected: Failed to load " + sharedPlugin->getPluginDescription().name);
 

@@ -121,6 +121,7 @@ public:
     void setChainBypass(int chainNumber, bool val);
     void setChainMute(int chainNumber, bool val);
     void setChainSolo(int chainNumber, bool val);
+    void setChainCustomName(int chainNumber, const juce::String& name);
 
     void setSlotBypass(int chainNumber, int positionInChain, bool bypass);
     void setSlotGainLinear(int chainNumber, int positionInChain, float gain);
@@ -134,6 +135,19 @@ public:
     void removeModulationSourceFromTarget(int chainNumber, int pluginNumber, int targetNumber, ModulationSourceDefinition source);
     void setModulationTargetValue(int chainNumber, int pluginNumber, int targetNumber, float val);
     void setModulationSourceValue(int chainNumber, int pluginNumber, int targetNumber, int sourceNumber, float val);
+
+    // Parameter modulation
+    void addSourceToLFOFreq(int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFOFreq(int lfoIndex, ModulationSourceDefinition source);
+    void setLFOFreqModulationAmount(int lfoIndex, int sourceIndex, double val);
+
+    void addSourceToLFODepth(int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFODepth(int lfoIndex, ModulationSourceDefinition source);
+    void setLFODepthModulationAmount(int lfoIndex, int sourceIndex, double val);
+
+    void addSourceToLFOPhase(int lfoIndex, ModulationSourceDefinition source);
+    void removeSourceFromLFOPhase(int lfoIndex, ModulationSourceDefinition source);
+    void setLFOPhaseModulationAmount(int lfoIndex, int sourceIndex, double val);
 
     // Parallel Split
     void addParallelChain();
@@ -158,6 +172,8 @@ public:
     void moveSlot(int fromChainNumber, int fromSlotNumber, int toChainNumber, int toSlotNumber);
 
     void moveChain(int fromChainNumber, int toChainNumber);
+
+    void copyChain(int fromChainNumber, int toChainNumber);
 
     void undo();
     void redo();

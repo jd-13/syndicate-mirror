@@ -71,6 +71,7 @@ namespace ChainProcessors {
     void prepareToPlay(ChainSlotPlugin& slot, HostConfiguration config) {
         slot.plugin->setRateAndBufferSizeDetails(config.sampleRate, config.blockSize);
         slot.plugin->prepareToPlay(config.sampleRate, config.blockSize);
+        slot.spareSCBuffer.reset(new juce::AudioBuffer<float>(config.layout.getMainInputChannels() * 2, config.blockSize));
     }
 
     void releaseResources(ChainSlotPlugin& slot) {
@@ -79,6 +80,7 @@ namespace ChainProcessors {
 
     void reset(ChainSlotPlugin& slot) {
         slot.plugin->reset();
+        slot.spareSCBuffer->clear();
     }
 
     void processBlock(ChainSlotPlugin& slot,
@@ -104,8 +106,29 @@ namespace ChainProcessors {
                 }
             }
 
-            // Do processing
-            slot.plugin->processBlock(buffer, midiMessages);
+            const int numPluginInputs {getTotalNumInputChannels(slot.plugin->getBusesLayout())};
+
+            const bool useSpareSidechainBuffer = {
+                buffer.getNumChannels() < numPluginInputs && slot.spareSCBuffer->getNumChannels() == numPluginInputs
+            };
+
+            if (useSpareSidechainBuffer) {
+                // Copy from the real input buffer into our buffer with the correct number of channels
+                for (int channelIndex {0}; channelIndex < buffer.getNumChannels(); channelIndex++) {
+                    slot.spareSCBuffer->copyFrom(channelIndex, 0, buffer, channelIndex, 0, buffer.getNumSamples());
+                }
+
+                // Do processing
+                slot.plugin->processBlock(*slot.spareSCBuffer, midiMessages);
+
+                // Copy back to the real buffer
+                for (int channelIndex {0}; channelIndex < buffer.getNumChannels(); channelIndex++) {
+                    buffer.copyFrom(channelIndex, 0, *slot.spareSCBuffer, channelIndex, 0, buffer.getNumSamples());
+                }
+            } else {
+                // Do processing
+                slot.plugin->processBlock(buffer, midiMessages);
+            }
         }
     }
 }

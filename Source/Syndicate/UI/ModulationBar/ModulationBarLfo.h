@@ -6,6 +6,7 @@
 #include "RichterLFO/RichterLFO.h"
 #include "UIUtils.h"
 #include "PluginProcessor.h"
+#include "ModulatableParameter.hpp"
 
 class ModulationBarLfo : public juce::Component,
                          public juce::Slider::Listener,
@@ -49,16 +50,13 @@ private:
     void _updateWaveView();
     void _updateTempoToggles();
 
-    std::unique_ptr<WECore::JUCEPlugin::LabelReadoutSlider<double>> depthSlider;
-    std::unique_ptr<WECore::JUCEPlugin::LabelReadoutSlider<double>> freqSlider;
+    std::unique_ptr<ModulatableParameter> freqSlider;
+    std::unique_ptr<ModulatableParameter> depthSlider;
+    std::unique_ptr<ModulatableParameter> phaseSlider;
     std::unique_ptr<juce::ComboBox> waveComboBox;
-    std::unique_ptr<juce::Label> freqLabel;
-    std::unique_ptr<juce::Label> depthLabel;
     std::unique_ptr<juce::TextButton> tempoSyncButton;
     std::unique_ptr<juce::Slider> tempoNumerSlider;
     std::unique_ptr<juce::Slider> tempoDenomSlider;
-    std::unique_ptr<WECore::JUCEPlugin::LabelReadoutSlider<double>> phaseSlider;
-    std::unique_ptr<juce::Label> phaseLabel;
     std::unique_ptr<WECore::Richter::WaveViewer> waveView;
     std::unique_ptr<juce::TextButton> invertButton;
 

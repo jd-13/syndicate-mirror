@@ -12,12 +12,49 @@ namespace {
 
 CrossoverParameterComponent::CrossoverParameterComponent(SyndicateAudioProcessor& processor)
         : _processor(processor) {
+
+    ModelInterface::forEachChain(_processor.manager, [&](int bandNumber, std::shared_ptr<PluginChain>) {
+        _chainLabels.emplace_back(std::make_unique<juce::Label>("Chain Label", TRANS("")));
+        addAndMakeVisible(_chainLabels.back().get());
+        _chainLabels.back()->setText(juce::String(bandNumber + 1), juce::dontSendNotification);
+        _chainLabels.back()->setJustificationType(juce::Justification::centred);
+        _chainLabels.back()->setEditable(true, true, false);
+        _chainLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::Label::backgroundWhenEditingColourId, UIUtils::backgroundColour);
+        _chainLabels.back()->setColour(juce::Label::textWhenEditingColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::Label::outlineWhenEditingColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::TextEditor::highlightColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralColour);
+        _chainLabels.back()->setColour(juce::CaretComponent::caretColourId, UIUtils::highlightColour);
+
+        auto chainLabel = _chainLabels.back().get();
+        _chainLabels.back()->onTextChange = [this, bandNumber, chainLabel] () {
+            _processor.setChainCustomName(bandNumber, chainLabel->getText());
+        };
+
+        _secondaryLabels.emplace_back(std::make_unique<juce::Label>("Secondary Label", TRANS("")));
+        addAndMakeVisible(_secondaryLabels.back().get());
+        _secondaryLabels.back()->setFont(juce::Font(12.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+        _secondaryLabels.back()->setJustificationType(juce::Justification::centred);
+        _secondaryLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+        _secondaryLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour.withBrightness(0.7));
+        _secondaryLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+        _secondaryLabels.back()->toBehind(_chainLabels.back().get());
+    });
+
+
+    _setLabelsText();
 }
 
 void CrossoverParameterComponent::paint(juce::Graphics &g) {
     _drawSliderThumbs(g);
     _drawFrequencyText(g);
-    _drawBandText(g);
+}
+
+void CrossoverParameterComponent::resized() {
+    _resizeChainLabels();
 }
 
 void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
@@ -63,27 +100,43 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
     });
 }
 
-void CrossoverParameterComponent::_drawBandText(juce::Graphics& g) {
-    double xPosLeft {0};
+void CrossoverParameterComponent::_resizeChainLabels() {
+   double xPosLeft {0};
 
-    g.setColour(UIUtils::highlightColour.withBrightness(0.7));
-
-    ModelInterface::forEachChain(_processor.manager, [&](int bandNumber, std::shared_ptr<PluginChain>) {
+    for (size_t index {0}; index < _chainLabels.size(); index++) {
         const double xPosRight {
-            bandNumber < ModelInterface::getNumChains(_processor.manager) - 1 ?
-                UIUtils::Crossover::sliderValueToXPos(ModelInterface::getCrossoverFrequency(_processor.manager, bandNumber), getWidth()) :
+            index < _chainLabels.size() - 1 ?
+                UIUtils::Crossover::sliderValueToXPos(ModelInterface::getCrossoverFrequency(_processor.manager, index), getWidth()) :
                 getWidth()
         };
 
-        g.drawText(
-            juce::String(bandNumber + 1),
-            xPosLeft,
+        _chainLabels[index]->setBounds(
+            xPosLeft + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
             0,
-            xPosRight - xPosLeft,
-            getHeight(),
-            juce::Justification::centred,
-            false);
+            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
+            getHeight());
+
+        _secondaryLabels[index]->setBounds(
+            xPosLeft + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
+            0,
+            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
+            12);
 
         xPosLeft = xPosRight;
-    });
+    }
+}
+
+void CrossoverParameterComponent::_setLabelsText() {
+    for (size_t index {0}; index < _chainLabels.size(); index++) {
+        juce::String customName = ModelInterface::getChainCustomName(_processor.manager, index);
+
+        if (customName.isEmpty()) {
+            _chainLabels[index]->setText(juce::String(index + 1), juce::dontSendNotification);
+            _secondaryLabels[index]->setVisible(false);
+        } else {
+            _chainLabels[index]->setText(customName, juce::dontSendNotification);
+            _secondaryLabels[index]->setText(juce::String(index + 1), juce::dontSendNotification);
+            _secondaryLabels[index]->setVisible(true);
+        }
+    }
 }

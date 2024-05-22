@@ -43,7 +43,8 @@ public:
 private:
     PluginParameterListSorter _parameterListSorter;
     juce::Array<juce::AudioProcessorParameter*> _parameterList;
-    std::function<void(juce::AudioProcessorParameter*)> _parameterSelectedCallback;
+    std::function<void(juce::AudioProcessorParameter*, bool)> _parameterSelectedCallback;
+    const bool _isReplacingParameter;
 };
 
 class PluginParameterSelectorTableListBox : public juce::TableListBox {

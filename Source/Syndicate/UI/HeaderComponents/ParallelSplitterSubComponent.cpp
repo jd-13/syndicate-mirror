@@ -58,16 +58,20 @@ void ParallelSplitterSubComponent::_rebuildHeader() {
     for (size_t index {0}; index < numChains; index++) {
         if (numChains == 1) {
             // Don't provide a callback if there's only one chain - it can't be removed
-            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(_processor, index));
+            _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(
+                _processor,
+                index,
+                juce::String(index + 1)
+            ));
         } else {
             _chainButtons.emplace_back(std::make_unique<ChainButtonsComponent>(
                 _processor,
                 index,
+                juce::String(index + 1),
                 [&, index]() { _processor.removeParallelChain(index); }
             ));
         }
 
-        _chainButtons[index]->chainLabel->setText(juce::String(index + 1), juce::dontSendNotification);
         _viewPort->getViewedComponent()->addAndMakeVisible(_chainButtons[index].get());
     }
 

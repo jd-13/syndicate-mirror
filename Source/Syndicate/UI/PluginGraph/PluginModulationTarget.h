@@ -4,22 +4,8 @@
 #include "PluginModulationInterface.h"
 #include "ModulationSourceDefinition.hpp"
 #include "UIUtils.h"
-#include "General/CoreMath.h"
-
-class PluginModulationTargetSlider : public juce::Slider,
-                                     public juce::Timer {
-public:
-    PluginModulationTargetSlider(juce::AudioProcessorParameter* pluginParameter);
-    ~PluginModulationTargetSlider() = default;
-
-    void paint(juce::Graphics& g) override;
-
-    void timerCallback() override;
-
-private:
-    juce::AudioProcessorParameter* _pluginParameter;
-    float _pluginParameterValue;
-};
+#include "ModulationTargetSlider.hpp"
+#include "ModulationTargetSourceSlider.hpp"
 
 class PluginModulationTargetButton : public juce::TextButton {
 public:
@@ -35,37 +21,10 @@ private:
 };
 
 /**
- * Displays the small modulation source slider below the modulation target. A single target may have
- * multiple slots each representing a different modulation source.
- */
-class PluginModulationTargetSourceSlider : public juce::Slider {
-public:
-
-    PluginModulationTargetSourceSlider(ModulationSourceDefinition definition,
-                                       std::function<void(ModulationSourceDefinition)> onRemoveCallback);
-    ~PluginModulationTargetSourceSlider() = default;
-
-    void resized() override;
-    void paint(juce::Graphics& g) override;
-
-    void mouseDown(const juce::MouseEvent& event) override;
-    void mouseUp(const juce::MouseEvent& event) override;
-
-private:
-    const ModulationSourceDefinition _definition;
-    std::function<void(ModulationSourceDefinition)> _onRemoveCallback;
-
-    std::unique_ptr<juce::Label> _idLabel;
-    std::unique_ptr<juce::GlowEffect> _glowEffect;
-    bool _isRightClick;
-};
-
-/**
  * Contains all the UI components needed for a particular modulation target, eg. the target slider,
  * target select button, and modulation slots.
  */
 class PluginModulationTarget : public juce::Component,
-                               public juce::Slider::Listener,
                                public juce::Button::Listener,
                                public juce::DragAndDropTarget {
 public:
@@ -78,7 +37,6 @@ public:
 
     void resized() override;
 
-    void sliderValueChanged(juce::Slider* sliderThatWasMoved) override;
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
     bool isInterestedInDragSource(const SourceDetails& dragSourceDetails) override;
@@ -91,16 +49,14 @@ private:
     int _chainNumber;
     int _pluginNumber;
     int _targetNumber;
-    std::unique_ptr<PluginModulationTargetSlider> _targetSlider;
+    std::unique_ptr<ModulationTargetSlider> _targetSlider;
     std::unique_ptr<PluginModulationTargetButton> _targetSelectButton;
     std::unique_ptr<juce::Button> _targetAddButton;
-    std::vector<std::unique_ptr<PluginModulationTargetSourceSlider>> _modulationSlots;
+    std::unique_ptr<ModulationTargetSourceSliders> _sourceSliders;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     UIUtils::StaticButtonLookAndFeel _buttonLookAndFeel;
     UIUtils::AddButtonLookAndFeel _addButtonLookAndFeel;
 
-    void _addTargetSlot(ModulationSourceDefinition definition);
     void _removeTargetSlot(ModulationSourceDefinition definition);
-    void _refreshSlotPositions();
     void _reloadState();
 };
