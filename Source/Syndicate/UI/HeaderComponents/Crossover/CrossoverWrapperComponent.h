@@ -18,6 +18,8 @@ public:
 
     void onParameterUpdate();
 
+    void onNumChainsChanged();
+
 private:
     std::unique_ptr<CrossoverImagerComponent> _imagerComponent;
     std::unique_ptr<CrossoverParameterComponent> _parameterComponent;

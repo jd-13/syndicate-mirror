@@ -26,6 +26,8 @@ public:
         repaint();
     }
 
+    void onNumChainsChanged();
+
 private:
     SyndicateAudioProcessor& _processor;
     std::vector<std::unique_ptr<juce::Label>> _chainLabels;
@@ -34,6 +36,7 @@ private:
     void _drawSliderThumbs(juce::Graphics& g);
     void _drawFrequencyText(juce::Graphics& g);
 
+    void _rebuildChainLabels();
     void _resizeChainLabels();
     void _setLabelsText();
 };

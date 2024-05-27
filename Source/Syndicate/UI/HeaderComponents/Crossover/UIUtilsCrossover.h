@@ -5,7 +5,7 @@
 
 namespace UIUtils::Crossover {
     constexpr int SLIDER_THUMB_RADIUS {6};
-    constexpr int SLIDER_THUMB_TARGET_WIDTH {SLIDER_THUMB_RADIUS * 2};
+    constexpr int SLIDER_THUMB_TARGET_WIDTH {SLIDER_THUMB_RADIUS * 4}; // * 4 as it must be minimum 2 * radius, then add a little extra
 
     constexpr int BAND_BUTTON_PADDING {4};
 

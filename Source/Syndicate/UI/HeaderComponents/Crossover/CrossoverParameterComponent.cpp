@@ -12,39 +12,7 @@ namespace {
 
 CrossoverParameterComponent::CrossoverParameterComponent(SyndicateAudioProcessor& processor)
         : _processor(processor) {
-
-    ModelInterface::forEachChain(_processor.manager, [&](int bandNumber, std::shared_ptr<PluginChain>) {
-        _chainLabels.emplace_back(std::make_unique<juce::Label>("Chain Label", TRANS("")));
-        addAndMakeVisible(_chainLabels.back().get());
-        _chainLabels.back()->setText(juce::String(bandNumber + 1), juce::dontSendNotification);
-        _chainLabels.back()->setJustificationType(juce::Justification::centred);
-        _chainLabels.back()->setEditable(true, true, false);
-        _chainLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
-        _chainLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour);
-        _chainLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
-        _chainLabels.back()->setColour(juce::Label::backgroundWhenEditingColourId, UIUtils::backgroundColour);
-        _chainLabels.back()->setColour(juce::Label::textWhenEditingColourId, UIUtils::highlightColour);
-        _chainLabels.back()->setColour(juce::Label::outlineWhenEditingColourId, juce::Colours::transparentBlack);
-        _chainLabels.back()->setColour(juce::TextEditor::highlightColourId, UIUtils::highlightColour);
-        _chainLabels.back()->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralColour);
-        _chainLabels.back()->setColour(juce::CaretComponent::caretColourId, UIUtils::highlightColour);
-
-        auto chainLabel = _chainLabels.back().get();
-        _chainLabels.back()->onTextChange = [this, bandNumber, chainLabel] () {
-            _processor.setChainCustomName(bandNumber, chainLabel->getText());
-        };
-
-        _secondaryLabels.emplace_back(std::make_unique<juce::Label>("Secondary Label", TRANS("")));
-        addAndMakeVisible(_secondaryLabels.back().get());
-        _secondaryLabels.back()->setFont(juce::Font(12.00f, juce::Font::plain).withTypefaceStyle("Regular"));
-        _secondaryLabels.back()->setJustificationType(juce::Justification::centred);
-        _secondaryLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
-        _secondaryLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour.withBrightness(0.7));
-        _secondaryLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
-        _secondaryLabels.back()->toBehind(_chainLabels.back().get());
-    });
-
-
+    _rebuildChainLabels();
     _setLabelsText();
 }
 
@@ -55,6 +23,12 @@ void CrossoverParameterComponent::paint(juce::Graphics &g) {
 
 void CrossoverParameterComponent::resized() {
     _resizeChainLabels();
+}
+
+void CrossoverParameterComponent::onNumChainsChanged() {
+    _rebuildChainLabels();
+    _setLabelsText();
+    resized();
 }
 
 void CrossoverParameterComponent::_drawSliderThumbs(juce::Graphics& g) {
@@ -100,6 +74,42 @@ void CrossoverParameterComponent::_drawFrequencyText(juce::Graphics &g) {
     });
 }
 
+void CrossoverParameterComponent::_rebuildChainLabels() {
+    _chainLabels.clear();
+    _secondaryLabels.clear();
+
+    ModelInterface::forEachChain(_processor.manager, [&](int bandNumber, std::shared_ptr<PluginChain>) {
+        _chainLabels.emplace_back(std::make_unique<juce::Label>("Chain Label", TRANS("")));
+        addAndMakeVisible(_chainLabels.back().get());
+        _chainLabels.back()->setText(juce::String(bandNumber + 1), juce::dontSendNotification);
+        _chainLabels.back()->setJustificationType(juce::Justification::centred);
+        _chainLabels.back()->setEditable(true, true, false);
+        _chainLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::Label::backgroundWhenEditingColourId, UIUtils::backgroundColour);
+        _chainLabels.back()->setColour(juce::Label::textWhenEditingColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::Label::outlineWhenEditingColourId, juce::Colours::transparentBlack);
+        _chainLabels.back()->setColour(juce::TextEditor::highlightColourId, UIUtils::highlightColour);
+        _chainLabels.back()->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralColour);
+        _chainLabels.back()->setColour(juce::CaretComponent::caretColourId, UIUtils::highlightColour);
+
+        auto chainLabel = _chainLabels.back().get();
+        _chainLabels.back()->onTextChange = [this, bandNumber, chainLabel] () {
+            _processor.setChainCustomName(bandNumber, chainLabel->getText());
+        };
+
+        _secondaryLabels.emplace_back(std::make_unique<juce::Label>("Secondary Label", TRANS("")));
+        addAndMakeVisible(_secondaryLabels.back().get());
+        _secondaryLabels.back()->setFont(juce::Font(12.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+        _secondaryLabels.back()->setJustificationType(juce::Justification::centred);
+        _secondaryLabels.back()->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+        _secondaryLabels.back()->setColour(juce::Label::textColourId, UIUtils::highlightColour.withBrightness(0.7));
+        _secondaryLabels.back()->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+        _secondaryLabels.back()->toBehind(_chainLabels.back().get());
+    });
+}
+
 void CrossoverParameterComponent::_resizeChainLabels() {
    double xPosLeft {0};
 
@@ -113,13 +123,13 @@ void CrossoverParameterComponent::_resizeChainLabels() {
         _chainLabels[index]->setBounds(
             xPosLeft + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
             0,
-            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
+            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH * 2, // * 2 to subtract the space added on the left and then make space on the right
             getHeight());
 
         _secondaryLabels[index]->setBounds(
             xPosLeft + UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
             0,
-            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH,
+            xPosRight - xPosLeft - UIUtils::Crossover::SLIDER_THUMB_TARGET_WIDTH * 2, // * 2 to subtract the space added on the left and then make space on the right
             12);
 
         xPosLeft = xPosRight;

@@ -63,6 +63,8 @@ void MultibandSplitterSubComponent::onParameterUpdate() {
 }
 
 void MultibandSplitterSubComponent::_rebuildHeader() {
+    crossoverComponent->onNumChainsChanged();
+
     const size_t numChains {ModelInterface::getNumChains(_processor.manager)};
 
     _chainButtons.clear();

@@ -22,3 +22,7 @@ void CrossoverWrapperComponent::resized() {
 void CrossoverWrapperComponent::onParameterUpdate() {
     _parameterComponent->onParameterUpdate();
 }
+
+void CrossoverWrapperComponent::onNumChainsChanged() {
+    _parameterComponent->onNumChainsChanged();
+}
