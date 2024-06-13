@@ -54,11 +54,17 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
         manager({getBusesLayout(), getSampleRate(), getBlockSize()},
                 [&](int id, MODULATION_TYPE type) { return getModulationValueForSource(id, type); },
                 [&](int newLatencySamples) { onLatencyChange(newLatencySamples); }),
-        _logger(JucePlugin_Name, JucePlugin_VersionString, Utils::PluginLogDirectory),
         _editor(nullptr),
         _outputGainLinear(1)
 {
-    juce::Logger::setCurrentLogger(&_logger);
+
+    const Utils::Config config = Utils::LoadConfig();
+    if (config.enableLogFile) {
+        _fileLogger = std::make_unique<MainLogger>(JucePlugin_Name, JucePlugin_VersionString, Utils::PluginLogDirectory);
+        juce::Logger::setCurrentLogger(_fileLogger.get());
+    } else {
+        juce::Logger::setCurrentLogger(&_nullLogger);
+    }
 
     constexpr float PRECISION {0.01f};
     registerPrivateParameter(_splitterParameters, "SplitterParameters");

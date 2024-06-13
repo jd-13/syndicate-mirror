@@ -13,6 +13,4 @@ private:
     virtual void logMessage(const juce::String& message) override;
 
     void _logEnvironment(const char* appName, const char* appVersion);
-
-    void _deleteOldLogs();
 };

@@ -4,14 +4,21 @@
 
 #include "AllUtils.h"
 #include "MainLogger.h"
+#include "NullLogger.hpp"
 #include "ServerProcess.h"
 
 // TODO use macros for name and version
 
 class ServerApplication : public juce::JUCEApplicationBase {
 public:
-    ServerApplication() : _logger("Syndicate Plugin Scan Server", ProjectInfo::versionString, Utils::PluginScanServerLogDirectory) {
-        juce::Logger::setCurrentLogger(&_logger);
+    ServerApplication() {
+        const Utils::Config config = Utils::LoadConfig();
+        if (config.enableLogFile) {
+            _fileLogger = std::make_unique<MainLogger>("Syndicate Plugin Scan Server", ProjectInfo::versionString, Utils::PluginScanServerLogDirectory);
+            juce::Logger::setCurrentLogger(_fileLogger.get());
+        } else {
+            juce::Logger::setCurrentLogger(&_nullLogger);
+        }
     }
 
     ~ServerApplication() {
@@ -63,6 +70,7 @@ public:
     }
 
 private:
-    MainLogger _logger;
+    std::unique_ptr<MainLogger> _fileLogger;
+    NullLogger _nullLogger;
     std::unique_ptr<ServerProcess> _process;
 };

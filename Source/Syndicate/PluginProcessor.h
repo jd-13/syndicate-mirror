@@ -13,6 +13,7 @@
 #include "CoreJUCEPlugin/CoreAudioProcessor.h"
 #include "CoreJUCEPlugin/CustomParameter.h"
 #include "MainLogger.h"
+#include "NullLogger.hpp"
 #include "PluginScanClient.h"
 #include "PluginSelectorState.h"
 #include "PluginParameterSelectorState.h"
@@ -222,7 +223,8 @@ private:
         void _writeMainWindowStateToXml(juce::XmlElement* element);
     };
 
-    MainLogger _logger;
+    std::unique_ptr<MainLogger> _fileLogger;
+    NullLogger _nullLogger;
     SyndicateAudioProcessorEditor* _editor;
     double _outputGainLinear;
 
