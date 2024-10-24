@@ -21,6 +21,12 @@ namespace {
 
     const char* XML_MACRO_NAMES_STR {"MacroNames"};
 
+    const char* XML_METADATA_STR {"Metadata"};
+    const char* XML_METADATA_NAME_STR {"MetadataName"};
+    const char* XML_METADATA_FULLPATH_STR {"MetadataFullPath"};
+    const char* XML_METADATA_AUTHOR_STR {"MetadataAuthor"};
+    const char* XML_METADATA_DESCRIPTION_STR {"MetadataDescription"};
+
     const char* XML_MAIN_WINDOW_STATE_STR {"MainWindowState"};
     const char* XML_MAIN_WINDOW_BOUNDS_STR {"MainEditorBounds"};
     const char* XML_GRAPH_VIEW_POSITION_STR {"GraphViewScrollPosition"};
@@ -282,6 +288,14 @@ void SyndicateAudioProcessor::setLfoTempoSyncSwitch(int lfoIndex, bool val) {
 
 void SyndicateAudioProcessor::setLfoInvertSwitch(int lfoIndex, bool val) {
     ModelInterface::setLfoInvertSwitch(manager, lfoIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setLfoOutputMode(int lfoIndex, int val) {
+    ModelInterface::setLfoOutputMode(manager, lfoIndex, val);
 
     if (_editor != nullptr) {
         _editor->needsUndoRedoRefresh();
@@ -756,6 +770,14 @@ void SyndicateAudioProcessor::redo() {
     }
 }
 
+void SyndicateAudioProcessor::setPresetMetadata(const PresetMetadata& newMetadata) {
+    presetMetadata = newMetadata;
+
+    if (_editor != nullptr) {
+        _editor->needsImportExportRefresh();
+    }
+}
+
 void SyndicateAudioProcessor::onLatencyChange(int newLatencySamples) {
     setLatencySamples(newLatencySamples);
 }
@@ -822,6 +844,14 @@ void SyndicateAudioProcessor::SplitterParameters::restoreFromXml(juce::XmlElemen
             juce::Logger::writeToLog("Missing element " + juce::String(XML_MACRO_NAMES_STR));
         }
 
+        juce::XmlElement* metadataElement = element->getChildByName(XML_METADATA_STR);
+        if (metadataElement != nullptr) {
+            // Restore the metadata
+            _restoreMetadataFromXml(metadataElement);
+        } else {
+            juce::Logger::writeToLog("Missing element " + juce::String(XML_METADATA_STR));
+        }
+
         juce::XmlElement* pluginSelectorElement = element->getChildByName(XML_PLUGIN_SELECTOR_STATE_STR);
         if (pluginSelectorElement != nullptr) {
             // Restore the plugin selector window state
@@ -865,6 +895,10 @@ void SyndicateAudioProcessor::SplitterParameters::writeToXml(juce::XmlElement* e
         // Store the macro names
         juce::XmlElement* macroNamesElement = element->createNewChildElement(XML_MACRO_NAMES_STR);
         _writeMacroNamesToXml(macroNamesElement);
+
+        // Store the metadata
+        juce::XmlElement* metadataElement = element->createNewChildElement(XML_METADATA_STR);
+        _writeMetadataToXml(metadataElement);
 
         // Store window states
         juce::XmlElement* mainWindowElement = element->createNewChildElement(XML_MAIN_WINDOW_STATE_STR);
@@ -910,6 +944,32 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreMacroNamesFromXml(juce
         } else {
             juce::Logger::writeToLog("Missing macro name attribute: " + getMacroNameXMLName(index));
         }
+    }
+}
+
+void SyndicateAudioProcessor::SplitterParameters::_restoreMetadataFromXml(juce::XmlElement* element) {
+    if (element->hasAttribute(XML_METADATA_NAME_STR)) {
+        _processor->presetMetadata.name = element->getStringAttribute(XML_METADATA_NAME_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_METADATA_NAME_STR));
+    }
+
+    if (element->hasAttribute(XML_METADATA_FULLPATH_STR)) {
+        _processor->presetMetadata.fullPath = element->getStringAttribute(XML_METADATA_FULLPATH_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_METADATA_FULLPATH_STR));
+    }
+
+    if (element->hasAttribute(XML_METADATA_AUTHOR_STR)) {
+        _processor->presetMetadata.author = element->getStringAttribute(XML_METADATA_AUTHOR_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_METADATA_AUTHOR_STR));
+    }
+
+    if (element->hasAttribute(XML_METADATA_DESCRIPTION_STR)) {
+        _processor->presetMetadata.description = element->getStringAttribute(XML_METADATA_DESCRIPTION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_METADATA_DESCRIPTION_STR));
     }
 }
 
@@ -974,6 +1034,13 @@ void SyndicateAudioProcessor::SplitterParameters::_writeMacroNamesToXml(juce::Xm
     for (int index {0}; index < _processor->macroNames.size(); index++) {
         element->setAttribute(getMacroNameXMLName(index), _processor->macroNames[index]);
     }
+}
+
+void SyndicateAudioProcessor::SplitterParameters::_writeMetadataToXml(juce::XmlElement* element) {
+    element->setAttribute(XML_METADATA_NAME_STR, _processor->presetMetadata.name);
+    element->setAttribute(XML_METADATA_FULLPATH_STR, _processor->presetMetadata.fullPath);
+    element->setAttribute(XML_METADATA_AUTHOR_STR, _processor->presetMetadata.author);
+    element->setAttribute(XML_METADATA_DESCRIPTION_STR, _processor->presetMetadata.description);
 }
 
 void SyndicateAudioProcessor::SplitterParameters::_writeMainWindowStateToXml(juce::XmlElement* element) {

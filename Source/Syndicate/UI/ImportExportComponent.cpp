@@ -7,6 +7,26 @@ namespace {
     const juce::String redoTooltipPrefix = "Redo the last change - ";
     const juce::String defaultUndoTooltip = undoTooltipPrefix + "no changes to undo";
     const juce::String defaultRedoTooltip = redoTooltipPrefix + "no changes to redo";
+
+    void redactXml(juce::XmlElement* element) {
+        if (element == nullptr) {
+            return;
+        }
+
+        // Remove the file attribute that plugins have
+        if (element->hasAttribute("file")) {
+            element->removeAttribute("file");
+        }
+
+        // Remove the metadata file path
+        // TODO could optimise this - we don't need to check every element
+        if (element->hasAttribute("MetadataFullPath")) {
+            element->removeAttribute("MetadataFullPath");
+        }
+
+        redactXml(element->getFirstChildElement());
+        redactXml(element->getNextElement());
+    }
 }
 
 ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor, SyndicateAudioProcessorEditor& editor)
@@ -43,77 +63,71 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
         });
     };
 
-    _undoButton.reset(new juce::TextButton("Undo Button"));
-    addAndMakeVisible(_undoButton.get());
-    _undoButton->setButtonText(TRANS("Undo"));
-    _undoButton->setTooltip(defaultUndoTooltip);
-    _undoButton->setLookAndFeel(&_buttonLookAndFeel);
-    _undoButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _undoButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
-    _undoButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
-    _undoButton->onClick = [&]() {
-        _processor.undo();
+    _metaButton.reset(new juce::TextButton("Meta Button"));
+    addAndMakeVisible(_metaButton.get());
+    _metaButton->setButtonText(TRANS("Info"));
+    _metaButton->setTooltip("View and edit preset metadata");
+    _metaButton->setLookAndFeel(&_buttonLookAndFeel);
+    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    _metaButton->onClick = [&]() {
+        _metadataEditPopover.reset(new MetadataEditComponent(
+            _processor.presetMetadata,
+            [&](const PresetMetadata& newMetadata) { _processor.setPresetMetadata(newMetadata); },
+            [&]() { _metadataEditPopover.reset(); }
+        ));
+
+        getParentComponent()->addAndMakeVisible(_metadataEditPopover.get());
+        _metadataEditPopover->setBounds(getParentComponent()->getLocalBounds());
     };
 
-    _redoButton.reset(new juce::TextButton("Redo Button"));
-    addAndMakeVisible(_redoButton.get());
-    _redoButton->setButtonText(TRANS("Redo"));
-    _redoButton->setTooltip(defaultRedoTooltip);
-    _redoButton->setLookAndFeel(&_buttonLookAndFeel);
-    _redoButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _redoButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
-    _redoButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
-    _redoButton->onClick = [&]() {
-        processor.redo();
-    };
-
-    refresh();
+    _nameLabel.reset(new juce::Label("Name Label", UIUtils::presetNameOrPlaceholder(_processor.presetMetadata.name)));
+    addAndMakeVisible(_nameLabel.get());
+    _nameLabel->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+    _nameLabel->setJustificationType(juce::Justification::centred);
+    _nameLabel->setEditable(false, false, false);
+    _nameLabel->setColour(juce::Label::textColourId, UIUtils::tooltipColour);
+    _nameLabel->toBack();
 }
 
 ImportExportComponent::~ImportExportComponent() {
 }
 
 void ImportExportComponent::resized() {
-    constexpr int BUTTON_HEIGHT {24};
     juce::Rectangle<int> availableArea = getLocalBounds();
-    availableArea.reduce(4, 0);
-    availableArea.removeFromTop(8);
+    availableArea.reduce(4, 2);
 
-    // Save/Load
-    _exportButton->setBounds(availableArea.removeFromTop(BUTTON_HEIGHT));
-    availableArea.removeFromTop(4);
-    _importButton->setBounds(availableArea.removeFromTop(BUTTON_HEIGHT));
+    constexpr int BUTTON_HEIGHT {24};
+    constexpr int BUTTON_WIDTH {56}; // Match sidebar buttons
+    constexpr int SPACER_WIDTH {8};
 
-    availableArea.removeFromTop(16);
+    _nameLabel->setBounds(availableArea);
 
-    // Undo/Redo
-    _undoButton->setBounds(availableArea.removeFromTop(BUTTON_HEIGHT));
-    availableArea.removeFromTop(4);
-    _redoButton->setBounds(availableArea.removeFromTop(BUTTON_HEIGHT));
+    _exportButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
+    availableArea.removeFromLeft(SPACER_WIDTH);
+    _importButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
+    availableArea.removeFromLeft(SPACER_WIDTH);
+    _metaButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
+
+}
+
+void ImportExportComponent::paint(juce::Graphics& g) {
+    g.fillAll(UIUtils::modulationTrayBackgroundColour);
 }
 
 void ImportExportComponent::refresh() {
-    const std::optional<juce::String> undoOperation = ModelInterface::getUndoOperation(_processor.manager);
-    if (undoOperation.has_value()) {
-        _undoButton->setTooltip(undoTooltipPrefix + undoOperation.value());
-        _undoButton->setEnabled(true);
-    } else {
-        _undoButton->setTooltip(defaultUndoTooltip);
-        _undoButton->setEnabled(false);
-    }
-
-    const std::optional<juce::String> redoOperation = ModelInterface::getRedoOperation(_processor.manager);
-    if (redoOperation.has_value()) {
-        _redoButton->setTooltip(redoTooltipPrefix + redoOperation.value());
-        _redoButton->setEnabled(true);
-    } else {
-        _redoButton->setTooltip(defaultRedoTooltip);
-        _redoButton->setEnabled(false);
-    }
+    _nameLabel->setText(UIUtils::presetNameOrPlaceholder(_processor.presetMetadata.name), juce::dontSendNotification);
 }
 
 void ImportExportComponent::_onExportToFile(juce::File file) {
+    PresetMetadata newMetadata = _processor.presetMetadata;
+    newMetadata.name = file.getFileNameWithoutExtension();
+    newMetadata.fullPath = file.getFullPathName();
+    _processor.setPresetMetadata(newMetadata);
+
     std::unique_ptr<juce::XmlElement> element = _processor.writeToXml();
+    redactXml(element.get());
     element->writeTo(file);
 }
 
@@ -122,6 +136,13 @@ void ImportExportComponent::_onImportFromFile(juce::File file) {
         std::unique_ptr<juce::XmlElement> element = juce::XmlDocument::parse(file);
         if (element != nullptr) {
             _processor.restoreFromXml(std::move(element));
+
+            PresetMetadata newMetadata = _processor.presetMetadata;
+            newMetadata.name = file.getFileNameWithoutExtension();
+            newMetadata.fullPath = file.getFullPathName();
+            _processor.setPresetMetadata(newMetadata);
+
+            _editor.closeGuestPluginWindows();
             _editor.needsToRefreshAll();
         }
     }

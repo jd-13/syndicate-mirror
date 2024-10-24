@@ -15,6 +15,8 @@ public:
 
     void onParameterUpdate();
 
+    void closeGuestPluginWindows();
+
     UIUtils::LinkedScrollView* getViewport() { return _viewPort.get(); }
 
 private:

@@ -69,6 +69,16 @@ namespace ModulationMutators {
 
         return false;
     }
+
+    bool setLfoOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val) {
+        if (sources->lfos.size() > lfoIndex) {
+            sources->lfos[lfoIndex]->setOutputMode(val);
+            return true;
+        }
+
+        return false;
+    }
+
     bool setLfoWave(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val) {
         if (sources->lfos.size() > lfoIndex) {
             sources->lfos[lfoIndex]->setWave(val);
@@ -278,6 +288,14 @@ namespace ModulationMutators {
         }
 
         return false;
+    }
+
+    int getLfoOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {
+        if (sources->lfos.size() > lfoIndex) {
+            return sources->lfos[lfoIndex]->getOutputMode();
+        }
+
+        return 0;
     }
 
     int getLfoWave(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex) {

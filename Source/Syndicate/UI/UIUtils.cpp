@@ -32,6 +32,14 @@ namespace UIUtils {
             width - 2 * indent,
             height - 2 * indent,
             static_cast<float>(cornerSize));
+
+        if (button.isConnectedOnLeft()) {
+            g.fillRect(0.0f, indent, cornerSize + indent, height - 2 * indent);
+        }
+
+        if (button.isConnectedOnRight()) {
+            g.fillRect(width - cornerSize - indent, indent, cornerSize + indent, height - 2 * indent);
+        }
     }
 
     void ToggleButtonLookAndFeel::drawButtonText(juce::Graphics& g,
@@ -320,7 +328,7 @@ namespace UIUtils {
         _titleLabel->setFont(juce::Font(20.00f, juce::Font::plain).withTypefaceStyle("Bold"));
         _titleLabel->setJustificationType(juce::Justification::centred);
         _titleLabel->setEditable(false, false, false);
-        _titleLabel->setColour(juce::Label::textColourId, UIUtils::neutralColour);
+        _titleLabel->setColour(juce::Label::textColourId, highlightColour);
 
         const juce::Font contentFont = juce::Font(15.0f, juce::Font::plain).withTypefaceStyle("Regular");
         _contentLabel.reset(new juce::Label("Content Label", content));
@@ -328,7 +336,7 @@ namespace UIUtils {
         _contentLabel->setFont(contentFont);
         _contentLabel->setJustificationType(juce::Justification::centred);
         _contentLabel->setEditable(false, false, false);
-        _contentLabel->setColour(juce::Label::textColourId, UIUtils::neutralColour);
+        _contentLabel->setColour(juce::Label::textColourId, highlightColour);
 
         _contentSize = _getBoundsForText(content, contentFont);
 
@@ -336,22 +344,21 @@ namespace UIUtils {
         _contentView->setViewedComponent(_contentLabel.get(), false);
         _contentView->setScrollBarsShown(true, true);
         _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
+        _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, neutralColour.withAlpha(0.5f));
         _contentView->getVerticalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
         _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::backgroundColourId, juce::Colour(0x00000000));
-        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, UIUtils::neutralColour.withAlpha(0.5f));
+        _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::thumbColourId, neutralColour.withAlpha(0.5f));
         _contentView->getHorizontalScrollBar().setColour(juce::ScrollBar::ColourIds::trackColourId, juce::Colour(0x00000000));
         addAndMakeVisible(_contentView.get());
 
         _button.reset(new juce::TextButton("OK button"));
         addAndMakeVisible(_button.get());
         _button->setButtonText(TRANS("OK"));
-        _button->addListener(this);
         _button->setLookAndFeel(&_buttonLookAndFeel);
-        _button->setColour(juce::TextButton::buttonOnColourId, UIUtils::highlightColour);
-        _button->setColour(juce::TextButton::buttonColourId, UIUtils::neutralColour);
-        _button->setColour(juce::TextButton::textColourOnId, UIUtils::highlightColour);
-        _button->setColour(juce::TextButton::textColourOffId, UIUtils::neutralColour);
+        _button->setColour(StaticButtonLookAndFeel::backgroundColour, slotBackgroundColour);
+        _button->setColour(StaticButtonLookAndFeel::highlightColour, highlightColour);
+        _button->setColour(StaticButtonLookAndFeel::disabledColour, deactivatedColour);
+        _button->onClick = [this] { _onCloseCallback(); };
     }
 
     void PopoverComponent::resized() {
@@ -370,12 +377,6 @@ namespace UIUtils {
 
     void PopoverComponent::paint(juce::Graphics& g) {
         g.fillAll(juce::Colours::black.withAlpha(0.8f));
-    }
-
-    void PopoverComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
-        if (buttonThatWasClicked == _button.get()) {
-            _onCloseCallback();
-        }
     }
 
     juce::Rectangle<int> PopoverComponent::_getBoundsForText(const juce::String& content, const juce::Font& font) const {
@@ -639,5 +640,12 @@ namespace UIUtils {
 #else
     #error "Unknown OS"
 #endif
+    }
+
+    juce::String presetNameOrPlaceholder(const juce::String& value) {
+        if (value.isEmpty()) {
+            return "No preset saved";
+        }
+        return value;
     }
 }

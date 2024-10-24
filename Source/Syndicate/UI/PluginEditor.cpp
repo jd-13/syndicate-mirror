@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 7.0.9
+  Created with Projucer version: 7.0.12
 
   ------------------------------------------------------------------------------
 
@@ -45,6 +45,10 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _importExportComponent.reset(new ImportExportComponent(_processor, *this));
     addAndMakeVisible(_importExportComponent.get());
     _importExportComponent->setName("Import/Export");
+
+    _undoRedoComponent.reset(new UndoRedoComponent(_processor));
+    addAndMakeVisible(_undoRedoComponent.get());
+    _undoRedoComponent->setName("Undo/Redo");
 
     _macrosSidebar.reset(new MacrosComponent(this, _processor.macros, _processor.macroNames));
     addAndMakeVisible(_macrosSidebar.get());
@@ -84,7 +88,7 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _tooltipLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     //[/UserPreSize]
 
-    setSize (700, 620);
+    setSize (820, 656);
 
 
     //[Constructor] You can add your own custom stuff here..
@@ -121,6 +125,8 @@ SyndicateAudioProcessorEditor::~SyndicateAudioProcessorEditor()
     _processor.setEditor(nullptr);
     _tooltipLabelUpdater.stop();
 
+    _importExportComponent = nullptr;
+    _undoRedoComponent = nullptr;
     _macrosSidebar = nullptr;
     _splitterButtonsBar = nullptr;
     _splitterHeader = nullptr;
@@ -162,10 +168,11 @@ void SyndicateAudioProcessorEditor::resized()
 
     juce::Rectangle<int> availableArea = getLocalBounds().withTrimmedBottom(1);
 
+    _importExportComponent->setBounds(availableArea.removeFromTop(28));
     _tooltipLbl->setBounds(availableArea.removeFromBottom(TOOLTIP_HEIGHT));
 
     juce::Rectangle<int> leftArea = availableArea.removeFromLeft(SIDEBAR_WIDTH);
-    _importExportComponent->setBounds(leftArea.removeFromTop(8 + 8 + 4 + 24 + 24 + 16 + 24 + 4 + 24));
+    _undoRedoComponent->setBounds(leftArea.removeFromTop(8 + 24 + 4 + 24 + 8));
     _macrosSidebar->setBounds(leftArea);
 
     juce::Rectangle<int> rightArea = availableArea.removeFromRight(SIDEBAR_WIDTH).withTrimmedTop(SPLITTER_BUTTONS_HEIGHT);
@@ -210,8 +217,12 @@ void SyndicateAudioProcessorEditor::needsChainButtonsRefresh() {
     needsUndoRedoRefresh();
 }
 
-void SyndicateAudioProcessorEditor::needsUndoRedoRefresh() {
+void SyndicateAudioProcessorEditor::needsImportExportRefresh() {
     _importExportComponent->refresh();
+}
+
+void SyndicateAudioProcessorEditor::needsUndoRedoRefresh() {
+    _undoRedoComponent->refresh();
 
     juce::Component* mouseOverComponent = getComponentAt(getMouseXYRelative());
     if (mouseOverComponent != nullptr) {
@@ -224,6 +235,10 @@ void SyndicateAudioProcessorEditor::needsToRefreshAll() {
     _onParameterUpdate();
     needsModulationBarRebuild();
     _macrosSidebar->updateNames(_processor.macroNames);
+}
+
+void SyndicateAudioProcessorEditor::closeGuestPluginWindows() {
+    _graphView->closeGuestPluginWindows();
 }
 
 void SyndicateAudioProcessorEditor::_enableDoubleClickToDefault() {
@@ -251,7 +266,7 @@ void SyndicateAudioProcessorEditor::_onParameterUpdate() {
     _outputSidebar->onParameterUpdate();
     _macrosSidebar->onParameterUpdate();
 
-    _importExportComponent->refresh();
+    _undoRedoComponent->refresh();
 }
 
 void SyndicateAudioProcessorEditor::_updateSplitterHeader() {
@@ -324,7 +339,7 @@ BEGIN_JUCER_METADATA
                  constructorParams="SyndicateAudioProcessor&amp; ownerProcessor"
                  variableInitialisers="CoreProcessorEditor(ownerProcessor), _processor(ownerProcessor), _isHeaderInitialised(false), _previousSplitType(SPLIT_TYPE::SERIES)"
                  snapPixels="8" snapActive="1" snapShown="1" overlayOpacity="0.330"
-                 fixedSize="1" initialWidth="700" initialHeight="620">
+                 fixedSize="1" initialWidth="820" initialHeight="656">
   <BACKGROUND backgroundColour="ff272727"/>
 </JUCER_COMPONENT>
 

@@ -230,3 +230,7 @@ int PluginSelectionInterface::getNumMainChannels() const {
 float PluginSelectionInterface::getGainStageOutputAmplitude(int chainNumber, int slotNumber, int channelNumber) const {
     return ModelInterface::getGainStageOutputAmplitude(_processor.manager, chainNumber, slotNumber, channelNumber);
 }
+
+void PluginSelectionInterface::closeGuestPluginWindows() {
+    _guestPluginWindows.clear();
+}

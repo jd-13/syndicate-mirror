@@ -156,7 +156,7 @@ namespace UIUtils {
                                            int columnFlags) override;
     };
 
-    class PopoverComponent : public juce::Component, public juce::Button::Listener {
+    class PopoverComponent : public juce::Component {
     public:
         PopoverComponent(juce::String title,
                          juce::String content,
@@ -164,7 +164,6 @@ namespace UIUtils {
 
         void resized() override;
         void paint(juce::Graphics& g) override;
-        void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
     private:
         std::function<void()> _onCloseCallback;
@@ -316,4 +315,5 @@ namespace UIUtils {
 
     juce::String getCopyKeyName();
     juce::String getCmdKeyName();
+    juce::String presetNameOrPlaceholder(const juce::String& value);
 }

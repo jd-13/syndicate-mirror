@@ -1077,6 +1077,19 @@ namespace ModelInterface {
         }
     }
 
+    void setLfoOutputMode(StateManager& manager, int lfoIndex, int val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setLfoOutputMode(sources, lfoIndex, val)) {
+            pushSources(manager, sources, "set LFO " + juce::String(lfoIndex + 1) + " output mode");
+        }
+    }
+
     void setLfoWave(StateManager& manager, int lfoIndex, int val) {
         std::scoped_lock lock(manager.mutatorsMutex);
         std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
@@ -1311,6 +1324,11 @@ namespace ModelInterface {
     bool getLfoInvertSwitch(StateManager& manager, int lfoIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getLfoInvertSwitch(manager.getSourcesStateUnsafe(), lfoIndex);
+    }
+
+    int getLfoOutputMode(StateManager& manager, int lfoIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getLfoOutputMode(manager.getSourcesStateUnsafe(), lfoIndex);
     }
 
     int getLfoWave(StateManager& manager, int lfoIndex) {

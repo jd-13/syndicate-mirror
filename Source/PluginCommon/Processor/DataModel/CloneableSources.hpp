@@ -27,6 +27,7 @@ namespace ModelInterface {
     private:
         CloneableLFO(const CloneableLFO& other) {
             _wave = other._wave;
+            _outputMode = other._outputMode;
             _indexOffset = other._indexOffset;
 
             _bypassSwitch = other._bypassSwitch;

@@ -20,6 +20,7 @@
 #include "ParameterData.h"
 #include "PluginConfigurator.hpp"
 #include "ModelInterface.hpp"
+#include "PresetMetadata.hpp"
 
 class SyndicateAudioProcessorEditor;
 
@@ -53,6 +54,7 @@ public:
     std::vector<juce::String> restoreErrors; // Populated during restore, displayed and cleared when the UI is opened
     juce::AudioPluginFormatManager formatManager;
     MainWindowState mainWindowState;
+    PresetMetadata presetMetadata;
 
     //==============================================================================
     SyndicateAudioProcessor();
@@ -98,6 +100,7 @@ public:
     void addLfo();
     void setLfoTempoSyncSwitch(int lfoIndex, bool val);
     void setLfoInvertSwitch(int lfoIndex, bool val);
+    void setLfoOutputMode(int lfoIndex, int val);
     void setLfoWave(int lfoIndex, int val);
     void setLfoTempoNumer(int lfoIndex, int val);
     void setLfoTempoDenom (int lfoIndex, int val);
@@ -179,6 +182,8 @@ public:
     void undo();
     void redo();
 
+    void setPresetMetadata(const PresetMetadata& newMetadata);
+
     /**
      * Called by a splitter when its latency has changed, so this processor can update the latency
      * it reports back to the host.
@@ -215,11 +220,13 @@ private:
         void _restoreSplitterFromXml(juce::XmlElement* element);
         void _restoreModulationSourcesFromXml(juce::XmlElement* element);
         void _restoreMacroNamesFromXml(juce::XmlElement* element);
+        void _restoreMetadataFromXml(juce::XmlElement* element);
         void _restoreMainWindowStateFromXml(juce::XmlElement* element);
 
         void _writeSplitterToXml(juce::XmlElement* element);
         void _writeModulationSourcesToXml(juce::XmlElement* element);
         void _writeMacroNamesToXml(juce::XmlElement* element);
+        void _writeMetadataToXml(juce::XmlElement* element);
         void _writeMainWindowStateToXml(juce::XmlElement* element);
     };
 

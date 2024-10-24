@@ -7,7 +7,7 @@
   the "//[xyz]" and "//[/xyz]" sections will be retained when the file is loaded
   and re-saved.
 
-  Created with Projucer version: 7.0.9
+  Created with Projucer version: 7.0.12
 
   ------------------------------------------------------------------------------
 
@@ -25,6 +25,7 @@
 #include "CoreJUCEPlugin/TooltipLabelUpdater.h"
 #include "PluginProcessor.h"
 #include "ImportExportComponent.h"
+#include "UndoRedoComponent.h"
 #include "MacrosComponent.h"
 #include "OutputComponent.h"
 #include "SplitterButtonsComponent.h"
@@ -58,8 +59,10 @@ public:
     void needsModulationBarRebuild();
     void needsSelectedModulationSourceRebuild();
     void needsChainButtonsRefresh();
+    void needsImportExportRefresh();
     void needsUndoRedoRefresh();
     void needsToRefreshAll();
+    void closeGuestPluginWindows();
     //[/UserMethods]
 
     void paint (juce::Graphics& g) override;
@@ -75,6 +78,7 @@ private:
     bool _isHeaderInitialised;
     std::unique_ptr<UIUtils::PopoverComponent> _errorPopover;
     std::unique_ptr<ImportExportComponent> _importExportComponent;
+    std::unique_ptr<UndoRedoComponent> _undoRedoComponent;
     std::unique_ptr<MacrosComponent> _macrosSidebar;
     std::unique_ptr<SplitterButtonsComponent> _splitterButtonsBar;
     std::unique_ptr<juce::Component> _headerExtensionComponent;

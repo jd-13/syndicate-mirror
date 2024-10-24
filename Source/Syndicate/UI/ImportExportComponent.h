@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "UIUtils.h"
 #include "PluginProcessor.h"
+#include "MetadataEditComponent.hpp"
 
 class SyndicateAudioProcessorEditor;
 
@@ -11,6 +12,7 @@ public:
     ImportExportComponent(SyndicateAudioProcessor& processor, SyndicateAudioProcessorEditor& editor);
     ~ImportExportComponent() override;
 
+    void paint(juce::Graphics& g) override;
     void resized() override;
 
     void refresh();
@@ -22,8 +24,10 @@ private:
     std::unique_ptr<juce::TextButton> _importButton;
     std::unique_ptr<juce::FileChooser> _fileChooser;
 
-    std::unique_ptr<juce::TextButton> _undoButton;
-    std::unique_ptr<juce::TextButton> _redoButton;
+    std::unique_ptr<juce::TextButton> _metaButton;
+    std::unique_ptr<MetadataEditComponent> _metadataEditPopover;
+
+    std::unique_ptr<juce::Label> _nameLabel;
 
     SyndicateAudioProcessor& _processor;
     SyndicateAudioProcessorEditor& _editor;

@@ -6,6 +6,7 @@ namespace ModulationMutators {
     void addLfo(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
     bool setLfoTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, bool val);
     bool setLfoInvertSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, bool val);
+    bool setLfoOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val);
     bool setLfoWave(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val);
     bool setLfoTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val);
     bool setLfoTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, int val);
@@ -27,6 +28,7 @@ namespace ModulationMutators {
 
     bool getLfoTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     bool getLfoInvertSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
+    int getLfoOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     int getLfoWave(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLfoTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);

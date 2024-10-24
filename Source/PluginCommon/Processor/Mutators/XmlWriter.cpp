@@ -137,6 +137,7 @@ namespace XmlWriter {
             thisLfoElement->setAttribute(XML_LFO_PHASE_SYNC_STR, thisLfo->getPhaseSyncSwitch());
             thisLfoElement->setAttribute(XML_LFO_TEMPO_SYNC_STR, thisLfo->getTempoSyncSwitch());
             thisLfoElement->setAttribute(XML_LFO_INVERT_STR, thisLfo->getInvertSwitch());
+            thisLfoElement->setAttribute(XML_LFO_OUTPUT_MODE_STR, thisLfo->getOutputMode());
             thisLfoElement->setAttribute(XML_LFO_WAVE_STR, thisLfo->getWave());
             thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, thisLfo->getTempoNumer());
             thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, thisLfo->getTempoDenom());

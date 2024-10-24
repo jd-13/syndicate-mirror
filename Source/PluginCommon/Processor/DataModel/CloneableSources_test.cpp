@@ -16,6 +16,7 @@ SCENARIO("CloneableLFO: Clone works correctly") {
         lfo.setTempoSyncSwitch(true);
         lfo.setInvertSwitch(true);
         lfo.setWave(WECore::Richter::Parameters::WAVE.SQUARE);
+        lfo.setOutputMode(WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
         lfo.setTempoNumer(2);
         lfo.setTempoDenom(3);
         lfo.setFreq(4.5);
@@ -44,6 +45,7 @@ SCENARIO("CloneableLFO: Clone works correctly") {
                 CHECK(clonedLFO->getTempoSyncSwitch() == lfo.getTempoSyncSwitch());
                 CHECK(clonedLFO->getInvertSwitch() == lfo.getInvertSwitch());
                 CHECK(clonedLFO->getWave() == lfo.getWave());
+                CHECK(clonedLFO->getOutputMode() == lfo.getOutputMode());
                 CHECK(clonedLFO->getTempoNumer() == lfo.getTempoNumer());
                 CHECK(clonedLFO->getTempoDenom() == lfo.getTempoDenom());
                 CHECK(clonedLFO->getFreq() == lfo.getFreq());

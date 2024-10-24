@@ -523,6 +523,7 @@ namespace XmlReader {
                 newLfo->setPhaseSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_PHASE_SYNC_STR));
                 newLfo->setTempoSyncSwitch(thisLfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR));
                 newLfo->setInvertSwitch(thisLfoElement->getBoolAttribute(XML_LFO_INVERT_STR));
+                newLfo->setOutputMode(thisLfoElement->getIntAttribute(XML_LFO_OUTPUT_MODE_STR, WECore::Richter::Parameters::OutputModeParameter::BIPOLAR)); // This paramter was added later - default to bipolar if not found
                 newLfo->setWave(thisLfoElement->getIntAttribute(XML_LFO_WAVE_STR));
                 newLfo->setTempoNumer(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR));
                 newLfo->setTempoDenom(thisLfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR));

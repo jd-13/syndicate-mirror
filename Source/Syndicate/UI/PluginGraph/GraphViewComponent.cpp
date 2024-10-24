@@ -114,3 +114,7 @@ void GraphViewComponent::onParameterUpdate() {
         setChainViewScrollPositions(_chainViews, _processor.mainWindowState.chainViewScrollPositions);
     }
 }
+
+void GraphViewComponent::closeGuestPluginWindows() {
+    _pluginSelectionInterface.closeGuestPluginWindows();
+}

@@ -19,7 +19,6 @@ MacrosComponent::~MacrosComponent() {
 void MacrosComponent::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
     availableArea.removeFromTop(12);
-    availableArea.removeFromBottom(12);
     availableArea.removeFromLeft(8);
     availableArea.removeFromRight(8);
 

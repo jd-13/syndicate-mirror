@@ -8,6 +8,23 @@
 #include "PluginProcessor.h"
 #include "ModulatableParameter.hpp"
 
+class LfoOutputModeButtons : public juce::Component {
+public:
+    LfoOutputModeButtons(SyndicateAudioProcessor& processor, int lfoIndex);
+    virtual ~LfoOutputModeButtons() override;
+
+    void resized() override;
+
+private:
+    SyndicateAudioProcessor& _processor;
+    int _lfoIndex;
+
+    UIUtils::ToggleButtonLookAndFeel _buttonLookAndFeel;
+
+    std::unique_ptr<juce::TextButton> _unipolarButton;
+    std::unique_ptr<juce::TextButton> _bipolarButton;
+};
+
 class ModulationBarLfo : public juce::Component,
                          public juce::Slider::Listener,
                          public juce::ComboBox::Listener,
@@ -59,6 +76,7 @@ private:
     std::unique_ptr<juce::Slider> tempoDenomSlider;
     std::unique_ptr<WECore::Richter::WaveViewer> waveView;
     std::unique_ptr<juce::TextButton> invertButton;
+    std::unique_ptr<LfoOutputModeButtons> outputModeButtons;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModulationBarLfo)
 };

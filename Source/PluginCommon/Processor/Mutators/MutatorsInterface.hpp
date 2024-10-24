@@ -92,6 +92,7 @@ namespace ModelInterface {
 
     void setLfoTempoSyncSwitch(StateManager& manager, int lfoIndex, bool val);
     void setLfoInvertSwitch(StateManager& manager, int lfoIndex, bool val);
+    void setLfoOutputMode(StateManager& manager, int lfoIndex, int val);
     void setLfoWave(StateManager& manager, int lfoIndex, int val);
     void setLfoTempoNumer(StateManager& manager, int lfoIndex, int val);
     void setLfoTempoDenom (StateManager& manager, int lfoIndex, int val);
@@ -113,6 +114,7 @@ namespace ModelInterface {
 
     bool getLfoTempoSyncSwitch(StateManager& manager, int lfoIndex);
     bool getLfoInvertSwitch(StateManager& manager, int lfoIndex);
+    int getLfoOutputMode(StateManager& manager, int lfoIndex);
     int getLfoWave(StateManager& manager, int lfoIndex);
     double getLfoTempoNumer(StateManager& manager, int lfoIndex);
     double getLfoTempoDenom(StateManager& manager, int lfoIndex);

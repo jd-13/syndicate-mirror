@@ -46,6 +46,7 @@ inline const char* XML_LFO_BYPASS_STR {"lfoBypass"};
 inline const char* XML_LFO_PHASE_SYNC_STR {"lfoPhaseSync"};
 inline const char* XML_LFO_TEMPO_SYNC_STR {"lfoTempoSync"};
 inline const char* XML_LFO_INVERT_STR {"lfoInvert"};
+inline const char* XML_LFO_OUTPUT_MODE_STR {"lfoOutputMode"};
 inline const char* XML_LFO_WAVE_STR {"lfoWave"};
 inline const char* XML_LFO_TEMPO_NUMER_STR {"lfoTempoNumer"};
 inline const char* XML_LFO_TEMPO_DENOM_STR {"lfoTempoDenom"};

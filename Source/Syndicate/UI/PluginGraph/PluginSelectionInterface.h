@@ -34,6 +34,8 @@ public:
     int getNumMainChannels() const;
     float getGainStageOutputAmplitude(int chainNumber, int slotNumber, int channelNumber) const;
 
+    void closeGuestPluginWindows();
+
 private:
     SyndicateAudioProcessor& _processor;
     std::unique_ptr<PluginSelectorWindow> _pluginSelectorWindow;
