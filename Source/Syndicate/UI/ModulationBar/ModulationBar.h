@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 #include "ModulationBarEnvelope.h"
 #include "ModulationBarLfo.h"
+#include "ModulationBarRandom.hpp"
 #include "CoreJUCEPlugin/CoreLookAndFeel.h"
 #include "ModulationButton.h"
 
@@ -42,6 +43,10 @@ private:
     std::unique_ptr<juce::TextButton> _addEnvelopeButton;
     std::unique_ptr<juce::Viewport> _envelopeButtonsView;
 
+    std::vector<std::unique_ptr<ModulationButton>> _rndButtons;
+    std::unique_ptr<juce::TextButton> _addRndButton;
+    std::unique_ptr<juce::Viewport> _rndButtonsView;
+
     juce::Rectangle<int> _selectedSourceComponentArea;
     std::unique_ptr<juce::Component> _selectedSourceComponent;
     juce::DragAndDropContainer* _dragContainer;
@@ -53,4 +58,6 @@ private:
     void _createModulationSourceButton(ModulationSourceDefinition definition);
     void _selectModulationSource(ModulationButton* selectedButton);
     void _removeModulationSource(ModulationSourceDefinition definition);
+    std::optional<ModulationSourceDefinition> _getSelectedDefinition();
+    void _attemptToSelectByDefinition(ModulationSourceDefinition definition);
 };

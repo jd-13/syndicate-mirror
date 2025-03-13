@@ -4,7 +4,8 @@
 PluginScanClient::PluginScanClient() : juce::Thread("Scan Client"),
                                        _hasAttemptedRestore(false),
                                        _shouldRestart(false),
-                                       _shouldExit(false) {
+                                       _shouldExit(false),
+                                       _isClearOnlyScan(false) {
     _scannedPluginsFile = Utils::DataDirectory.getChildFile(Utils::SCANNED_PLUGINS_FILE_NAME);
     _scannedPluginsFile.create();
 }
@@ -28,7 +29,7 @@ void PluginScanClient::restore() {
             _pluginList->recreateFromXml(*pluginsXml);
         }
 
-        // Notifiy the listeners
+        // Notify the listeners
         {
             std::scoped_lock lock(_listenersMutex);
             for (juce::MessageListener* listener : _listeners) {
@@ -74,13 +75,6 @@ void PluginScanClient::startScan() {
 
     _state = ScanState::STARTING;
 
-    if (!_hasAttemptedRestore) {
-        restore();
-    }
-
-    // Just in case the config has been changed via another plugin instance, restore it here
-    config.restoreFromXml();
-
     startThread();
 }
 
@@ -105,6 +99,29 @@ void PluginScanClient::stopScan() {
     _shouldExit = true;
 
     juce::Logger::writeToLog("Stopping plugin scan server");
+}
+
+void PluginScanClient::clearMissingPlugins() {
+    if (_state == ScanState::STARTING) {
+        juce::Logger::writeToLog("Can't clear missing plugins - already starting");
+        return;
+    }
+
+    if (_state == ScanState::RUNNING) {
+        juce::Logger::writeToLog("Can't clear missing plugins - already running");
+        return;
+    }
+
+    if (_state == ScanState::STOPPING) {
+        juce::Logger::writeToLog("Can't clear missing plugins - is currently stopping");
+        return;
+    }
+
+    _state = ScanState::STARTING;
+
+    _isClearOnlyScan = true;
+
+    startThread();
 }
 
 void PluginScanClient::rescanAllPlugins() {
@@ -156,12 +173,18 @@ void PluginScanClient::removeListener(juce::MessageListener* listener) {
 }
 
 void PluginScanClient::run() {
-
     _shouldExit = false;
     _state = ScanState::RUNNING;
 
     // We need to force an update after changing state
     _notifyAllListeners();
+
+    if (!_hasAttemptedRestore) {
+        restore();
+    }
+
+    // Just in case the config has been changed via another plugin instance, restore it here
+    config.restoreFromXml();
 
     {
         const juce::MessageManagerLock mml(juce::Thread::getCurrentThread());
@@ -170,12 +193,30 @@ void PluginScanClient::run() {
         }
     }
 
-    #ifdef __APPLE__
-        _scanForFormat(config.auFormat, config.getAUPaths());
-    #endif
+    if (_isClearOnlyScan) {
+        auto checkPluginsForFormat = [](juce::KnownPluginList* pluginList, juce::AudioPluginFormat& format) {
+            for (juce::PluginDescription plugin : pluginList->getTypesForFormat(format)) {
+                if (!format.doesPluginStillExist(plugin)) {
+                    juce::Logger::writeToLog("[" + plugin.name + "] is missing, removing from list");
+                    pluginList->removeType(plugin);
+                }
+            }
+        };
 
-    _scanForFormat(config.vstFormat, config.getVSTPaths());
-    _scanForFormat(config.vst3Format, config.getVST3Paths());
+        #ifdef __APPLE__
+            checkPluginsForFormat(_pluginList.get(), config.auFormat);
+        #endif
+
+        checkPluginsForFormat(_pluginList.get(), config.vstFormat);
+        checkPluginsForFormat(_pluginList.get(), config.vst3Format);
+    } else {
+        #ifdef __APPLE__
+            _scanForFormat(config.auFormat, config.getAUPaths());
+        #endif
+
+        _scanForFormat(config.vstFormat, config.getVSTPaths());
+        _scanForFormat(config.vst3Format, config.getVST3Paths());
+    }
 
     {
         const juce::MessageManagerLock mml(juce::Thread::getCurrentThread());
@@ -184,6 +225,7 @@ void PluginScanClient::run() {
         }
     }
 
+    _isClearOnlyScan = false;
     _state = ScanState::STOPPED;
 
     // We need to force an update after changing state
@@ -194,6 +236,10 @@ void PluginScanClient::run() {
 
 
 void PluginScanClient::_scanForFormat(juce::AudioPluginFormat& format, juce::FileSearchPath searchPaths) {
+    if (_shouldExit) {
+        return;
+    }
+
     juce::Logger::writeToLog("[" + format.getName() + "] Scanning with paths: " + searchPaths.toString());
 
     juce::File deadMansPedalFile = Utils::DataDirectory.getChildFile(Utils::CRASHED_PLUGINS_FILE_NAME);

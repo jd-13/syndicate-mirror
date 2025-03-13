@@ -202,5 +202,44 @@ namespace XmlWriter {
             thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, thisEnvelope->amount);
             thisEnvelopeElement->setAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR, thisEnvelope->useSidechainInput);
         }
+
+        // Random
+        juce::XmlElement* randomsElement = element->createNewChildElement(XML_RANDOMS_STR);
+        for (int index {0}; index < state.randomSources.size(); index++) {
+            juce::XmlElement* thisRandomElement = randomsElement->createNewChildElement(getRandomXMLName(index));
+            std::shared_ptr<WECore::Perlin::PerlinSource> thisRandom = state.randomSources[index];
+
+            thisRandomElement->setAttribute(XML_RANDOM_OUTPUT_MODE_STR, thisRandom->getOutputMode());
+            thisRandomElement->setAttribute(XML_RANDOM_FREQ_STR, thisRandom->getFreq());
+            thisRandomElement->setAttribute(XML_RANDOM_DEPTH_STR, thisRandom->getDepth());
+
+            // Freq modulation sources
+            juce::XmlElement* freqModSourcesElement = thisRandomElement->createNewChildElement(XML_RANDOM_FREQ_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> freqModSources = thisRandom->getFreqModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < freqModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = freqModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(freqModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, freqModSources[sourceIndex].amount);
+                }
+            }
+
+            // Depth modulation sources
+            juce::XmlElement* depthModSourcesElement = thisRandomElement->createNewChildElement(XML_RANDOM_DEPTH_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> depthModSources = thisRandom->getDepthModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < depthModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = depthModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(depthModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, depthModSources[sourceIndex].amount);
+                }
+            }
+        }
     }
 }

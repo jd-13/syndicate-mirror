@@ -11,4 +11,5 @@ namespace ModelInterface {
     // Do not call from anything outside the model - they assume the locks are already held
     double getLfoModulationValue(StateManager& manager, int lfoNumber);
     double getEnvelopeModulationValue(StateManager& manager, int envelopeNumber);
+    double getRandomModulationValue(StateManager& manager, int randomNumber);
 }

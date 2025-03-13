@@ -5,67 +5,6 @@ namespace {
     const juce::Colour& baseColour = UIUtils::getColourForModulationType(MODULATION_TYPE::LFO);
 }
 
-LfoOutputModeButtons::LfoOutputModeButtons(SyndicateAudioProcessor& processor, int lfoIndex) :
-        _processor(processor), _lfoIndex(lfoIndex) {
-    _unipolarButton.reset(new juce::TextButton("LFO Unipolar Button"));
-    addAndMakeVisible(_unipolarButton.get());
-    _unipolarButton->setTooltip(TRANS("Set the LFO output mode to unipolar"));
-    _unipolarButton->setButtonText(TRANS("Uni"));
-    _unipolarButton->setLookAndFeel(&_buttonLookAndFeel);
-    _unipolarButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    _unipolarButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    _unipolarButton->setColour(juce::TextButton::textColourOffId, baseColour);
-    _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
-    _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
-    _unipolarButton->onClick = [&]() {
-        if (!_unipolarButton->getToggleState()) {
-            _unipolarButton->setToggleState(true, juce::dontSendNotification);
-            _bipolarButton->setToggleState(false, juce::dontSendNotification);
-            _processor.setLfoOutputMode(_lfoIndex, WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
-        }
-    };
-    _unipolarButton->setConnectedEdges(juce::Button::ConnectedOnRight);
-
-    _bipolarButton.reset(new juce::TextButton("LFO Bipolar Button"));
-    addAndMakeVisible(_bipolarButton.get());
-    _bipolarButton->setTooltip(TRANS("Set the LFO output mode to bipolar"));
-    _bipolarButton->setButtonText(TRANS("Bi"));
-    _bipolarButton->setLookAndFeel(&_buttonLookAndFeel);
-    _bipolarButton->setColour(juce::TextButton::buttonOnColourId, baseColour);
-    _bipolarButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
-    _bipolarButton->setColour(juce::TextButton::textColourOffId, baseColour);
-    _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, baseColour);
-    _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
-    _bipolarButton->onClick = [&]() {
-        if (!_bipolarButton->getToggleState()) {
-            _bipolarButton->setToggleState(true, juce::dontSendNotification);
-            _unipolarButton->setToggleState(false, juce::dontSendNotification);
-            _processor.setLfoOutputMode(_lfoIndex, WECore::Richter::Parameters::OUTPUTMODE.BIPOLAR);
-        }
-    };
-    _bipolarButton->setConnectedEdges(juce::Button::ConnectedOnLeft);
-
-    _unipolarButton->setToggleState(ModelInterface::getLfoOutputMode(_processor.manager, _lfoIndex) == 1 ? true : false, juce::dontSendNotification);
-    _bipolarButton->setToggleState(ModelInterface::getLfoOutputMode(_processor.manager, _lfoIndex) == 2 ? true : false, juce::dontSendNotification);
-}
-
-LfoOutputModeButtons::~LfoOutputModeButtons() {
-    _unipolarButton->setLookAndFeel(nullptr);
-    _bipolarButton->setLookAndFeel(nullptr);
-
-    _unipolarButton = nullptr;
-    _bipolarButton = nullptr;
-}
-
-void LfoOutputModeButtons::resized() {
-    juce::Rectangle<int> availableArea = getLocalBounds();
-
-    _unipolarButton->setBounds(availableArea.removeFromLeft(availableArea.getWidth() / 2));
-    _bipolarButton->setBounds(availableArea);
-}
-
 ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIndex) :
         _processor(processor), _lfoIndex(lfoIndex) {
 
@@ -233,7 +172,12 @@ ModulationBarLfo::ModulationBarLfo(SyndicateAudioProcessor& processor, int lfoIn
     invertButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     invertButton->addListener(this);
 
-    outputModeButtons.reset(new LfoOutputModeButtons(_processor, _lfoIndex));
+    outputModeButtons.reset(new UIUtils::UniBiModeButtons(
+        [&processor, lfoIndex]() { processor.setLfoOutputMode(lfoIndex, WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR); },
+        [&processor, lfoIndex]() { processor.setLfoOutputMode(lfoIndex, WECore::Richter::Parameters::OUTPUTMODE.BIPOLAR); },
+        [&processor, lfoIndex]() { return ModelInterface::getLfoOutputMode(processor.manager, lfoIndex) == 1 ? true : false; },
+        [&processor, lfoIndex]() { return ModelInterface::getLfoOutputMode(processor.manager, lfoIndex) == 2 ? true : false; },
+        baseColour));
     addAndMakeVisible(outputModeButtons.get());
 
     // Load UI state
@@ -274,10 +218,7 @@ ModulationBarLfo::~ModulationBarLfo() {
 
 void ModulationBarLfo::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
-    availableArea.removeFromLeft(4);
-    availableArea.removeFromRight(4);
-    availableArea.removeFromTop(4);
-    availableArea.removeFromBottom(4);
+    availableArea.reduce(4, 4);
 
     constexpr int BUTTON_HEIGHT {24};
 

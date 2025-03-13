@@ -29,6 +29,8 @@ private:
 
     std::unique_ptr<juce::Label> _nameLabel;
 
+    std::unique_ptr<juce::TextButton> _initButton;
+
     SyndicateAudioProcessor& _processor;
     SyndicateAudioProcessorEditor& _editor;
 

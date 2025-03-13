@@ -313,6 +313,47 @@ namespace UIUtils {
         juce::Viewport* _otherView;
     };
 
+    /**
+     * Displays the historic values of a signal similarly to a seismograph or ECG stylus.
+     */
+    class WaveStylusViewer : public UIUtils::SafeAnimatedComponent {
+    public:
+        enum ColourIds {
+            lineColourId
+        };
+
+        WaveStylusViewer(std::function<float()> getNextValueCallback);
+
+        void paint(juce::Graphics& g) override;
+
+    private:
+        std::function<float()> _getNextValueCallback;
+        std::array<float, 20> _envelopeValues;
+
+        void _onTimerCallback() override;
+    };
+
+    class UniBiModeButtons : public juce::Component {
+    public:
+        UniBiModeButtons(std::function<void()> onUniClick,
+                         std::function<void()> onBiClick,
+                         std::function<bool()> getUniState,
+                         std::function<bool()> getBiState,
+                         juce::Colour buttonColour);
+        virtual ~UniBiModeButtons() override;
+
+        void resized() override;
+
+    private:
+        std::function<void()> _onUniClick;
+        std::function<void()> _onBiClick;
+
+        UIUtils::ToggleButtonLookAndFeel _buttonLookAndFeel;
+
+        std::unique_ptr<juce::TextButton> _unipolarButton;
+        std::unique_ptr<juce::TextButton> _bipolarButton;
+    };
+
     juce::String getCopyKeyName();
     juce::String getCmdKeyName();
     juce::String presetNameOrPlaceholder(const juce::String& value);

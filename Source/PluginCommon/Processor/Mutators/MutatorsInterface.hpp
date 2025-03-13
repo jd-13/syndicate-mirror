@@ -85,11 +85,14 @@ namespace ModelInterface {
     void createDefaultSources(StateManager& manager);
     void addLfo(StateManager& manager);
     void addEnvelope(StateManager& manager);
+    void addRandom(StateManager& manager);
     void removeModulationSource(StateManager& manager, ModulationSourceDefinition definition);
 
     void forEachLfo(StateManager& manager, std::function<void(int)> callback);
     void forEachEnvelope(StateManager& manager, std::function<void(int)> callback);
+    void forEachRandom(StateManager& manager, std::function<void(int)> callback);
 
+    // LFOs
     void setLfoTempoSyncSwitch(StateManager& manager, int lfoIndex, bool val);
     void setLfoInvertSwitch(StateManager& manager, int lfoIndex, bool val);
     void setLfoOutputMode(StateManager& manager, int lfoIndex, int val);
@@ -125,6 +128,7 @@ namespace ModelInterface {
     double getLfoManualPhase(StateManager& manager, int lfoIndex);
     double getLFOModulatedPhaseValue(StateManager& manager, int lfoIndex);
 
+    // Envelopes
     void setEnvAttackTimeMs(StateManager& manager, int envIndex, double val);
     void setEnvReleaseTimeMs(StateManager& manager, int envIndex, double val);
     void setEnvFilterEnabled(StateManager& manager, int envIndex, bool val);
@@ -140,6 +144,31 @@ namespace ModelInterface {
     float getEnvAmount(StateManager& manager, int envIndex);
     bool getEnvUseSidechainInput(StateManager& manager, int envIndex);
     double getEnvLastOutput(StateManager& manager, int envIndex);
+
+    // Random
+    void setRandomOutputMode(StateManager& manager, int randomIndex, int val);
+    void setRandomFreq(StateManager& manager, int randomIndex, double val);
+    void setRandomDepth(StateManager& manager, int randomIndex, double val);
+    void addSourceToRandomFreq(StateManager& manager, int randomIndex, ModulationSourceDefinition source);
+    void removeSourceFromRandomFreq(StateManager& manager, int randomIndex, ModulationSourceDefinition source);
+    void setRandomFreqModulationAmount(StateManager& manager, int randomIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomFreqModulationSources(StateManager& manager, int randomIndex);
+    void addSourceToRandomDepth(StateManager& manager, int randomIndex, ModulationSourceDefinition source);
+    void removeSourceFromRandomDepth(StateManager& manager, int randomIndex, ModulationSourceDefinition source);
+    void setRandomDepthModulationAmount(StateManager& manager, int randomIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomDepthModulationSources(StateManager& manager, int randomIndex);
+
+    int getRandomOutputMode(StateManager& manager, int randomIndex);
+    double getRandomFreq(StateManager& manager, int randomIndex);
+    double getRandomModulatedFreqValue(StateManager& manager, int randomIndex);
+    double getRandomDepth(StateManager& manager, int randomIndex);
+    double getRandomModulatedDepthValue(StateManager& manager, int randomIndex);
+    double getRandomLastOutput(StateManager& manager, int randomIndex);
+
+    void resetAllState(StateManager& manager,
+                       HostConfiguration config,
+                       std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+                       std::function<void(int)> latencyChangeCallback);
 
     void writeSourcesToXml(StateManager& manager, juce::XmlElement* element);
     void restoreSourcesFromXml(StateManager& manager, juce::XmlElement* element, HostConfiguration config);

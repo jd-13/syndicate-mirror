@@ -30,9 +30,10 @@ struct MainWindowState {
     std::vector<int> chainViewScrollPositions;
     int lfoButtonsScrollPosition;
     int envButtonsScrollPosition;
+    int rndButtonsScrollPosition;
     std::optional<ModulationSourceDefinition> selectedModulationSource;
 
-    MainWindowState() : bounds(0, 0, 700, 620),
+    MainWindowState() : bounds(0, 0, 860, 620),
                         graphViewScrollPosition(0),
                         lfoButtonsScrollPosition(0),
                         envButtonsScrollPosition(0) {}
@@ -116,6 +117,11 @@ public:
     void setEnvAmount(int envIndex, float val);
     void setEnvUseSidechainInput(int envIndex, bool val);
 
+    void addRandomSource();
+    void setRandomOutputMode(int randomIndex, int val);
+    void setRandomFreq(int randomIndex, double val);
+    void setRandomDepth(int randomIndex, double val);
+
     float getModulationValueForSource(int id, MODULATION_TYPE type);
     void removeModulationSource(ModulationSourceDefinition definition);
 
@@ -153,6 +159,14 @@ public:
     void removeSourceFromLFOPhase(int lfoIndex, ModulationSourceDefinition source);
     void setLFOPhaseModulationAmount(int lfoIndex, int sourceIndex, double val);
 
+    void addSourceToRandomFreq(int randomIndex, ModulationSourceDefinition source);
+    void removeSourceFromRandomFreq(int randomIndex, ModulationSourceDefinition source);
+    void setRandomFreqModulationAmount(int randomIndex, int sourceIndex, double val);
+
+    void addSourceToRandomDepth(int randomIndex, ModulationSourceDefinition source);
+    void removeSourceFromRandomDepth(int randomIndex, ModulationSourceDefinition source);
+    void setRandomDepthModulationAmount(int randomIndex, int sourceIndex, double val);
+
     // Parallel Split
     void addParallelChain();
     void removeParallelChain(int chainNumber);
@@ -178,6 +192,8 @@ public:
     void moveChain(int fromChainNumber, int toChainNumber);
 
     void copyChain(int fromChainNumber, int toChainNumber);
+
+    void resetAllState();
 
     void undo();
     void redo();

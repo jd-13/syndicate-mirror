@@ -6,23 +6,6 @@
 #include "DataModelInterface.hpp"
 #include "PluginProcessor.h"
 
-/**
- * Displays the envelope follower output.
- */
-class EnvelopeViewer : public UIUtils::SafeAnimatedComponent {
-public:
-    EnvelopeViewer(SyndicateAudioProcessor& processor, int envIndex);
-
-    void paint(juce::Graphics& g) override;
-
-private:
-    SyndicateAudioProcessor& _processor;
-    int _envIndex;
-    std::array<float, 20> _envelopeValues;
-
-    void _onTimerCallback() override;
-};
-
 class ModulationBarEnvelope  : public juce::Component,
                                public juce::Slider::Listener,
                                public juce::Button::Listener {
@@ -72,7 +55,7 @@ private:
     std::unique_ptr<juce::TextButton> filterButton;
     std::unique_ptr<FilterSlider> filterSlider;
     std::unique_ptr<juce::TextButton> scInButton;
-    std::unique_ptr<EnvelopeViewer> _envView;
+    std::unique_ptr<UIUtils::WaveStylusViewer> _envView;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ModulationBarEnvelope)
 };

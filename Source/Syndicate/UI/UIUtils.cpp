@@ -180,6 +180,7 @@ namespace UIUtils {
         static const juce::Colour macroColour(147, 252, 116);
         static const juce::Colour lfoColour(252, 116, 147);
         static const juce::Colour envelopeColour(116, 147, 252);
+        static const juce::Colour randomColour(247, 147, 252);
 
         switch (type) {
             case MODULATION_TYPE::MACRO:
@@ -188,6 +189,8 @@ namespace UIUtils {
                 return lfoColour;
             case MODULATION_TYPE::ENVELOPE:
                 return envelopeColour;
+            case MODULATION_TYPE::RANDOM:
+                return randomColour;
         }
     }
 
@@ -616,6 +619,113 @@ namespace UIUtils {
             // Only linked horizontally
             _otherView->setViewPosition(newRangeStartInt, 0);
         }
+    }
+
+    WaveStylusViewer::WaveStylusViewer(std::function<float()> getNextValueCallback) :
+            _getNextValueCallback(getNextValueCallback) {
+        std::fill(_envelopeValues.begin(), _envelopeValues.end(), 0);
+
+        start();
+    }
+
+    void WaveStylusViewer::paint(juce::Graphics& g) {
+        const int XIncrement {static_cast<int>(getWidth() / _envelopeValues.size())};
+
+        juce::Path p;
+
+        const int height {getHeight()};
+        auto envelopeValueToYPos = [&height](float value) {
+            return height / 2 - value * height / 2;
+        };
+
+        p.startNewSubPath(0, envelopeValueToYPos(_envelopeValues[0]));
+
+        for (int index {1}; index < _envelopeValues.size(); index++) {
+            p.lineTo(index * XIncrement, envelopeValueToYPos(_envelopeValues[index]));
+        }
+
+        g.fillAll(UIUtils::backgroundColour);
+        g.setColour(findColour(ColourIds::lineColourId));
+        const juce::PathStrokeType pStroke(1);
+        g.strokePath(p, pStroke);
+
+        constexpr int STYLUS_DIAMETER {4};
+        g.fillEllipse(0, envelopeValueToYPos(_envelopeValues[0]) - STYLUS_DIAMETER / 2, STYLUS_DIAMETER, STYLUS_DIAMETER);
+    }
+
+    void WaveStylusViewer::_onTimerCallback() {
+        _stopEvent.reset();
+
+        std::rotate(_envelopeValues.rbegin(), _envelopeValues.rbegin() + 1, _envelopeValues.rend());
+        _envelopeValues[0] = _getNextValueCallback();
+
+        _stopEvent.signal();
+    }
+
+    UniBiModeButtons::UniBiModeButtons(std::function<void()> onUniClick,
+                                       std::function<void()> onBiClick,
+                                       std::function<bool()> getUniState,
+                                       std::function<bool()> getBiState,
+                                       juce::Colour buttonColour) :
+                _onUniClick(onUniClick),
+                _onBiClick(onBiClick) {
+        _unipolarButton.reset(new juce::TextButton("Unipolar Button"));
+        addAndMakeVisible(_unipolarButton.get());
+        _unipolarButton->setTooltip(TRANS("Set the output mode to unipolar"));
+        _unipolarButton->setButtonText(TRANS("Uni"));
+        _unipolarButton->setLookAndFeel(&_buttonLookAndFeel);
+        _unipolarButton->setColour(juce::TextButton::buttonOnColourId, buttonColour);
+        _unipolarButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
+        _unipolarButton->setColour(juce::TextButton::textColourOffId, buttonColour);
+        _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+        _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, buttonColour);
+        _unipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+        _unipolarButton->onClick = [&]() {
+            if (!_unipolarButton->getToggleState()) {
+                _unipolarButton->setToggleState(true, juce::dontSendNotification);
+                _bipolarButton->setToggleState(false, juce::dontSendNotification);
+                _onUniClick();
+            }
+        };
+        _unipolarButton->setConnectedEdges(juce::Button::ConnectedOnRight);
+
+        _bipolarButton.reset(new juce::TextButton("Bipolar Button"));
+        addAndMakeVisible(_bipolarButton.get());
+        _bipolarButton->setTooltip(TRANS("Set the output mode to bipolar"));
+        _bipolarButton->setButtonText(TRANS("Bi"));
+        _bipolarButton->setLookAndFeel(&_buttonLookAndFeel);
+        _bipolarButton->setColour(juce::TextButton::buttonOnColourId, buttonColour);
+        _bipolarButton->setColour(juce::TextButton::textColourOnId, UIUtils::backgroundColour);
+        _bipolarButton->setColour(juce::TextButton::textColourOffId, buttonColour);
+        _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+        _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, buttonColour);
+        _bipolarButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+        _bipolarButton->onClick = [&]() {
+            if (!_bipolarButton->getToggleState()) {
+                _bipolarButton->setToggleState(true, juce::dontSendNotification);
+                _unipolarButton->setToggleState(false, juce::dontSendNotification);
+                _onBiClick();
+            }
+        };
+        _bipolarButton->setConnectedEdges(juce::Button::ConnectedOnLeft);
+
+        _unipolarButton->setToggleState(getUniState(), juce::dontSendNotification);
+        _bipolarButton->setToggleState(getBiState(), juce::dontSendNotification);
+    }
+
+    UniBiModeButtons::~UniBiModeButtons() {
+        _unipolarButton->setLookAndFeel(nullptr);
+        _bipolarButton->setLookAndFeel(nullptr);
+
+        _unipolarButton = nullptr;
+        _bipolarButton = nullptr;
+    }
+
+    void UniBiModeButtons::resized() {
+        juce::Rectangle<int> availableArea = getLocalBounds();
+
+        _unipolarButton->setBounds(availableArea.removeFromLeft(availableArea.getWidth() / 2));
+        _bipolarButton->setBounds(availableArea);
     }
 
     juce::String getCopyKeyName() {

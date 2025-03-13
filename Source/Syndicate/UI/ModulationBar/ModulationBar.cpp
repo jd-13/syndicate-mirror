@@ -20,6 +20,7 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
 
     setUpButtonsView(_lfoButtonsView);
     setUpButtonsView(_envelopeButtonsView);
+    setUpButtonsView(_rndButtonsView);
 
     needsRebuild();
 
@@ -35,6 +36,10 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
             if (definition.id <= _envelopeButtons.size()) {
                 _selectModulationSource(_envelopeButtons[definition.id - 1].get());
             }
+        } else if (definition.type == MODULATION_TYPE::RANDOM) {
+            if (definition.id <= _rndButtons.size()) {
+                _selectModulationSource(_rndButtons[definition.id - 1].get());
+            }
         }
     }
 }
@@ -42,6 +47,7 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
 ModulationBar::~ModulationBar() {
     _processor.mainWindowState.lfoButtonsScrollPosition = _lfoButtonsView->getViewPositionY();
     _processor.mainWindowState.envButtonsScrollPosition = _envelopeButtonsView->getViewPositionY();
+    _processor.mainWindowState.rndButtonsScrollPosition = _rndButtonsView->getViewPositionY();
 
     // Reset stored state since it might now be invalid
     _processor.mainWindowState.selectedModulationSource.reset();
@@ -59,14 +65,22 @@ ModulationBar::~ModulationBar() {
         }
     }
 
+    for (int buttonIndex {0}; buttonIndex < _rndButtons.size() && !_processor.mainWindowState.selectedModulationSource.has_value(); buttonIndex++) {
+        if (_rndButtons[buttonIndex]->getIsSelected()) {
+            _processor.mainWindowState.selectedModulationSource = _rndButtons[buttonIndex]->definition;
+        }
+    }
+
     // Usual clean up
     _addLfoButton->setLookAndFeel(nullptr);
     _addEnvelopeButton->setLookAndFeel(nullptr);
+    _addRndButton->setLookAndFeel(nullptr);
 
     _addButtonLookAndFeel = nullptr;
 
     _lfoButtonsView = nullptr;
     _envelopeButtonsView = nullptr;
+    _rndButtonsView = nullptr;
 }
 
 void ModulationBar::resized() {
@@ -108,6 +122,9 @@ void ModulationBar::resized() {
     // Envelope buttons
     arrangeColumn(_envelopeButtons, _addEnvelopeButton, _envelopeButtonsView);
 
+    // Random buttons
+    arrangeColumn(_rndButtons, _addRndButton, _rndButtonsView);
+
     _selectedSourceComponentArea = availableArea;
 
     if (_selectedSourceComponent != nullptr) {
@@ -122,16 +139,26 @@ void ModulationBar::buttonClicked(juce::Button* buttonThatWasClicked) {
     } else if (buttonThatWasClicked == _addEnvelopeButton.get()) {
         _processor.addEnvelope();
         _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
+    } else if (buttonThatWasClicked == _addRndButton.get()) {
+        _processor.addRandomSource();
     }
 }
 
 void ModulationBar::needsRebuild() {
+    // Get the currently selected definition
+    std::optional<ModulationSourceDefinition> selectedDefinition = _getSelectedDefinition();
+
     _resetButtons();
 
-    if (_lfoButtons.size() > 0) {
+    // Re-select the already selected source from before the rebuild (if it still exists)
+    if (selectedDefinition.has_value()) {
+        _attemptToSelectByDefinition(selectedDefinition.value());
+    } else if (_lfoButtons.size() > 0) {
         _selectModulationSource(_lfoButtons[0].get());
     } else if (_envelopeButtons.size() > 0) {
         _selectModulationSource(_envelopeButtons[0].get());
+    } else if (_rndButtons.size() > 0) {
+        _selectModulationSource(_rndButtons[0].get());
     }
 }
 
@@ -145,6 +172,13 @@ void ModulationBar::needsSelectedSourceRebuild() {
     }
 
     for (std::unique_ptr<ModulationButton>& button : _envelopeButtons) {
+        if (button->getIsSelected()) {
+            _selectModulationSource(button.get());
+            return;
+        }
+    }
+
+    for (std::unique_ptr<ModulationButton>& button : _rndButtons) {
         if (button->getIsSelected()) {
             _selectModulationSource(button.get());
             return;
@@ -198,6 +232,22 @@ void ModulationBar::_resetButtons() {
     _addEnvelopeButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::ENVELOPE));
     _addEnvelopeButton->setLookAndFeel(_addButtonLookAndFeel.get());
 
+    // Add the random buttons
+    _rndButtons.clear();
+    ModelInterface::forEachRandom(_processor.manager, [&](int randomNumber) {
+        _createModulationSourceButton(ModulationSourceDefinition(randomNumber, MODULATION_TYPE::RANDOM));
+    });
+
+    // Add the add button
+    _addRndButton.reset(new juce::TextButton("Add Random Button"));
+    _rndButtonsView->getViewedComponent()->addAndMakeVisible(_addRndButton.get());
+    _addRndButton->setButtonText("+ RND");
+    _addRndButton->addListener(this);
+    _addRndButton->setTooltip("Create a new random source");
+    _addRndButton->setColour(juce::TextButton::buttonColourId, UIUtils::slotBackgroundColour);
+    _addRndButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::RANDOM));
+    _addRndButton->setLookAndFeel(_addButtonLookAndFeel.get());
+
     resized();
 
     // We need to run this only once after the graph view has been constructed to restore the scroll
@@ -207,6 +257,7 @@ void ModulationBar::_resetButtons() {
 
         _lfoButtonsView->setViewPosition(0, _processor.mainWindowState.lfoButtonsScrollPosition);
         _envelopeButtonsView->setViewPosition(0, _processor.mainWindowState.envButtonsScrollPosition);
+        _rndButtonsView->setViewPosition(0, _processor.mainWindowState.rndButtonsScrollPosition);
     }
 }
 
@@ -224,6 +275,9 @@ void ModulationBar::_createModulationSourceButton(ModulationSourceDefinition def
     } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
         _envelopeButtonsView->getViewedComponent()->addAndMakeVisible(newButton.get());
         _envelopeButtons.push_back(std::move(newButton));
+    } else if (definition.type == MODULATION_TYPE::RANDOM) {
+        _rndButtonsView->getViewedComponent()->addAndMakeVisible(newButton.get());
+        _rndButtons.push_back(std::move(newButton));
     }
 }
 
@@ -237,6 +291,10 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
         button->setIsSelected(false);
     }
 
+    for (std::unique_ptr<ModulationButton>& button : _rndButtons) {
+        button->setIsSelected(false);
+    }
+
     // Activate just the one that's selected
     selectedButton->setIsSelected(true);
 
@@ -245,7 +303,8 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
         _selectedSourceComponent.reset(new ModulationBarLfo(_processor, selectedButton->definition.id - 1));
     } else if (selectedButton->definition.type == MODULATION_TYPE::ENVELOPE) {
         _selectedSourceComponent.reset(new ModulationBarEnvelope(_processor, selectedButton->definition.id - 1));
-
+    } else if (selectedButton->definition.type == MODULATION_TYPE::RANDOM) {
+        _selectedSourceComponent.reset(new ModulationBarRandom(_processor, selectedButton->definition.id - 1));
     }
 
     addAndMakeVisible(_selectedSourceComponent.get());
@@ -254,18 +313,7 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
 
 void ModulationBar::_removeModulationSource(ModulationSourceDefinition definition) {
     // Get the currently selected definition
-    std::optional<ModulationSourceDefinition> selectedDefinition;
-    for (int buttonIndex {0}; buttonIndex < _lfoButtons.size() && !selectedDefinition.has_value(); buttonIndex++) {
-        if (_lfoButtons[buttonIndex]->getIsSelected()) {
-            selectedDefinition = _lfoButtons[buttonIndex]->definition;
-        }
-    }
-
-    for (int buttonIndex {0}; buttonIndex < _envelopeButtons.size() && !selectedDefinition.has_value(); buttonIndex++) {
-        if (_envelopeButtons[buttonIndex]->getIsSelected()) {
-            selectedDefinition = _envelopeButtons[buttonIndex]->definition;
-        }
-    }
+    std::optional<ModulationSourceDefinition> selectedDefinition = _getSelectedDefinition();
 
     // Delete selected component before changing anything in the processor to make sure nothing in
     // it is referring to anything we might change
@@ -275,36 +323,88 @@ void ModulationBar::_removeModulationSource(ModulationSourceDefinition definitio
     _processor.removeModulationSource(definition);
     _resetButtons();
 
+    if (!selectedDefinition.has_value()) {
+        return;
+    }
+
     // Update the selected ID if we're deleting something ahead of it
     if (selectedDefinition.value().id > definition.id) {
         selectedDefinition.value().id--;
     }
 
     // Decide which definition should now be selected
-    if (selectedDefinition.value().type == MODULATION_TYPE::LFO) {
-        if (_lfoButtons.size() > selectedDefinition.value().id - 1) {
+    _attemptToSelectByDefinition(selectedDefinition.value());
+}
+
+std::optional<ModulationSourceDefinition> ModulationBar::_getSelectedDefinition() {
+    std::optional<ModulationSourceDefinition> selectedDefinition;
+    for (int buttonIndex {0}; buttonIndex < _lfoButtons.size(); buttonIndex++) {
+        if (_lfoButtons[buttonIndex]->getIsSelected()) {
+            return _lfoButtons[buttonIndex]->definition;
+        }
+    }
+
+    for (int buttonIndex {0}; buttonIndex < _envelopeButtons.size(); buttonIndex++) {
+        if (_envelopeButtons[buttonIndex]->getIsSelected()) {
+            return _envelopeButtons[buttonIndex]->definition;
+        }
+    }
+
+    for (int buttonIndex {0}; buttonIndex < _rndButtons.size(); buttonIndex++) {
+        if (_rndButtons[buttonIndex]->getIsSelected()) {
+            return _rndButtons[buttonIndex]->definition;
+        }
+    }
+}
+
+void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition definition) {
+    if (definition.type == MODULATION_TYPE::LFO) {
+        if (_lfoButtons.size() > definition.id - 1) {
             // Select the previously selected definition
-            _selectModulationSource(_lfoButtons[selectedDefinition.value().id - 1].get());
+            _selectModulationSource(_lfoButtons[definition.id - 1].get());
         } else if (_lfoButtons.size() > 0) {
             // We deleted the last definition, so select the current last one
             _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
         } else if (_envelopeButtons.size() > 0) {
             // We deleted all the LFOs, so select an envelope follower
             _selectModulationSource(_envelopeButtons[0].get());
+        } else if (_rndButtons.size() > 0) {
+            // We deleted all the LFOs and envelope followers, so select a random source
+            _selectModulationSource(_rndButtons[0].get());
         } else {
             // We deleted everything, select nothing
             _selectedSourceComponent.reset();
         }
-    } else if (selectedDefinition.value().type == MODULATION_TYPE::ENVELOPE) {
-        if (_envelopeButtons.size() > selectedDefinition.value().id - 1) {
+    } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
+        if (_envelopeButtons.size() > definition.id - 1) {
             // Restore the previously selected definition
-            _selectModulationSource(_envelopeButtons[selectedDefinition.value().id - 1].get());
+            _selectModulationSource(_envelopeButtons[definition.id - 1].get());
         } else if (_envelopeButtons.size() > 0) {
             // We deleted the last definition, so select the current last one
             _selectModulationSource(_envelopeButtons[0].get());
         } else if (_lfoButtons.size() > 0) {
             // We deleted all the envelope followers, so select an LFO
             _selectModulationSource(_lfoButtons[0].get());
+        } else if (_rndButtons.size() > 0) {
+            // We deleted all the envelope followers and LFOs, so select a random source
+            _selectModulationSource(_rndButtons[0].get());
+        } else {
+            // We deleted everything, select nothing
+            _selectedSourceComponent.reset();
+        }
+    } else if (definition.type == MODULATION_TYPE::RANDOM) {
+        if (_rndButtons.size() > definition.id - 1) {
+            // Restore the previously selected definition
+            _selectModulationSource(_rndButtons[definition.id - 1].get());
+        } else if (_rndButtons.size() > 0) {
+            // We deleted the last definition, so select the current last one
+            _selectModulationSource(_rndButtons[0].get());
+        } else if (_lfoButtons.size() > 0) {
+            // We deleted all the random sources, so select an LFO
+            _selectModulationSource(_lfoButtons[0].get());
+        } else if (_envelopeButtons.size() > 0) {
+            // We deleted all the random sources and LFOs, so select an envelope follower
+            _selectModulationSource(_envelopeButtons[0].get());
         } else {
             // We deleted everything, select nothing
             _selectedSourceComponent.reset();

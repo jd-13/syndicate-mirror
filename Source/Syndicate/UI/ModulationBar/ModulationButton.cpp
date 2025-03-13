@@ -2,6 +2,22 @@
 
 #include "UIUtils.h"
 
+namespace {
+    juce::String definitionToButtonName(const ModulationSourceDefinition& definition) {
+        juce::String name;
+
+        if (definition.type == MODULATION_TYPE::LFO) {
+            name = "LFO ";
+        } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
+            name = "ENV ";
+        } else if (definition.type == MODULATION_TYPE::RANDOM) {
+            name = "RND ";
+        }
+
+        return name + juce::String(definition.id);
+    }
+}
+
 ModulationButton::ModulationButton(ModulationSourceDefinition newDefinition,
                                    std::function<void(ModulationButton*)> onSelectCallback,
                                    std::function<void()> onRemoveCallback,
@@ -12,8 +28,7 @@ ModulationButton::ModulationButton(ModulationSourceDefinition newDefinition,
 
     _buttonLookAndFeel.reset(new ButtonLookAndFeel());
 
-    const juce::String buttonName((definition.type == MODULATION_TYPE::LFO ? "LFO " : "ENV ")
-                                  + juce::String(definition.id));
+    const juce::String buttonName = definitionToButtonName(definition);
     const juce::String tooltipString(
         buttonName + " - Drag the handle to a plugin modulation tray or right click to remove");
 

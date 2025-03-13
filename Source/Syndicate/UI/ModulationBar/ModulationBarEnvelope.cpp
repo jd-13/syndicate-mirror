@@ -3,45 +3,6 @@
 
 #include "ModulationBarEnvelope.h"
 
-EnvelopeViewer::EnvelopeViewer(SyndicateAudioProcessor& processor, int envIndex) :
-        _processor(processor), _envIndex(envIndex) {
-    std::fill(_envelopeValues.begin(), _envelopeValues.end(), 0);
-
-    start();
-}
-
-void EnvelopeViewer::paint(juce::Graphics& g) {
-    const int XIncrement {static_cast<int>(getWidth() / _envelopeValues.size())};
-
-    juce::Path p;
-
-    const int height {getHeight()};
-    auto envelopeValueToYPos = [&height](float value) {
-        return height / 2 - value * height / 2;
-    };
-
-    p.startNewSubPath(0, envelopeValueToYPos(_envelopeValues[0]));
-
-    for (int index {1}; index < _envelopeValues.size(); index++) {
-        p.lineTo(index * XIncrement, envelopeValueToYPos(_envelopeValues[index]));
-    }
-
-    g.fillAll(UIUtils::backgroundColour);
-    g.setColour(UIUtils::getColourForModulationType(MODULATION_TYPE::ENVELOPE));
-    const juce::PathStrokeType pStroke(1);
-    g.strokePath(p, pStroke);
-}
-
-void EnvelopeViewer::_onTimerCallback() {
-    _stopEvent.reset();
-
-    std::rotate(_envelopeValues.rbegin(), _envelopeValues.rbegin() + 1, _envelopeValues.rend());
-    _envelopeValues[0] = ModelInterface::getEnvLastOutput(_processor.manager, _envIndex) *
-        ModelInterface::getEnvAmount(_processor.manager, _envIndex);
-
-    _stopEvent.signal();
-}
-
 ModulationBarEnvelope::ModulationBarEnvelope(SyndicateAudioProcessor& processor, int envIndex) :
         _processor(processor), _envIndex(envIndex) {
 
@@ -128,9 +89,12 @@ ModulationBarEnvelope::ModulationBarEnvelope(SyndicateAudioProcessor& processor,
     scInButton->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
     scInButton->addListener(this);
 
-    _envView.reset(new EnvelopeViewer(_processor, _envIndex));
+    _envView.reset(new UIUtils::WaveStylusViewer([&processor, envIndex]() {
+        return ModelInterface::getEnvLastOutput(processor.manager, envIndex) * ModelInterface::getEnvAmount(processor.manager, envIndex);
+    }));
     addAndMakeVisible(_envView.get());
     _envView->setTooltip(TRANS("Output of this envelope follower"));
+    _envView->setColour(UIUtils::WaveStylusViewer::lineColourId, UIUtils::getColourForModulationType(MODULATION_TYPE::ENVELOPE));
 
     // Start slider label readouts
     attackSlider->start(attackLabel.get(), attackLabel->getText());

@@ -37,6 +37,8 @@ PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback
 
     _content->restoreScrollPosition();
 
+    selectorListParameters.scanner.clearMissingPlugins();
+
     juce::Logger::writeToLog("Created PluginSelectorWindow");
 }
 

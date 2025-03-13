@@ -3,6 +3,7 @@
 #include "DataModelInterface.hpp"
 
 namespace ModulationMutators {
+    // LFOs
     void addLfo(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
     bool setLfoTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, bool val);
     bool setLfoInvertSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex, bool val);
@@ -39,6 +40,7 @@ namespace ModulationMutators {
     double getLfoManualPhase(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
     double getLFOModulatedPhaseValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int lfoIndex);
 
+    // Envelopes
     void addEnvelope(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
     bool setEnvAttackTimeMs(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex, double val);
     bool setEnvReleaseTimeMs(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex, double val);
@@ -55,6 +57,27 @@ namespace ModulationMutators {
     float getEnvAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex);
     bool getEnvUseSidechainInput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex);
     double getEnvLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int envIndex);
+
+    // Random
+    void addRandom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
+    bool setRandomOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int val);
+    bool setRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, double val);
+    bool setRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, double val);
+    bool addSourceToRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source);
+    bool removeSourceFromRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source);
+    bool setRandomFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    bool addSourceToRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source);
+    bool removeSourceFromRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source);
+    bool setRandomDepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomDepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+
+    int getRandomOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    double getRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    double getRandomModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    double getRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    double getRandomModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
+    double getRandomLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
 
     bool removeModulationSource(ModelInterface::ModulationSourcesState& state, ModulationSourceDefinition definition);
 }

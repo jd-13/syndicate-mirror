@@ -38,6 +38,11 @@ public:
     void stopScan();
 
     /**
+     * Called to clear plugins that may be uninstalled or missing.
+     */
+    void clearMissingPlugins();
+
+    /**
      * Called when the user has requested a full rescan.
      */
     void rescanAllPlugins();
@@ -75,6 +80,8 @@ private:
     ScanState _state;
 
     juce::String _errorMessage;
+
+    bool _isClearOnlyScan;
 
     void _notifyAllListeners();
 

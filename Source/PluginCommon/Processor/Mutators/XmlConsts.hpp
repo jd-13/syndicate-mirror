@@ -66,6 +66,13 @@ inline const char* XML_ENV_HIGH_CUT_STR {"envelopeHighCut"};
 inline const char* XML_ENV_AMOUNT_STR {"envelopeAmount"};
 inline const char* XML_ENV_USE_SIDECHAIN_INPUT_STR {"envelopeUseSidechainInput"};
 
+inline const char* XML_RANDOMS_STR {"Randoms"};
+inline const char* XML_RANDOM_OUTPUT_MODE_STR {"randomOutputMode"};
+inline const char* XML_RANDOM_FREQ_STR {"randomFreq"};
+inline const char* XML_RANDOM_DEPTH_STR {"randomDepth"};
+inline const char* XML_RANDOM_FREQ_MODULATION_SOURCES_STR {"randomFreqModulationSources"};
+inline const char* XML_RANDOM_DEPTH_MODULATION_SOURCES_STR {"randomDepthModulationSources"};
+
 inline std::string getParameterModulationConfigXmlName(int configNumber) {
     std::string retVal("ParamConfig_");
     retVal += std::to_string(configNumber);
@@ -142,5 +149,11 @@ inline std::string getLfoXMLName(int lfoNumber) {
 inline std::string getEnvelopeXMLName(int envelopeNumber) {
     std::string retVal("Envelope_");
     retVal += std::to_string(envelopeNumber);
+    return retVal;
+}
+
+inline std::string getRandomXMLName(int randomNumber) {
+    std::string retVal("Random_");
+    retVal += std::to_string(randomNumber);
     return retVal;
 }

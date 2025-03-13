@@ -34,9 +34,7 @@ namespace {
 
         return sources;
     }
-}
 
-namespace {
     constexpr int MAX_HISTORY_SIZE = 20;
 
     void pushState(ModelInterface::StateManager& manager,
@@ -974,6 +972,7 @@ namespace ModelInterface {
         // No undo/redo needed here
         ModulationMutators::addLfo(manager.getSourcesStateUnsafe());
         ModulationMutators::addEnvelope(manager.getSourcesStateUnsafe());
+        ModulationMutators::addRandom(manager.getSourcesStateUnsafe());
     }
 
     void addLfo(StateManager& manager) {
@@ -998,6 +997,18 @@ namespace ModelInterface {
 
         ModulationMutators::addEnvelope(sources);
         pushSources(manager, sources, "add ENV");
+    }
+
+    void addRandom(StateManager& manager) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        ModulationMutators::addRandom(sources);
+        pushSources(manager, sources, "add RND");
     }
 
     void removeModulationSource(StateManager& manager, ModulationSourceDefinition definition) {
@@ -1048,6 +1059,15 @@ namespace ModelInterface {
 
         for (int envIndex {0}; envIndex < state.envelopes.size(); envIndex++) {
             callback(envIndex + 1);
+        }
+    }
+
+    void forEachRandom(StateManager& manager, std::function<void(int)> callback) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        ModulationSourcesState& state = *manager.getSourcesStateUnsafe();
+
+        for (int rndIndex {0}; rndIndex < state.randomSources.size(); rndIndex++) {
+            callback(rndIndex + 1);
         }
     }
 
@@ -1500,6 +1520,183 @@ namespace ModelInterface {
     double getEnvLastOutput(StateManager& manager, int envIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getEnvLastOutput(manager.getSourcesStateUnsafe(), envIndex);
+    }
+
+    void setRandomOutputMode(StateManager& manager, int randomIndex, int val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setRandomOutputMode(sources, randomIndex, val)) {
+            pushSources(manager, sources, "set RND " + juce::String(randomIndex + 1) + " output mode");
+        }
+    }
+
+    void setRandomFreq(StateManager& manager, int randomIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set RND " + juce::String(randomIndex + 1) + " frequency";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setRandomFreq(sources, randomIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setRandomDepth(StateManager& manager, int randomIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set RND " + juce::String(randomIndex + 1) + " depth";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setRandomDepth(sources, randomIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void addSourceToRandomFreq(StateManager& manager, int randomIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToRandomFreq(sources, randomIndex, source)) {
+            pushSources(manager, sources, "add modulation source to RND " + juce::String(randomIndex + 1) + " frequency");
+        }
+    }
+
+    void removeSourceFromRandomFreq(StateManager& manager, int randomIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromRandomFreq(sources, randomIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from RND " + juce::String(randomIndex + 1) + " frequency");
+        }
+    }
+
+    void setRandomFreqModulationAmount(StateManager& manager, int randomIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set RND " + juce::String(randomIndex + 1) + " frequency modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setRandomFreqModulationAmount(sources, randomIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomFreqModulationSources(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomFreqModulationSources(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    void addSourceToRandomDepth(StateManager& manager, int randomIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToRandomDepth(sources, randomIndex, source)) {
+            pushSources(manager, sources, "add modulation source to RND " + juce::String(randomIndex + 1) + " depth");
+        }
+    }
+
+    void removeSourceFromRandomDepth(StateManager& manager, int randomIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromRandomDepth(sources, randomIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from RND " + juce::String(randomIndex + 1) + " depth");
+        }
+    }
+
+    void setRandomDepthModulationAmount(StateManager& manager, int randomIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set RND " + juce::String(randomIndex + 1) + " depth modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setRandomDepthModulationAmount(sources, randomIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomDepthModulationSources(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomDepthModulationSources(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    int getRandomOutputMode(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomOutputMode(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    double getRandomFreq(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomFreq(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    double getRandomModulatedFreqValue(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomModulatedFreqValue(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    double getRandomDepth(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomDepth(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    double getRandomModulatedDepthValue(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomModulatedDepthValue(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    double getRandomLastOutput(StateManager& manager, int randomIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getRandomLastOutput(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    void resetAllState(StateManager& manager,
+                       HostConfiguration config,
+                       std::function<float(int, MODULATION_TYPE)> getModulationValueCallback,
+                       std::function<void(int)> latencyChangeCallback) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        auto splitterState = std::make_shared<SplitterState>(config, getModulationValueCallback, latencyChangeCallback);
+        auto sourcesState = std::make_shared<ModulationSourcesState>(getModulationValueCallback);
+
+        pushState(manager, std::make_shared<StateWrapper>(splitterState, sourcesState, "reset all"));
     }
 
     void writeSourcesToXml(StateManager& manager, juce::XmlElement* element) {

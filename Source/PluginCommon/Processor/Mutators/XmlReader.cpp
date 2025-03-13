@@ -500,6 +500,7 @@ namespace XmlReader {
         // Clear existing state
         state.lfos.clear();
         state.envelopes.clear();
+        state.randomSources.clear();
 
         // LFOs
         juce::XmlElement* lfosElement = element->getChildByName(XML_LFOS_STR);
@@ -659,6 +660,93 @@ namespace XmlReader {
             }
         } else {
             juce::Logger::writeToLog("Missing element " + juce::String(XML_ENVELOPES_STR));
+        }
+
+        // Random
+        juce::XmlElement* randomsElement = element->getChildByName(XML_RANDOMS_STR);
+        if (randomsElement != nullptr) {
+            const int numRandoms {randomsElement->getNumChildElements()};
+
+            for (int index {0}; index < numRandoms; index++) {
+                juce::Logger::writeToLog("Restoring randoms " + juce::String(index));
+
+                const juce::String randomElementName = getRandomXMLName(index);
+                juce::XmlElement* thisRandomElement = randomsElement->getChildByName(randomElementName);
+
+                if (thisRandomElement == nullptr) {
+                    juce::Logger::writeToLog("Failed to get element " + randomElementName);
+                    continue;
+                }
+
+                std::shared_ptr<WECore::Perlin::PerlinSource> newRandom {new WECore::Perlin::PerlinSource()};
+
+                newRandom->setOutputMode(thisRandomElement->getIntAttribute(XML_RANDOM_OUTPUT_MODE_STR));
+                newRandom->setFreq(thisRandomElement->getDoubleAttribute(XML_RANDOM_FREQ_STR));
+                newRandom->setDepth(thisRandomElement->getDoubleAttribute(XML_RANDOM_DEPTH_STR));
+                newRandom->setSampleRate(configuration.sampleRate);
+
+                juce::XmlElement* freqModElement = thisRandomElement->getChildByName(XML_RANDOM_FREQ_MODULATION_SOURCES_STR);
+                if (freqModElement != nullptr) {
+                    const int numFreqModSources {freqModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numFreqModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring random freq modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = freqModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newRandom->addFreqModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newRandom->setFreqModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                juce::XmlElement* depthModElement = thisRandomElement->getChildByName(XML_RANDOM_DEPTH_MODULATION_SOURCES_STR);
+                if (depthModElement != nullptr) {
+                    const int numDepthModSources {depthModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numDepthModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring random depth modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = depthModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newRandom->addDepthModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newRandom->setDepthModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                state.randomSources.push_back(newRandom);
+            }
         }
     }
 }

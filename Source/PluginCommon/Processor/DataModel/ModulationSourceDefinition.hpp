@@ -10,7 +10,8 @@
 enum class MODULATION_TYPE {
     MACRO,
     LFO,
-    ENVELOPE
+    ENVELOPE,
+    RANDOM
 };
 
 class ModulationSourceDefinition {
@@ -81,6 +82,8 @@ private:
                 return "lfo";
             case MODULATION_TYPE::ENVELOPE:
                 return "envelope";
+            case MODULATION_TYPE::RANDOM:
+                return "random";
             default:
                 return "";
         }
@@ -91,8 +94,10 @@ private:
             return MODULATION_TYPE::MACRO;
         } else if (typeString == "lfo") {
             return MODULATION_TYPE::LFO;
-        } else /*(typeString == "envelope")*/ {
+        } else if (typeString == "envelope") {
             return MODULATION_TYPE::ENVELOPE;
+        } else /*(typeString == "random")*/ {
+            return MODULATION_TYPE::RANDOM;
         }
     }
 };

@@ -71,4 +71,9 @@ namespace ModelInterface {
         // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
         return ModulationProcessors::getEnvelopeModulationValue(*manager.getSourcesStateUnsafe(), envelopeNumber);
     }
+
+    double getRandomModulationValue(StateManager& manager, int randomNumber) {
+        // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
+        return ModulationProcessors::getRandomModulationValue(*manager.getSourcesStateUnsafe(), randomNumber);
+    }
 }

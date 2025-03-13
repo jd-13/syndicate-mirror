@@ -88,9 +88,6 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     _tooltipLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
     //[/UserPreSize]
 
-    setSize (820, 656);
-
-
     //[Constructor] You can add your own custom stuff here..
     setResizable(true, true);
 

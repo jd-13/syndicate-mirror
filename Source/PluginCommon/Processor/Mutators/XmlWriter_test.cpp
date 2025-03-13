@@ -204,7 +204,7 @@ SCENARIO("XmlWriter: Can write PluginChain") {
         hostConfig.blockSize = 10;
         hostConfig.layout = TestUtils::createLayoutWithChannels(
             juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
-        
+
         auto modulationCallback = [](int, MODULATION_TYPE) {
             // Return something unique we can test for later
             return 1.234f;
@@ -310,7 +310,7 @@ SCENARIO("XmlWriter: Can write ChainSlotPlugin") {
         hostConfig.blockSize = 10;
         hostConfig.layout = TestUtils::createLayoutWithChannels(
             juce::AudioChannelSet::stereo(), juce::AudioChannelSet::stereo());
-        
+
         const bool isBypassed = GENERATE(false, true);
 
         std::shared_ptr<juce::AudioPluginInstance> plugin =
@@ -454,7 +454,8 @@ SCENARIO("XmlWriter: Can write ModulationSourceDefinition") {
         auto [modulationType, modulationTypeString] = GENERATE(
             testData(MODULATION_TYPE::MACRO, "macro"),
             testData(MODULATION_TYPE::LFO, "lfo"),
-            testData(MODULATION_TYPE::ENVELOPE, "envelope")
+            testData(MODULATION_TYPE::ENVELOPE, "envelope"),
+            testData(MODULATION_TYPE::RANDOM, "random")
         );
 
         ModulationSourceDefinition definition(modulationId, modulationType);
@@ -481,7 +482,9 @@ SCENARIO("XmlWriter: Can write ModulationSourcesState") {
 
         ModulationMutators::addLfo(state);
         ModulationMutators::addEnvelope(state);
+        ModulationMutators::addRandom(state);
 
+        // LFO
         ModulationMutators::setLfoFreq(state, 0, 0.5);
         ModulationMutators::setLfoDepth(state, 0, 0.6);
         ModulationMutators::setLfoManualPhase(state, 0, 0.7);
@@ -490,7 +493,9 @@ SCENARIO("XmlWriter: Can write ModulationSourcesState") {
         ModulationMutators::setLfoWave(state, 0, 1);
         ModulationMutators::setLfoInvertSwitch(state, 0, true);
         ModulationMutators::setLfoTempoSyncSwitch(state, 0, true);
+        ModulationMutators::setLfoOutputMode(state, 0, WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
 
+        // Envelope
         ModulationMutators::setEnvAmount(state, 0, 0.8);
         ModulationMutators::setEnvAttackTimeMs(state, 0, 0.9);
         ModulationMutators::setEnvReleaseTimeMs(state, 0, 1.0);
@@ -498,6 +503,12 @@ SCENARIO("XmlWriter: Can write ModulationSourcesState") {
         ModulationMutators::setEnvFilterHz(state, 0, 20, 200);
         ModulationMutators::setEnvUseSidechainInput(state, 0, true);
 
+        // Random
+        ModulationMutators::setRandomOutputMode(state, 0, WECore::Perlin::Parameters::OUTPUTMODE.UNIPOLAR);
+        ModulationMutators::setRandomFreq(state, 0, 0.5);
+        ModulationMutators::setRandomDepth(state, 0, 0.6);
+
+        // Modulation
         ModulationMutators::addSourceToLFOFreq(state, 0, ModulationSourceDefinition(2, MODULATION_TYPE::LFO));
         ModulationMutators::setLFOFreqModulationAmount(state, 0, 0, 0.2);
 
@@ -507,74 +518,125 @@ SCENARIO("XmlWriter: Can write ModulationSourcesState") {
         ModulationMutators::addSourceToLFOPhase(state, 0, ModulationSourceDefinition(4, MODULATION_TYPE::ENVELOPE));
         ModulationMutators::setLFOPhaseModulationAmount(state, 0, 0, 0.4);
 
+        ModulationMutators::addSourceToRandomFreq(state, 0, ModulationSourceDefinition(5, MODULATION_TYPE::LFO));
+        ModulationMutators::setRandomFreqModulationAmount(state, 0, 0, 0.5);
+
+        ModulationMutators::addSourceToRandomDepth(state, 0, ModulationSourceDefinition(6, MODULATION_TYPE::ENVELOPE));
+        ModulationMutators::setRandomDepthModulationAmount(state, 0, 0, 0.6);
+
         WHEN("Asked to write it to XML") {
             juce::XmlElement e("test");
             XmlWriter::write(*state, &e);
 
             THEN("An XmlElement with the correct attributes is created") {
-                // LFO
-                juce::XmlElement* lfosElement = e.getChildByName(XML_LFOS_STR);
-                REQUIRE(lfosElement != nullptr);
+                {
+                    // LFO
+                    juce::XmlElement* lfosElement = e.getChildByName(XML_LFOS_STR);
+                    REQUIRE(lfosElement != nullptr);
 
-                juce::XmlElement* lfoElement = lfosElement->getChildByName(getLfoXMLName(0));
-                REQUIRE(lfoElement != nullptr);
+                    juce::XmlElement* lfoElement = lfosElement->getChildByName(getLfoXMLName(0));
+                    REQUIRE(lfoElement != nullptr);
 
-                CHECK(lfoElement->getDoubleAttribute(XML_LFO_FREQ_STR) == Approx(0.5));
-                CHECK(lfoElement->getDoubleAttribute(XML_LFO_DEPTH_STR) == Approx(0.6));
-                CHECK(lfoElement->getDoubleAttribute(XML_LFO_MANUAL_PHASE_STR) == Approx(0.7));
-                CHECK(lfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR) == 8);
-                CHECK(lfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR) == 4);
-                CHECK(lfoElement->getIntAttribute(XML_LFO_WAVE_STR) == 1);
-                CHECK(lfoElement->getBoolAttribute(XML_LFO_INVERT_STR) == true);
-                CHECK(lfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR) == true);
+                    CHECK(lfoElement->getDoubleAttribute(XML_LFO_FREQ_STR) == Approx(0.5));
+                    CHECK(lfoElement->getDoubleAttribute(XML_LFO_DEPTH_STR) == Approx(0.6));
+                    CHECK(lfoElement->getDoubleAttribute(XML_LFO_MANUAL_PHASE_STR) == Approx(0.7));
+                    CHECK(lfoElement->getIntAttribute(XML_LFO_TEMPO_DENOM_STR) == 8);
+                    CHECK(lfoElement->getIntAttribute(XML_LFO_TEMPO_NUMER_STR) == 4);
+                    CHECK(lfoElement->getIntAttribute(XML_LFO_WAVE_STR) == 1);
+                    CHECK(lfoElement->getBoolAttribute(XML_LFO_INVERT_STR) == true);
+                    CHECK(lfoElement->getBoolAttribute(XML_LFO_TEMPO_SYNC_STR) == true);
+                    CHECK(lfoElement->getIntAttribute(XML_LFO_OUTPUT_MODE_STR) == WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
 
-                // LFO freq modulation
-                juce::XmlElement* freqModElement = lfoElement->getChildByName(XML_LFO_FREQ_MODULATION_SOURCES_STR);
-                REQUIRE(freqModElement != nullptr);
+                    // LFO freq modulation
+                    juce::XmlElement* freqModElement = lfoElement->getChildByName(XML_LFO_FREQ_MODULATION_SOURCES_STR);
+                    REQUIRE(freqModElement != nullptr);
 
-                CHECK(freqModElement->getNumChildElements() == 1);
-                juce::XmlElement* lfoFreqSourceElement = freqModElement->getChildByName("Source_0");
-                REQUIRE(lfoFreqSourceElement != nullptr);
+                    CHECK(freqModElement->getNumChildElements() == 1);
+                    juce::XmlElement* lfoFreqSourceElement = freqModElement->getChildByName("Source_0");
+                    REQUIRE(lfoFreqSourceElement != nullptr);
 
-                CHECK(lfoFreqSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 2);
-                CHECK(lfoFreqSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.2));
+                    CHECK(lfoFreqSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 2);
+                    CHECK(lfoFreqSourceElement->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "lfo");
+                    CHECK(lfoFreqSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.2));
 
-                // LFO depth modulation
-                juce::XmlElement* depthModElement = lfoElement->getChildByName(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
-                REQUIRE(depthModElement != nullptr);
+                    // LFO depth modulation
+                    juce::XmlElement* depthModElement = lfoElement->getChildByName(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
+                    REQUIRE(depthModElement != nullptr);
 
-                CHECK(depthModElement->getNumChildElements() == 1);
-                juce::XmlElement* lfoDepthSourceElement = depthModElement->getChildByName("Source_0");
-                REQUIRE(lfoDepthSourceElement != nullptr);
+                    CHECK(depthModElement->getNumChildElements() == 1);
+                    juce::XmlElement* lfoDepthSourceElement = depthModElement->getChildByName("Source_0");
+                    REQUIRE(lfoDepthSourceElement != nullptr);
 
-                CHECK(lfoDepthSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 3);
-                CHECK(lfoDepthSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.3));
+                    CHECK(lfoDepthSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 3);
+                    CHECK(lfoDepthSourceElement->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "lfo");
+                    CHECK(lfoDepthSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.3));
 
-                // LFO phase modulation
-                juce::XmlElement* phaseModElement = lfoElement->getChildByName(XML_LFO_PHASE_MODULATION_SOURCES_STR);
-                REQUIRE(phaseModElement != nullptr);
+                    // LFO phase modulation
+                    juce::XmlElement* phaseModElement = lfoElement->getChildByName(XML_LFO_PHASE_MODULATION_SOURCES_STR);
+                    REQUIRE(phaseModElement != nullptr);
 
-                CHECK(phaseModElement->getNumChildElements() == 1);
-                juce::XmlElement* lfoPhaseSourceElement = phaseModElement->getChildByName("Source_0");
-                REQUIRE(lfoPhaseSourceElement != nullptr);
+                    CHECK(phaseModElement->getNumChildElements() == 1);
+                    juce::XmlElement* lfoPhaseSourceElement = phaseModElement->getChildByName("Source_0");
+                    REQUIRE(lfoPhaseSourceElement != nullptr);
 
-                CHECK(lfoPhaseSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 4);
-                CHECK(lfoPhaseSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.4));
+                    CHECK(lfoPhaseSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 4);
+                    CHECK(lfoPhaseSourceElement->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "envelope");
+                    CHECK(lfoPhaseSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.4));
+                }
 
-                // Envelope
-                juce::XmlElement* envsElement = e.getChildByName(XML_ENVELOPES_STR);
-                REQUIRE(envsElement != nullptr);
+                {
+                    // Envelope
+                    juce::XmlElement* envsElement = e.getChildByName(XML_ENVELOPES_STR);
+                    REQUIRE(envsElement != nullptr);
 
-                juce::XmlElement* envElement = envsElement->getChildByName(getEnvelopeXMLName(0));
-                REQUIRE(envElement != nullptr);
+                    juce::XmlElement* envElement = envsElement->getChildByName(getEnvelopeXMLName(0));
+                    REQUIRE(envElement != nullptr);
 
-                CHECK(envElement->getDoubleAttribute(XML_ENV_AMOUNT_STR) == Approx(0.8));
-                CHECK(envElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR) == Approx(0.9));
-                CHECK(envElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR) == Approx(1.0));
-                CHECK(envElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR) == true);
-                CHECK(envElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR) == 20);
-                CHECK(envElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR) == 200);
-                CHECK(envElement->getBoolAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR) == true);
+                    CHECK(envElement->getDoubleAttribute(XML_ENV_AMOUNT_STR) == Approx(0.8));
+                    CHECK(envElement->getDoubleAttribute(XML_ENV_ATTACK_TIME_STR) == Approx(0.9));
+                    CHECK(envElement->getDoubleAttribute(XML_ENV_RELEASE_TIME_STR) == Approx(1.0));
+                    CHECK(envElement->getBoolAttribute(XML_ENV_FILTER_ENABLED_STR) == true);
+                    CHECK(envElement->getDoubleAttribute(XML_ENV_LOW_CUT_STR) == 20);
+                    CHECK(envElement->getDoubleAttribute(XML_ENV_HIGH_CUT_STR) == 200);
+                    CHECK(envElement->getBoolAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR) == true);
+                }
+
+                {
+                    // Random
+                    juce::XmlElement* randomsElement = e.getChildByName(XML_RANDOMS_STR);
+                    REQUIRE(randomsElement != nullptr);
+
+                    juce::XmlElement* randomElement = randomsElement->getChildByName(getRandomXMLName(0));
+                    REQUIRE(randomElement != nullptr);
+
+                    CHECK(randomElement->getIntAttribute(XML_RANDOM_OUTPUT_MODE_STR) == WECore::Perlin::Parameters::OUTPUTMODE.UNIPOLAR);
+                    CHECK(randomElement->getDoubleAttribute(XML_RANDOM_FREQ_STR) == Approx(0.5));
+                    CHECK(randomElement->getDoubleAttribute(XML_RANDOM_DEPTH_STR) == Approx(0.6));
+
+                    // Random freq modulation
+                    juce::XmlElement* freqModElement = randomElement->getChildByName(XML_RANDOM_FREQ_MODULATION_SOURCES_STR);
+                    REQUIRE(freqModElement != nullptr);
+
+                    CHECK(freqModElement->getNumChildElements() == 1);
+                    juce::XmlElement* randomFreqSourceElement = freqModElement->getChildByName("Source_0");
+                    REQUIRE(randomFreqSourceElement != nullptr);
+
+                    CHECK(randomFreqSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 5);
+                    CHECK(randomFreqSourceElement->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "lfo");
+                    CHECK(randomFreqSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.5));
+
+                    // Random depth modulation
+                    juce::XmlElement* depthModElement = randomElement->getChildByName(XML_RANDOM_DEPTH_MODULATION_SOURCES_STR);
+                    REQUIRE(depthModElement != nullptr);
+
+                    CHECK(depthModElement->getNumChildElements() == 1);
+                    juce::XmlElement* randomDepthSourceElement = depthModElement->getChildByName("Source_0");
+                    REQUIRE(randomDepthSourceElement != nullptr);
+
+                    CHECK(randomDepthSourceElement->getIntAttribute(XML_MODULATION_SOURCE_ID) == 6);
+                    CHECK(randomDepthSourceElement->getStringAttribute(XML_MODULATION_SOURCE_TYPE) == "envelope");
+                    CHECK(randomDepthSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT) == Approx(0.6));
+                }
             }
         }
     }

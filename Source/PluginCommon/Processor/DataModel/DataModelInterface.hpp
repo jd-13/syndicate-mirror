@@ -6,6 +6,7 @@
 #include "General/AudioSpinMutex.h"
 #include "SplitterProcessors.hpp"
 #include "CloneableSources.hpp"
+#include "WEFilters/PerlinSource.hpp"
 
 namespace ModelInterface {
     struct SplitterState {
@@ -57,6 +58,7 @@ namespace ModelInterface {
     struct ModulationSourcesState {
         std::vector<std::shared_ptr<CloneableLFO>> lfos;
         std::vector<std::shared_ptr<EnvelopeWrapper>> envelopes;
+        std::vector<std::shared_ptr<WECore::Perlin::PerlinSource>> randomSources;
 
         // Needed for the envelope followers to figure out which buffers to read from
         HostConfiguration hostConfig;
@@ -78,6 +80,10 @@ namespace ModelInterface {
 
             for (std::shared_ptr<EnvelopeWrapper> env : other.envelopes) {
                 envelopes.emplace_back(env->clone());
+            }
+
+            for (std::shared_ptr<WECore::Perlin::PerlinSource> source : other.randomSources) {
+                randomSources.emplace_back(source->clone());
             }
         }
     };
@@ -104,7 +110,6 @@ namespace ModelInterface {
     };
 
     struct StateManager {
-
         std::deque<std::shared_ptr<StateWrapper>> undoHistory;
         std::deque<std::shared_ptr<StateWrapper>> redoHistory;
 

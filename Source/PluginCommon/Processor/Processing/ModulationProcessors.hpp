@@ -11,4 +11,5 @@ namespace ModulationProcessors {
 
     double getLfoModulationValue(ModelInterface::ModulationSourcesState& state, int lfoNumber);
     double getEnvelopeModulationValue(ModelInterface::ModulationSourcesState& state, int envelopeNumber);
+    double getRandomModulationValue(ModelInterface::ModulationSourcesState& state, int randomNumber);
 }

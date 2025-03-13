@@ -31,14 +31,19 @@ namespace {
 
 ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor, SyndicateAudioProcessorEditor& editor)
         : _processor(processor), _editor(editor) {
+
+    auto styleButton = [this](juce::TextButton* button) {
+        button->setLookAndFeel(&_buttonLookAndFeel);
+        button->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
+        button->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
+        button->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    };
+
     _exportButton.reset(new juce::TextButton("Save Button"));
     addAndMakeVisible(_exportButton.get());
     _exportButton->setButtonText(TRANS("Save"));
     _exportButton->setTooltip("Save the current settings to a file");
-    _exportButton->setLookAndFeel(&_buttonLookAndFeel);
-    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
-    _exportButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    styleButton(_exportButton.get());
     _exportButton->onClick = [&]() {
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::warnAboutOverwriting};
         _fileChooser.reset(new juce::FileChooser("Export Syndicate Preset", juce::File(), "*.syn"));
@@ -51,10 +56,7 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
     addAndMakeVisible(_importButton.get());
     _importButton->setButtonText(TRANS("Load"));
     _importButton->setTooltip("Load settings from a previously saved file");
-    _importButton->setLookAndFeel(&_buttonLookAndFeel);
-    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
-    _importButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    styleButton(_importButton.get());
     _importButton->onClick = [&]() {
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode};
         _fileChooser.reset(new juce::FileChooser("Import Syndicate Preset", juce::File(), "*.syn"));
@@ -67,10 +69,7 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
     addAndMakeVisible(_metaButton.get());
     _metaButton->setButtonText(TRANS("Info"));
     _metaButton->setTooltip("View and edit preset metadata");
-    _metaButton->setLookAndFeel(&_buttonLookAndFeel);
-    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, UIUtils::slotBackgroundColour);
-    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, UIUtils::highlightColour);
-    _metaButton->setColour(UIUtils::StaticButtonLookAndFeel::disabledColour, UIUtils::deactivatedColour);
+    styleButton(_metaButton.get());
     _metaButton->onClick = [&]() {
         _metadataEditPopover.reset(new MetadataEditComponent(
             _processor.presetMetadata,
@@ -89,6 +88,15 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
     _nameLabel->setEditable(false, false, false);
     _nameLabel->setColour(juce::Label::textColourId, UIUtils::tooltipColour);
     _nameLabel->toBack();
+
+    _initButton.reset(new juce::TextButton("Init Button"));
+    addAndMakeVisible(_initButton.get());
+    _initButton->setButtonText(TRANS("Init"));
+    _initButton->setTooltip("Reset all state and parameters to their default values");
+    styleButton(_initButton.get());
+    _initButton->onClick = [&]() {
+        _processor.resetAllState();
+    };
 }
 
 ImportExportComponent::~ImportExportComponent() {
@@ -109,7 +117,8 @@ void ImportExportComponent::resized() {
     _importButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
     availableArea.removeFromLeft(SPACER_WIDTH);
     _metaButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
-
+    availableArea.removeFromLeft(SPACER_WIDTH);
+    _initButton->setBounds(availableArea.removeFromLeft(BUTTON_WIDTH));
 }
 
 void ImportExportComponent::paint(juce::Graphics& g) {

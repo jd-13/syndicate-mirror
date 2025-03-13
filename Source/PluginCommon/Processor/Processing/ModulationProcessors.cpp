@@ -1,5 +1,7 @@
 #include "ModulationProcessors.hpp"
 
+#include "WEFilters/PerlinSource.hpp"
+
 namespace Mi = ModelInterface;
 
 namespace ModulationProcessors {
@@ -15,6 +17,10 @@ namespace ModulationProcessors {
         for (std::shared_ptr<Mi::EnvelopeWrapper>& env : state.envelopes) {
             env->envelope->setSampleRate(sampleRate);
         }
+
+        for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
+            random->setSampleRate(sampleRate);
+        }
     }
 
     void reset(Mi::ModulationSourcesState& state) {
@@ -24,6 +30,10 @@ namespace ModulationProcessors {
 
         for (std::shared_ptr<Mi::EnvelopeWrapper>& env : state.envelopes) {
             env->envelope->reset();
+        }
+
+        for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
+            random->reset();
         }
     }
 
@@ -66,6 +76,11 @@ namespace ModulationProcessors {
 
                 env->envelope->getNextOutput(averageSample);
             }
+
+            // Random
+            for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
+                random->getNextOutput(0);
+            }
         }
     }
 
@@ -82,6 +97,15 @@ namespace ModulationProcessors {
         const int index {envelopeNumber - 1};
         if (state.envelopes.size() > index) {
             return state.envelopes[index]->envelope->getLastOutput() * state.envelopes[index]->amount;
+        }
+
+        return 0;
+    }
+
+    double getRandomModulationValue(ModelInterface::ModulationSourcesState& state, int randomNumber) {
+        const int index {randomNumber - 1};
+        if (state.randomSources.size() > index) {
+            return state.randomSources[index]->getLastOutput();
         }
 
         return 0;

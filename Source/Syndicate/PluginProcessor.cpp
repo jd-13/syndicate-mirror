@@ -406,6 +406,38 @@ void SyndicateAudioProcessor::setEnvUseSidechainInput(int envIndex, bool val) {
     }
 }
 
+void SyndicateAudioProcessor::addRandomSource() {
+    ModelInterface::addRandom(manager);
+
+    if (_editor != nullptr) {
+        _editor->needsModulationBarRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setRandomOutputMode(int randomIndex, int val) {
+    ModelInterface::setRandomOutputMode(manager, randomIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setRandomFreq(int randomIndex, double val) {
+    ModelInterface::setRandomFreq(manager, randomIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setRandomDepth(int randomIndex, double val) {
+    ModelInterface::setRandomDepth(manager, randomIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
 float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TYPE type) {
     // TODO This method may be called multiple times for each buffer, could be optimised
     if (type == MODULATION_TYPE::MACRO) {
@@ -417,6 +449,8 @@ float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TY
         return ModelInterface::getLfoModulationValue(manager, id);
     } else if (type == MODULATION_TYPE::ENVELOPE) {
         return ModelInterface::getEnvelopeModulationValue(manager, id);
+    } else if (type == MODULATION_TYPE::RANDOM) {
+        return ModelInterface::getRandomModulationValue(manager, id);
     }
 
     return 0.0f;
@@ -626,6 +660,54 @@ void SyndicateAudioProcessor::setLFOPhaseModulationAmount(int lfoIndex, int sour
     }
 }
 
+void SyndicateAudioProcessor::addSourceToRandomFreq(int randomIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToRandomFreq(manager, randomIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromRandomFreq(int randomIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromRandomFreq(manager, randomIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setRandomFreqModulationAmount(int randomIndex, int sourceIndex, double val) {
+    ModelInterface::setRandomFreqModulationAmount(manager, randomIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToRandomDepth(int randomIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToRandomDepth(manager, randomIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromRandomDepth(int randomIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromRandomDepth(manager, randomIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setRandomDepthModulationAmount(int randomIndex, int sourceIndex, double val) {
+    ModelInterface::setRandomDepthModulationAmount(manager, randomIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
 void SyndicateAudioProcessor::addParallelChain() {
     if (ModelInterface::addParallelChain(manager)) {
         if (_editor != nullptr) {
@@ -752,6 +834,20 @@ void SyndicateAudioProcessor::copyChain(int fromChainNumber, int toChainNumber) 
     };
 
     ModelInterface::copyChain(manager, onSuccess, formatManager, fromChainNumber, toChainNumber);
+}
+
+void SyndicateAudioProcessor::resetAllState() {
+    ModelInterface::resetAllState(manager,
+                                  {getBusesLayout(), getSampleRate(), getBlockSize()},
+                                  [&](int id, MODULATION_TYPE type) { return getModulationValueForSource(id, type); },
+                                  [&](int newLatencySamples) { onLatencyChange(newLatencySamples); });
+
+    ModelInterface::createDefaultSources(manager);
+    ModelInterface::prepareToPlay(manager, getSampleRate(), getBlockSize(), getBusesLayout());
+
+    if (_editor != nullptr) {
+        _editor->needsToRefreshAll();
+    }
 }
 
 void SyndicateAudioProcessor::undo() {

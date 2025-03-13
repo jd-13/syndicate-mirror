@@ -45,6 +45,9 @@ namespace {
 }
 
 namespace ModulationMutators {
+    //
+    // LFOs
+    //
     void addLfo(std::shared_ptr<ModelInterface::ModulationSourcesState> sources) {
         std::shared_ptr<ModelInterface::CloneableLFO> newLfo {new ModelInterface::CloneableLFO()};
         newLfo->setBypassSwitch(true);
@@ -370,6 +373,9 @@ namespace ModulationMutators {
         return 0;
     }
 
+    //
+    // Envelopes
+    //
     void addEnvelope(std::shared_ptr<ModelInterface::ModulationSourcesState> sources) {
         std::shared_ptr<ModelInterface::EnvelopeWrapper> newEnv(new ModelInterface::EnvelopeWrapper());
         newEnv->envelope->setSampleRate(sources->hostConfig.sampleRate);
@@ -495,6 +501,184 @@ namespace ModulationMutators {
         return 0;
     }
 
+    //
+    // Random
+    //
+    void addRandom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources) {
+        std::shared_ptr<WECore::Perlin::PerlinSource> newRandom(new WECore::Perlin::PerlinSource());
+        newRandom->setSampleRate(sources->hostConfig.sampleRate);
+        sources->randomSources.push_back(newRandom);
+    }
+
+    bool setRandomOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int val) {
+        if (sources->randomSources.size() > randomIndex) {
+            sources->randomSources[randomIndex]->setOutputMode(val);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool setRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, double val) {
+        if (sources->randomSources.size() > randomIndex) {
+            sources->randomSources[randomIndex]->setFreq(val);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool setRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, double val) {
+        if (sources->randomSources.size() > randomIndex) {
+            sources->randomSources[randomIndex]->setDepth(val);
+            return true;
+        }
+
+        return false;
+    }
+
+    bool addSourceToRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source) {
+        if (sources->randomSources.size() <= randomIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->randomSources[randomIndex]->addFreqModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source) {
+        if (sources->randomSources.size() <= randomIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->randomSources[randomIndex]->getFreqModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->randomSources[randomIndex]->removeFreqModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setRandomFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int sourceIndex, double val) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->setFreqModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->randomSources.size() > randomIndex) {
+            for (const auto& source : sources->randomSources[randomIndex]->getFreqModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    bool addSourceToRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source) {
+        if (sources->randomSources.size() <= randomIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->randomSources[randomIndex]->addDepthModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, ModulationSourceDefinition source) {
+        if (sources->randomSources.size() <= randomIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->randomSources[randomIndex]->getDepthModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->randomSources[randomIndex]->removeDepthModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setRandomDepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex, int sourceIndex, double val) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->setDepthModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getRandomDepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->randomSources.size() > randomIndex) {
+            for (const auto& source : sources->randomSources[randomIndex]->getDepthModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    int getRandomOutputMode(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getOutputMode();
+        }
+
+        return 0;
+    }
+
+    double getRandomFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getFreq();
+        }
+
+        return 0;
+    }
+
+    double getRandomModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getModulatedFreqValue();
+        }
+
+        return 0;
+    }
+
+    double getRandomDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getDepth();
+        }
+
+        return 0;
+    }
+
+    double getRandomModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getModulatedDepthValue();
+        }
+
+        return 0;
+    }
+
+    double getRandomLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex) {
+        if (sources->randomSources.size() > randomIndex) {
+            return sources->randomSources[randomIndex]->getLastOutput();
+        }
+
+        return 0;
+    }
+
     bool removeModulationSource(ModelInterface::ModulationSourcesState& state, ModulationSourceDefinition definition) {
         // First remove/renumber any modulation sources that reference this one
         for (std::shared_ptr<ModelInterface::CloneableLFO> lfo : state.lfos) {
@@ -514,6 +698,18 @@ namespace ModulationMutators {
             lfo->setPhaseModulationSources(lfoPhaseSources);
         }
 
+        for (std::shared_ptr<WECore::Perlin::PerlinSource> random : state.randomSources) {
+            // Freq
+            std::vector<WECore::ModulationSourceWrapper<double>> randomFreqSources = random->getFreqModulationSources();
+            randomFreqSources = deleteSourceFromTargetSources(randomFreqSources, definition, state.getModulationValueCallback);
+            random->setFreqModulationSources(randomFreqSources);
+
+            // Depth
+            std::vector<WECore::ModulationSourceWrapper<double>> randomDepthSources = random->getDepthModulationSources();
+            randomDepthSources = deleteSourceFromTargetSources(randomDepthSources, definition, state.getModulationValueCallback);
+            random->setDepthModulationSources(randomDepthSources);
+        }
+
         const int index {definition.id - 1};
         if (definition.type == MODULATION_TYPE::LFO) {
             if (state.lfos.size() > index) {
@@ -523,6 +719,11 @@ namespace ModulationMutators {
         } else if (definition.type == MODULATION_TYPE::ENVELOPE) {
             if (state.envelopes.size() > index) {
                 state.envelopes.erase(state.envelopes.begin() + index);
+                return true;
+            }
+        } else if (definition.type == MODULATION_TYPE::RANDOM) {
+            if (state.randomSources.size() > index) {
+                state.randomSources.erase(state.randomSources.begin() + index);
                 return true;
             }
         }

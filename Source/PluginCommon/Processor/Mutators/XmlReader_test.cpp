@@ -727,7 +727,8 @@ SCENARIO("XmlReader: Can restore ModulationSourceDefinition") {
         auto [modulationType, modulationTypeString] = GENERATE(
             std::pair<MODULATION_TYPE, juce::String>(MODULATION_TYPE::MACRO, "macro"),
             std::pair<MODULATION_TYPE, juce::String>(MODULATION_TYPE::LFO, "lfo"),
-            std::pair<MODULATION_TYPE, juce::String>(MODULATION_TYPE::ENVELOPE, "envelope")
+            std::pair<MODULATION_TYPE, juce::String>(MODULATION_TYPE::ENVELOPE, "envelope"),
+            std::pair<MODULATION_TYPE, juce::String>(MODULATION_TYPE::RANDOM, "random")
         );
 
         e.setAttribute(XML_MODULATION_SOURCE_ID, modulationId);
@@ -766,6 +767,7 @@ SCENARIO("XmlReader: Can restore ModulationSourcesState") {
             THEN("Nothing is restored") {
                 CHECK(state.lfos.size() == 0);
                 CHECK(state.envelopes.size() == 0);
+                CHECK(state.randomSources.size() == 0);
             }
         }
     }
@@ -782,90 +784,142 @@ SCENARIO("XmlReader: Can restore ModulationSourcesState") {
         };
 
         // LFOs
-        auto lfosElement = e.createNewChildElement(XML_LFOS_STR);
-        auto thisLfoElement = lfosElement->createNewChildElement("LFO_0");
-        thisLfoElement->setAttribute(XML_LFO_BYPASS_STR, true);
-        thisLfoElement->setAttribute(XML_LFO_PHASE_SYNC_STR, true);
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_SYNC_STR, true);
-        thisLfoElement->setAttribute(XML_LFO_INVERT_STR, true);
-        thisLfoElement->setAttribute(XML_LFO_WAVE_STR, 2);
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, 3);
-        thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, 4);
-        thisLfoElement->setAttribute(XML_LFO_FREQ_STR, 0.5);
-        thisLfoElement->setAttribute(XML_LFO_DEPTH_STR, 0.6);
-        thisLfoElement->setAttribute(XML_LFO_MANUAL_PHASE_STR, 100);
+        {
+            auto lfosElement = e.createNewChildElement(XML_LFOS_STR);
+            auto thisLfoElement = lfosElement->createNewChildElement("LFO_0");
+            thisLfoElement->setAttribute(XML_LFO_BYPASS_STR, true);
+            thisLfoElement->setAttribute(XML_LFO_PHASE_SYNC_STR, true);
+            thisLfoElement->setAttribute(XML_LFO_TEMPO_SYNC_STR, true);
+            thisLfoElement->setAttribute(XML_LFO_INVERT_STR, true);
+            thisLfoElement->setAttribute(XML_LFO_WAVE_STR, 2);
+            thisLfoElement->setAttribute(XML_LFO_TEMPO_NUMER_STR, 3);
+            thisLfoElement->setAttribute(XML_LFO_TEMPO_DENOM_STR, 4);
+            thisLfoElement->setAttribute(XML_LFO_FREQ_STR, 0.5);
+            thisLfoElement->setAttribute(XML_LFO_DEPTH_STR, 0.6);
+            thisLfoElement->setAttribute(XML_LFO_MANUAL_PHASE_STR, 100);
+            thisLfoElement->setAttribute(XML_LFO_OUTPUT_MODE_STR, WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
 
-        juce::XmlElement* freqModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_FREQ_MODULATION_SOURCES_STR);
-        juce::XmlElement* thisFreqSourceElement = freqModSourcesElement->createNewChildElement("Source_0");
-        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 2);
-        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "lfo");
-        thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.3);
+            juce::XmlElement* freqModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_FREQ_MODULATION_SOURCES_STR);
+            juce::XmlElement* thisFreqSourceElement = freqModSourcesElement->createNewChildElement("Source_0");
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 2);
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "lfo");
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.3);
 
-        juce::XmlElement* depthModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
-        juce::XmlElement* thisDepthSourceElement = depthModSourcesElement->createNewChildElement("Source_0");
-        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 3);
-        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "envelope");
-        thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.4);
+            juce::XmlElement* depthModSourcesElement = thisLfoElement->createNewChildElement(XML_LFO_DEPTH_MODULATION_SOURCES_STR);
+            juce::XmlElement* thisDepthSourceElement = depthModSourcesElement->createNewChildElement("Source_0");
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 3);
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "envelope");
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.4);
 
-        juce::XmlElement* phaseModsourcesElement = thisLfoElement->createNewChildElement(XML_LFO_PHASE_MODULATION_SOURCES_STR);
-        juce::XmlElement* thisPhaseSourceElement = phaseModsourcesElement->createNewChildElement("Source_0");
-        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 4);
-        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "macro");
-        thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.5);
+            juce::XmlElement* phaseModsourcesElement = thisLfoElement->createNewChildElement(XML_LFO_PHASE_MODULATION_SOURCES_STR);
+            juce::XmlElement* thisPhaseSourceElement = phaseModsourcesElement->createNewChildElement("Source_0");
+            thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 4);
+            thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "macro");
+            thisPhaseSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.5);
+        }
 
         // Envelopes
-        auto envelopesElement = e.createNewChildElement(XML_ENVELOPES_STR);
-        auto thisEnvelopeElement = envelopesElement->createNewChildElement("Envelope_0");
-        thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, 0.1);
-        thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, 0.2);
-        thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, true);
-        thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, 100);
-        thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, 200);
-        thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, 0.3);
-        thisEnvelopeElement->setAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR, true);
+        {
+            auto envelopesElement = e.createNewChildElement(XML_ENVELOPES_STR);
+            auto thisEnvelopeElement = envelopesElement->createNewChildElement("Envelope_0");
+            thisEnvelopeElement->setAttribute(XML_ENV_ATTACK_TIME_STR, 0.1);
+            thisEnvelopeElement->setAttribute(XML_ENV_RELEASE_TIME_STR, 0.2);
+            thisEnvelopeElement->setAttribute(XML_ENV_FILTER_ENABLED_STR, true);
+            thisEnvelopeElement->setAttribute(XML_ENV_LOW_CUT_STR, 100);
+            thisEnvelopeElement->setAttribute(XML_ENV_HIGH_CUT_STR, 200);
+            thisEnvelopeElement->setAttribute(XML_ENV_AMOUNT_STR, 0.3);
+            thisEnvelopeElement->setAttribute(XML_ENV_USE_SIDECHAIN_INPUT_STR, true);
+        }
+
+        // Randoms
+        {
+            auto randomsElement = e.createNewChildElement(XML_RANDOMS_STR);
+            auto thisRandomElement = randomsElement->createNewChildElement("Random_0");
+            thisRandomElement->setAttribute(XML_RANDOM_OUTPUT_MODE_STR, WECore::Perlin::Parameters::OUTPUTMODE.UNIPOLAR);
+            thisRandomElement->setAttribute(XML_RANDOM_FREQ_STR, 0.1);
+            thisRandomElement->setAttribute(XML_RANDOM_DEPTH_STR, 0.2);
+
+            juce::XmlElement* freqModSourcesElement = thisRandomElement->createNewChildElement(XML_RANDOM_FREQ_MODULATION_SOURCES_STR);
+            juce::XmlElement* thisFreqSourceElement = freqModSourcesElement->createNewChildElement("Source_0");
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 5);
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "envelope");
+            thisFreqSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.6);
+
+            juce::XmlElement* depthModSourcesElement = thisRandomElement->createNewChildElement(XML_RANDOM_DEPTH_MODULATION_SOURCES_STR);
+            juce::XmlElement* thisDepthSourceElement = depthModSourcesElement->createNewChildElement("Source_0");
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_ID, 6);
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_TYPE, "macro");
+            thisDepthSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, 0.7);
+        }
 
         WHEN("Asked to restore a ModulationSourcesState from it") {
             auto state = std::make_shared<ModelInterface::ModulationSourcesState>(modulationCallback);
             XmlReader::restoreModulationSourcesFromXml(*state.get(), &e, config);
 
             THEN("The LFO and envelope are restored") {
-                REQUIRE(state->lfos.size() == 1);
-                auto lfo = state->lfos[0];
-                CHECK(lfo->getBypassSwitch() == true);
-                CHECK(lfo->getPhaseSyncSwitch() == true);
-                CHECK(lfo->getTempoSyncSwitch() == true);
-                CHECK(lfo->getInvertSwitch() == true);
-                CHECK(lfo->getWave() == 2);
-                CHECK(lfo->getTempoNumer() == 3);
-                CHECK(lfo->getTempoDenom() == 4);
-                CHECK(lfo->getFreq() == 0.5);
-                CHECK(lfo->getDepth() == 0.6);
-                CHECK(lfo->getManualPhase() == 100);
+                // LFOs
+                {
+                    REQUIRE(state->lfos.size() == 1);
+                    auto lfo = state->lfos[0];
+                    CHECK(lfo->getBypassSwitch() == true);
+                    CHECK(lfo->getPhaseSyncSwitch() == true);
+                    CHECK(lfo->getTempoSyncSwitch() == true);
+                    CHECK(lfo->getInvertSwitch() == true);
+                    CHECK(lfo->getWave() == 2);
+                    CHECK(lfo->getTempoNumer() == 3);
+                    CHECK(lfo->getTempoDenom() == 4);
+                    CHECK(lfo->getFreq() == 0.5);
+                    CHECK(lfo->getDepth() == 0.6);
+                    CHECK(lfo->getManualPhase() == 100);
+                    CHECK(lfo->getOutputMode() == WECore::Richter::Parameters::OUTPUTMODE.UNIPOLAR);
 
-                std::vector<std::shared_ptr<PluginParameterModulationSource>> freqModSources =  ModulationMutators::getLFOFreqModulationSources(state, 0);
-                REQUIRE(freqModSources.size() == 1);
-                CHECK(freqModSources[0]->definition == ModulationSourceDefinition(2, MODULATION_TYPE::LFO));
-                CHECK(freqModSources[0]->modulationAmount == 0.3f);
+                    std::vector<std::shared_ptr<PluginParameterModulationSource>> freqModSources =  ModulationMutators::getLFOFreqModulationSources(state, 0);
+                    REQUIRE(freqModSources.size() == 1);
+                    CHECK(freqModSources[0]->definition == ModulationSourceDefinition(2, MODULATION_TYPE::LFO));
+                    CHECK(freqModSources[0]->modulationAmount == 0.3f);
 
-                std::vector<std::shared_ptr<PluginParameterModulationSource>> depthModSources =  ModulationMutators::getLFODepthModulationSources(state, 0);
-                REQUIRE(depthModSources.size() == 1);
-                CHECK(depthModSources[0]->definition == ModulationSourceDefinition(3, MODULATION_TYPE::ENVELOPE));
-                CHECK(depthModSources[0]->modulationAmount == 0.4f);
+                    std::vector<std::shared_ptr<PluginParameterModulationSource>> depthModSources =  ModulationMutators::getLFODepthModulationSources(state, 0);
+                    REQUIRE(depthModSources.size() == 1);
+                    CHECK(depthModSources[0]->definition == ModulationSourceDefinition(3, MODULATION_TYPE::ENVELOPE));
+                    CHECK(depthModSources[0]->modulationAmount == 0.4f);
 
-                std::vector<std::shared_ptr<PluginParameterModulationSource>> phaseModSources =  ModulationMutators::getLFOPhaseModulationSources(state, 0);
-                REQUIRE(phaseModSources.size() == 1);
-                CHECK(phaseModSources[0]->definition == ModulationSourceDefinition(4, MODULATION_TYPE::MACRO));
-                CHECK(phaseModSources[0]->modulationAmount == 0.5f);
+                    std::vector<std::shared_ptr<PluginParameterModulationSource>> phaseModSources =  ModulationMutators::getLFOPhaseModulationSources(state, 0);
+                    REQUIRE(phaseModSources.size() == 1);
+                    CHECK(phaseModSources[0]->definition == ModulationSourceDefinition(4, MODULATION_TYPE::MACRO));
+                    CHECK(phaseModSources[0]->modulationAmount == 0.5f);
+                }
 
-                REQUIRE(state->envelopes.size() == 1);
-                auto envelope = state->envelopes[0];
-                CHECK(envelope->envelope->getAttackTimeMs() == 0.1);
-                CHECK(envelope->envelope->getReleaseTimeMs() == 0.2);
-                CHECK(envelope->envelope->getFilterEnabled() == true);
-                CHECK(envelope->envelope->getLowCutHz() == 100);
-                CHECK(envelope->envelope->getHighCutHz() == 200);
-                CHECK(envelope->amount == 0.3f);
-                CHECK(envelope->useSidechainInput == true);
+                // Envelopes
+                {
+                    REQUIRE(state->envelopes.size() == 1);
+                    auto envelope = state->envelopes[0];
+                    CHECK(envelope->envelope->getAttackTimeMs() == 0.1);
+                    CHECK(envelope->envelope->getReleaseTimeMs() == 0.2);
+                    CHECK(envelope->envelope->getFilterEnabled() == true);
+                    CHECK(envelope->envelope->getLowCutHz() == 100);
+                    CHECK(envelope->envelope->getHighCutHz() == 200);
+                    CHECK(envelope->amount == 0.3f);
+                    CHECK(envelope->useSidechainInput == true);
+                }
+
+                // Randoms
+                {
+                    REQUIRE(state->randomSources.size() == 1);
+                    auto random = state->randomSources[0];
+                    CHECK(random->getOutputMode() == WECore::Perlin::Parameters::OUTPUTMODE.UNIPOLAR);
+                    CHECK(random->getFreq() == 0.1);
+                    CHECK(random->getDepth() == 0.2);
+
+                    std::vector<std::shared_ptr<PluginParameterModulationSource>> freqModSources =  ModulationMutators::getRandomFreqModulationSources(state, 0);
+                    REQUIRE(freqModSources.size() == 1);
+                    CHECK(freqModSources[0]->definition == ModulationSourceDefinition(5, MODULATION_TYPE::ENVELOPE));
+                    CHECK(freqModSources[0]->modulationAmount == 0.6f);
+
+                    std::vector<std::shared_ptr<PluginParameterModulationSource>> depthModSources =  ModulationMutators::getRandomDepthModulationSources(state, 0);
+                    REQUIRE(depthModSources.size() == 1);
+                    CHECK(depthModSources[0]->definition == ModulationSourceDefinition(6, MODULATION_TYPE::MACRO));
+                    CHECK(depthModSources[0]->modulationAmount == 0.7f);
+                }
             }
         }
     }
