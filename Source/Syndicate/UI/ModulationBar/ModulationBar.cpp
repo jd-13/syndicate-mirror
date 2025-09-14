@@ -355,6 +355,8 @@ std::optional<ModulationSourceDefinition> ModulationBar::_getSelectedDefinition(
             return _rndButtons[buttonIndex]->definition;
         }
     }
+
+    return selectedDefinition;
 }
 
 void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition definition) {
