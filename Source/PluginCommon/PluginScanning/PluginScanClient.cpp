@@ -3,7 +3,6 @@
 
 PluginScanClient::PluginScanClient() : juce::Thread("Scan Client"),
                                        _hasAttemptedRestore(false),
-                                       _shouldRestart(false),
                                        _shouldExit(false),
                                        _isClearOnlyScan(false) {
     _scannedPluginsFile = Utils::DataDirectory.getChildFile(Utils::SCANNED_PLUGINS_FILE_NAME);
@@ -153,6 +152,19 @@ void PluginScanClient::rescanCrashedPlugins() {
     }
 }
 
+void PluginScanClient::scanFile(juce::File file) {
+    juce::Logger::writeToLog("Attempting to scan file: " + file.getFullPathName());
+
+    if (_state != ScanState::STOPPED) {
+        juce::Logger::writeToLog("Can't scan file - scan is already running");
+        return;
+    }
+
+    _fileToScan = file;
+    _state = ScanState::STARTING;
+    startThread();
+}
+
 void PluginScanClient::addListener(juce::MessageListener* listener) {
     if (listener != nullptr) {
         std::scoped_lock lock(_listenersMutex);
@@ -193,7 +205,31 @@ void PluginScanClient::run() {
         }
     }
 
-    if (_isClearOnlyScan) {
+    if (_fileToScan.exists()) {
+        // Stash the file locally and clear the state
+        juce::File fileToScan = _fileToScan;
+        _fileToScan = juce::File();
+
+        juce::AudioPluginFormat* format {nullptr};
+        const juce::String extension = fileToScan.getFileExtension().toLowerCase();
+
+        if (extension == ".vst3") {
+            format = &config.vst3Format;
+        } else if (extension == ".vst") {
+            format = &config.vstFormat;
+#ifdef __APPLE__
+        } else if (extension == ".component") {
+            format = &config.auFormat;
+#endif
+        }
+
+        if (format != nullptr) {
+            juce::OwnedArray<juce::PluginDescription> typesFound;
+            _pluginList->scanAndAddFile(fileToScan.getFullPathName(), false, typesFound, *format);
+        } else {
+            juce::Logger::writeToLog("Unrecognised plugin file extension: " + fileToScan.getFileExtension());
+        }
+    } else if (_isClearOnlyScan) {
         auto checkPluginsForFormat = [](juce::KnownPluginList* pluginList, juce::AudioPluginFormat& format) {
             for (juce::PluginDescription plugin : pluginList->getTypesForFormat(format)) {
                 if (!format.doesPluginStillExist(plugin)) {
@@ -262,9 +298,12 @@ void PluginScanClient::_scanForFormat(juce::AudioPluginFormat& format, juce::Fil
         }
 
         // Scan the plugin
-        juce::Logger::writeToLog("[" + format.getName() + "] plugin #" + juce::String(_pluginList->getNumTypes()) + ": " + scanner.getNextPluginFileThatWillBeScanned());
-        juce::String currentPluginName;
-        isFinished = !scanner.scanNextFile(true, currentPluginName);
+        _currentPluginName = scanner.getNextPluginFileThatWillBeScanned();
+        juce::Logger::writeToLog("[" + format.getName() + "] plugin #" + juce::String(_pluginList->getNumTypes()) + ": " + _currentPluginName);
+        _notifyAllListeners();
+
+        juce::String pluginName;
+        isFinished = !scanner.scanNextFile(true, pluginName);
     }
 }
 
@@ -273,15 +312,18 @@ void PluginScanClient::changeListenerCallback(juce::ChangeBroadcaster* changed) 
         std::unique_ptr<juce::XmlElement> pluginsXml = std::unique_ptr<juce::XmlElement>(_pluginList->createXml());
 
         if (pluginsXml.get() != nullptr) {
-            // Delete and recreate the file so that it's empty
-            _scannedPluginsFile.deleteFile();
-            _scannedPluginsFile.create();
+            // Write to a temporary file first, then move it into place so that
+            // a crash mid-write doesn't corrupt the existing data
+            juce::File tempFile = _scannedPluginsFile.getSiblingFile(_scannedPluginsFile.getFileName() + ".tmp");
+            tempFile.deleteFile();
 
-            // Write the Xml to the file
-            juce::FileOutputStream output(_scannedPluginsFile);
+            juce::FileOutputStream output(tempFile);
 
             if (output.openedOk()) {
                 pluginsXml->writeTo(output);
+                output.flush();
+
+                tempFile.moveFileTo(_scannedPluginsFile);
             }
         }
 
@@ -298,5 +340,5 @@ void PluginScanClient::_notifyAllListeners() {
 
 void PluginScanClient::_notifyListener(juce::MessageListener* listener) {
     listener->postMessage(new PluginScanStatusMessage(
-        _pluginList->getNumTypes(), _state == ScanState::RUNNING, _errorMessage));
+        _pluginList->getNumTypes(), _state == ScanState::RUNNING, _errorMessage, _currentPluginName));
 }

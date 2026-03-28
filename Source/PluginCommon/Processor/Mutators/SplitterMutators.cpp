@@ -218,7 +218,7 @@ namespace SplitterMutators {
 
             // Create the callback
             // Be careful about what is used in this callback - anything in local scope needs to be captured by value
-            auto onPluginCreated = [splitter, insertPlugin, sourceState, isBypassed, sourceConfig, toChainNumber, toSlotNumber](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
+            auto onPluginCreated = [splitter, insertPlugin, sourceState, isBypassed, sourceConfig](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) {
                 if (plugin != nullptr) {
                     // Create the shared pointer here as we need it for the window
                     std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(plugin);

@@ -17,11 +17,14 @@ public:
     const int numPluginsScanned;
     const bool isScanRunning;
     const juce::String errorText;
+    const juce::String currentPluginName;
 
     PluginScanStatusMessage(int newNumPluginsScanned,
                             bool newIsScanRunning,
-                            juce::String newErrorText) :
+                            juce::String newErrorText,
+                            juce::String newCurrentPluginName) :
             numPluginsScanned(newNumPluginsScanned),
             isScanRunning(newIsScanRunning),
-            errorText(newErrorText) {}
+            errorText(newErrorText),
+            currentPluginName(newCurrentPluginName) {}
 };

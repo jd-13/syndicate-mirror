@@ -217,7 +217,7 @@ namespace XmlReader {
             if (XmlReader::XmlElementIsPlugin(thisPluginElement)) {
                 auto loadPlugin = [&availableTypes](const juce::PluginDescription& description, const HostConfiguration& config) {
                     juce::AudioPluginFormatManager formatManager;
-                    formatManager.addDefaultFormats();
+                    addDefaultFormatsToManager(formatManager);
 
                     // First try the exact match
                     juce::String errorMessage;

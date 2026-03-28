@@ -23,38 +23,44 @@ PluginScanStatusBar::PluginScanStatusBar(PluginScanClient& pluginScanClient,
     startScanBtn.reset(new juce::TextButton("Start Scan Button"));
     addAndMakeVisible(startScanBtn.get());
     startScanBtn->setButtonText(TRANS("Start Scan"));
-    startScanBtn->addListener(this);
+    startScanBtn->onClick = [this] { _pluginScanClient.startScan(); };
     styleButton(startScanBtn);
 
     stopScanBtn.reset(new juce::TextButton("Stop Scan Button"));
     addAndMakeVisible(stopScanBtn.get());
     stopScanBtn->setButtonText(TRANS("Stop Scan"));
-    stopScanBtn->addListener(this);
+    stopScanBtn->onClick = [this] { _pluginScanClient.stopScan(); };
     styleButton(stopScanBtn);
 
     rescanAllBtn.reset(new juce::TextButton("Rescan All Button"));
     addAndMakeVisible(rescanAllBtn.get());
     rescanAllBtn->setButtonText(TRANS("Rescan All Plugins"));
-    rescanAllBtn->addListener(this);
+    rescanAllBtn->onClick = [this] { _pluginScanClient.rescanAllPlugins(); };
     styleButton(rescanAllBtn);
 
     rescanCrashedBtn.reset(new juce::TextButton("Rescan Crashed Button"));
     addAndMakeVisible(rescanCrashedBtn.get());
     rescanCrashedBtn->setButtonText(TRANS("Rescan Crashed Plugins"));
-    rescanCrashedBtn->addListener(this);
+    rescanCrashedBtn->onClick = [this] { _pluginScanClient.rescanCrashedPlugins(); };
     styleButton(rescanCrashedBtn);
 
     viewCrashedBtn.reset(new juce::TextButton("View Crashed Button"));
     addAndMakeVisible(viewCrashedBtn.get());
     viewCrashedBtn->setButtonText(TRANS("View Crashed Plugins"));
-    viewCrashedBtn->addListener(this);
+    viewCrashedBtn->onClick = [this] { _createCrashedPluginsDialogue(); };
     styleButton(viewCrashedBtn);
 
     configureBtn.reset(new juce::TextButton("Configure Button"));
     addAndMakeVisible(configureBtn.get());
     configureBtn->setButtonText(TRANS("Configure"));
-    configureBtn->addListener(this);
+    configureBtn->onClick = [this] { _createConfigureDialogue(); };
     styleButton(configureBtn);
+
+    scanFileBtn.reset(new juce::TextButton("Scan File Button"));
+    addAndMakeVisible(scanFileBtn.get());
+    scanFileBtn->setButtonText(TRANS("Scan File"));
+    scanFileBtn->addListener(this);
+    styleButton(scanFileBtn);
 
     _pluginScanClient.addListener(this);
 }
@@ -70,6 +76,7 @@ PluginScanStatusBar::~PluginScanStatusBar() {
     rescanCrashedBtn = nullptr;
     viewCrashedBtn = nullptr;
     configureBtn = nullptr;
+    scanFileBtn = nullptr;
     crashedPluginsPopover = nullptr;
 }
 
@@ -100,7 +107,8 @@ void PluginScanStatusBar::resized() {
     flexBox.items.add(juce::FlexItem(*rescanAllBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
     flexBox.items.add(juce::FlexItem(*rescanCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
     flexBox.items.add(juce::FlexItem(*viewCrashedBtn.get()).withMinWidth(WIDE_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
-    flexBox.items.add(juce::FlexItem(*configureBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
+    flexBox.items.add(juce::FlexItem(*configureBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT).withMargin(margin));
+    flexBox.items.add(juce::FlexItem(*scanFileBtn.get()).withMinWidth(NARROW_BUTTON_WIDTH).withMinHeight(ROW_HEIGHT));
 
     flexBox.performLayout(availableArea.removeFromRight(buttonsTotalWidth).toFloat());
 
@@ -109,18 +117,20 @@ void PluginScanStatusBar::resized() {
 }
 
 void PluginScanStatusBar::buttonClicked(juce::Button* buttonThatWasClicked) {
-    if (buttonThatWasClicked == startScanBtn.get()) {
-        _pluginScanClient.startScan();
-    } else if (buttonThatWasClicked == stopScanBtn.get()) {
-        _pluginScanClient.stopScan();
-    } else if (buttonThatWasClicked == rescanAllBtn.get()) {
-        _pluginScanClient.rescanAllPlugins();
-    } else if (buttonThatWasClicked == rescanCrashedBtn.get()) {
-        _pluginScanClient.rescanCrashedPlugins();
-    } else if (buttonThatWasClicked == viewCrashedBtn.get()) {
-        _createCrashedPluginsDialogue();
-    } else if (buttonThatWasClicked == configureBtn.get()) {
-        _createConfigureDialogue();
+    if (buttonThatWasClicked == scanFileBtn.get()) {
+#ifdef __APPLE__
+        const juce::String filePatterns("*.vst3;*.vst;*.component");
+#else
+        const juce::String filePatterns("*.vst3;*.vst");
+#endif
+        _fileChooser = std::make_unique<juce::FileChooser>("Select a plugin file to scan", juce::File(), filePatterns);
+        _fileChooser->launchAsync(juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::canSelectDirectories,
+            [this](const juce::FileChooser& chooser) {
+                const juce::File chosenFile = chooser.getResult();
+                if (chosenFile.exists()) {
+                    _pluginScanClient.scanFile(chosenFile);
+                }
+            });
     }
 }
 
@@ -139,7 +149,11 @@ void PluginScanStatusBar::handleMessage(const juce::Message& message) {
             statusString = statusMessage->errorText;
         } else if (statusMessage->isScanRunning) {
             // Scan currently running
-            statusString = "Found " + numPlugins + " plugins, scanning...";
+            statusString = "Found " + numPlugins + " plugins, scanning";
+            if (statusMessage->currentPluginName.isNotEmpty()) {
+                statusString += " " + statusMessage->currentPluginName;
+            }
+            statusString += "...";
         } else if (statusMessage->numPluginsScanned == 0) {
             // Couldn't restore any plugins, no scan currently running
             statusString = "No plugins available - click start scan to begin";
@@ -161,6 +175,7 @@ void PluginScanStatusBar::_updateButtonState(bool isScanRunning) {
         rescanCrashedBtn->setEnabled(false);
         viewCrashedBtn->setEnabled(false);
         configureBtn->setEnabled(false);
+        scanFileBtn->setEnabled(false);
     } else {
         startScanBtn->setEnabled(true);
         stopScanBtn->setEnabled(false);
@@ -168,6 +183,7 @@ void PluginScanStatusBar::_updateButtonState(bool isScanRunning) {
         rescanCrashedBtn->setEnabled(true);
         viewCrashedBtn->setEnabled(true);
         configureBtn->setEnabled(true);
+        scanFileBtn->setEnabled(true);
     }
 }
 

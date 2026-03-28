@@ -337,7 +337,6 @@ void ModulationBar::_removeModulationSource(ModulationSourceDefinition definitio
 }
 
 std::optional<ModulationSourceDefinition> ModulationBar::_getSelectedDefinition() {
-    std::optional<ModulationSourceDefinition> selectedDefinition;
     for (int buttonIndex {0}; buttonIndex < _lfoButtons.size(); buttonIndex++) {
         if (_lfoButtons[buttonIndex]->getIsSelected()) {
             return _lfoButtons[buttonIndex]->definition;
@@ -355,6 +354,8 @@ std::optional<ModulationSourceDefinition> ModulationBar::_getSelectedDefinition(
             return _rndButtons[buttonIndex]->definition;
         }
     }
+
+    return {};
 }
 
 void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition definition) {

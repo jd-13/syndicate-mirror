@@ -2,10 +2,15 @@
 
 #include <JuceHeader.h>
 #include "PluginModulationInterface.h"
-#include "ModulationSourceDefinition.hpp"
-#include "UIUtils.h"
 #include "ModulationTargetSlider.hpp"
 #include "ModulationTargetSourceSlider.hpp"
+
+class ModulationSourceDefinition;
+namespace UIUtils {
+    typedef StandardSliderLookAndFeel;
+    class StaticButtonLookAndFeel;
+    class AddButtonLookAndFeel;
+}
 
 class PluginModulationTargetButton : public juce::TextButton {
 public:

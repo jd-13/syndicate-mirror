@@ -6,8 +6,7 @@
 #include "SelectorComponentStyle.h"
 
 class PluginSelectorComponent  : public juce::Component,
-                                 public juce::TextEditor::Listener,
-                                 public juce::Button::Listener {
+                                 public juce::TextEditor::Listener {
 public:
     PluginSelectorComponent(PluginSelectorListParameters selectorListParameters,
                             std::function<void()> onCloseCallback,
@@ -18,7 +17,6 @@ public:
 
     void resized() override;
     void paint(juce::Graphics& g) override;
-    void buttonClicked(juce::Button* buttonThatWasClicked) override;
     bool keyPressed(const juce::KeyPress& key) override;
 
     /**

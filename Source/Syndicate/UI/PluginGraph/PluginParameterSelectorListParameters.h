@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-#include "PluginParameterSelectorState.h"
+struct PluginParameterSelectorState;
 
 struct PluginParameterSelectorListParameters {
     PluginParameterSelectorState& state;

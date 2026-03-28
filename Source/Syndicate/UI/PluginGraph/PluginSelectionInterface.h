@@ -3,7 +3,9 @@
 #include <JuceHeader.h>
 #include "PluginSelectorWindow.h"
 #include "GuestPluginWindow.h"
-#include "PluginProcessor.h"
+#include "UIUtils.h"
+
+class SyndicateAudioProcessor;
 
 /**
  * The interface between the processor and parts of the UI that control plugin selection.
@@ -42,8 +44,8 @@ private:
     std::vector<std::unique_ptr<GuestPluginWindow>> _guestPluginWindows;
     std::unique_ptr<UIUtils::PopoverComponent> _errorPopover;
 
-    int _pluginNumber;
     int _chainNumber;
+    int _pluginNumber;
 
     void _onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error, bool shouldClose);
     void _onPluginWindowClose(std::shared_ptr<juce::AudioPluginInstance> plugin);

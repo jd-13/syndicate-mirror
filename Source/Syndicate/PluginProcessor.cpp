@@ -101,7 +101,7 @@ SyndicateAudioProcessor::SyndicateAudioProcessor() :
         env.setFilterEnabled(false);
     }
 
-    formatManager.addDefaultFormats();
+    addDefaultFormatsToManager(formatManager);
 }
 
 SyndicateAudioProcessor::~SyndicateAudioProcessor()
@@ -162,16 +162,16 @@ int SyndicateAudioProcessor::getCurrentProgram()
     return 0;
 }
 
-void SyndicateAudioProcessor::setCurrentProgram (int index)
+void SyndicateAudioProcessor::setCurrentProgram (int /*index*/)
 {
 }
 
-const juce::String SyndicateAudioProcessor::getProgramName (int index)
+const juce::String SyndicateAudioProcessor::getProgramName (int /*index*/)
 {
     return {};
 }
 
-void SyndicateAudioProcessor::changeProgramName (int index, const juce::String& newName)
+void SyndicateAudioProcessor::changeProgramName (int /*index*/, const juce::String& /*newName*/)
 {
 }
 
@@ -232,7 +232,12 @@ void SyndicateAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     // Send tempo and playhead information to the LFOs
     juce::AudioPlayHead::CurrentPositionInfo mTempoInfo;
-    getPlayHead()->getCurrentPosition(mTempoInfo);
+    if (auto* playHead = getPlayHead()) {
+        if (auto posInfo = playHead->getPosition()) {
+            mTempoInfo.bpm = posInfo->getBpm().orFallback(120.0);
+            mTempoInfo.timeInSeconds = posInfo->getTimeInSeconds().orFallback(0.0);
+        }
+    }
 
     // Pass the audio through the splitter (this is also the only safe place to pass the playhead through)
     ModelInterface::processBlock(manager, buffer, midiMessages, getPlayHead(), mTempoInfo);

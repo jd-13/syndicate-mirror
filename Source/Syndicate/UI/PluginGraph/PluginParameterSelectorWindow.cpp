@@ -1,5 +1,6 @@
 #include "PluginParameterSelectorWindow.h"
-#include "UIUtils.h"
+
+#include "PluginParameterSelectorState.h"
 
 namespace {
     const juce::Colour BACKGROUND_COLOUR(0, 0, 0);

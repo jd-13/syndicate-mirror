@@ -6,7 +6,7 @@ class ServerProcess : private juce::ChildProcessWorker,
                       private juce::AsyncUpdater {
 public:
     ServerProcess() {
-        formatManager.addDefaultFormats();
+        addDefaultFormatsToManager(formatManager);
     }
 
     using ChildProcessWorker::initialiseFromCommandLine;

@@ -108,21 +108,6 @@ void PluginSelectorComponent::paint(juce::Graphics& g) {
     g.fillAll(_backgroundColour);
 }
 
-void PluginSelectorComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
-    if (buttonThatWasClicked == vstBtn.get()) {
-        vstBtn->setToggleState(!vstBtn->getToggleState(), juce::dontSendNotification);
-        _state.includeVST = vstBtn->getToggleState();
-        pluginTableListBox->onFiltersOrSortUpdate();
-    } else if (buttonThatWasClicked == vst3Btn.get()) {
-        vst3Btn->setToggleState(!vst3Btn->getToggleState(), juce::dontSendNotification);
-        _state.includeVST3 = vst3Btn->getToggleState();
-        pluginTableListBox->onFiltersOrSortUpdate();
-    } else if (buttonThatWasClicked == auBtn.get()) {
-        auBtn->setToggleState(!auBtn->getToggleState(), juce::dontSendNotification);
-        _state.includeAU = auBtn->getToggleState();
-        pluginTableListBox->onFiltersOrSortUpdate();
-    }
-}
 
 bool PluginSelectorComponent::keyPressed(const juce::KeyPress& key) {
     if (key.isKeyCode(juce::KeyPress::escapeKey)) {
@@ -134,7 +119,7 @@ bool PluginSelectorComponent::keyPressed(const juce::KeyPress& key) {
     return false;  // Return true if your handler uses this key event, or false to allow it to be passed-on.
 }
 
-void PluginSelectorComponent::textEditorTextChanged(juce::TextEditor& textEditor) {
+void PluginSelectorComponent::textEditorTextChanged(juce::TextEditor& /*textEditor*/) {
     _state.filterString = searchEdt->getText();
     pluginTableListBox->onFiltersOrSortUpdate();
 }
@@ -164,7 +149,11 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     vstBtn.reset(new juce::TextButton("VST Button"));
     addAndMakeVisible(vstBtn.get());
     vstBtn->setButtonText(TRANS("VST"));
-    vstBtn->addListener(this);
+    vstBtn->onClick = [this] {
+        vstBtn->setToggleState(!vstBtn->getToggleState(), juce::dontSendNotification);
+        _state.includeVST = vstBtn->getToggleState();
+        pluginTableListBox->onFiltersOrSortUpdate();
+    };
     vstBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     vstBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
     vstBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
@@ -173,7 +162,11 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     vst3Btn.reset(new juce::TextButton ("VST3 Button"));
     addAndMakeVisible(vst3Btn.get());
     vst3Btn->setButtonText(TRANS("VST3"));
-    vst3Btn->addListener(this);
+    vst3Btn->onClick = [this] {
+        vst3Btn->setToggleState(!vst3Btn->getToggleState(), juce::dontSendNotification);
+        _state.includeVST3 = vst3Btn->getToggleState();
+        pluginTableListBox->onFiltersOrSortUpdate();
+    };
     vst3Btn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     vst3Btn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
     vst3Btn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
@@ -182,7 +175,11 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     auBtn.reset(new juce::TextButton("AU Button"));
     addAndMakeVisible(auBtn.get());
     auBtn->setButtonText(TRANS("AU"));
-    auBtn->addListener(this);
+    auBtn->onClick = [this] {
+        auBtn->setToggleState(!auBtn->getToggleState(), juce::dontSendNotification);
+        _state.includeAU = auBtn->getToggleState();
+        pluginTableListBox->onFiltersOrSortUpdate();
+    };
     auBtn->setLookAndFeel(style.headerButtonLookAndFeel.get());
     auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
     auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);

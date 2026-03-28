@@ -1,6 +1,7 @@
 #include "GraphViewComponent.h"
 #include "UIUtils.h"
 #include "ModelInterface.hpp"
+#include "PluginProcessor.h"
 
 namespace {
     std::vector<int> getChainViewScrollPositions(const std::vector<std::unique_ptr<ChainViewComponent>>& chainViews) {

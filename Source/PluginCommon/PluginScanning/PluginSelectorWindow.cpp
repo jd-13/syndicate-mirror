@@ -1,5 +1,8 @@
 #include "PluginSelectorWindow.h"
 
+#include "PluginSelectorComponent.h"
+#include "PluginSelectorListParameters.h"
+
 namespace {
     const juce::Colour BACKGROUND_COLOUR(0, 0, 0);
     constexpr int TITLE_BAR_BUTTONS {
@@ -23,7 +26,7 @@ PluginSelectorWindow::PluginSelectorWindow(std::function<void()> onCloseCallback
         setBounds(_state.bounds.value());
     } else {
         // Default to the centre
-        constexpr int DEFAULT_WIDTH {900};
+        constexpr int DEFAULT_WIDTH {1000};
         constexpr int DEFAULT_HEIGHT {550};
         centreWithSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
     }

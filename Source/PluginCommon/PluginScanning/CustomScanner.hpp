@@ -107,6 +107,8 @@ private:
             return false;
         }
 
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(30);
+
         for (;;) {
             if (shouldExit()) {
                 return true;
@@ -115,6 +117,11 @@ private:
             const auto response = superprocess->getResponse();
 
             if (response.state == Superprocess::State::timeout) {
+                if (std::chrono::steady_clock::now() >= deadline) {
+                    juce::Logger::writeToLog("Timed out scanning plugin: " + fileOrIdentifier);
+                    return false;
+                }
+
                 continue;
             }
 

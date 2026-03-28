@@ -1,6 +1,7 @@
 #include "GainStageSlotComponent.h"
 #include "ParameterData.h"
 #include "UIUtils.h"
+#include "PluginSelectionInterface.h"
 
 namespace {
     int dBToXPos(float dBValue, int meterWidth) {

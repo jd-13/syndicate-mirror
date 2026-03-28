@@ -1,6 +1,7 @@
 #include "PluginModulationInterface.h"
 #include "GraphViewComponent.h"
 #include "ModelInterface.hpp"
+#include "PluginProcessor.h"
 
 namespace {
     juce::Array<juce::AudioProcessorParameter*> getParamsExcludingSelected(

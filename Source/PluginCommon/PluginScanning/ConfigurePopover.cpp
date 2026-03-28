@@ -12,7 +12,7 @@ namespace {
     }
 
     int getHeightForLabelText(juce::String text) {
-        const int numLines = juce::StringArray::fromTokens(text, "\n").size();
+        const int numLines = juce::StringArray::fromTokens(text, "\n", "").size();
         return TEXT_HEIGHT * numLines;
     }
 
@@ -163,7 +163,7 @@ void FormatConfigureComponent::resized() {
     defaultArea.removeFromTop(TEXT_HEIGHT);
     _defaultPathsListLabel->setBounds(defaultArea.removeFromTop(defaultPathsHeight));
 
-    availableArea.reduced(MARGIN);
+    availableArea.reduce(MARGIN, MARGIN);
     _customPathsButton->setBounds(availableArea.removeFromTop(BUTTON_HEIGHT).withSizeKeepingCentre(BUTTON_WIDTH, BUTTON_HEIGHT));
 
     const int customPathsHeight {_customPathsListComponent->getRequiredHeight()};

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginProcessor.h"
-#include "PluginSlotComponent.h"
 #include "ChainViewComponent.h"
 #include "UIUtils.h"
+
+class SyndicateAudioProcessor;
 
 class GraphViewComponent  : public juce::Component {
 public:

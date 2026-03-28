@@ -34,7 +34,7 @@ namespace {
             addHostedParameter(std::make_unique<PluginParameter>("param3"));
         }
 
-        void addListener(juce::AudioProcessorListener* newListener) {
+        void addListener(juce::AudioProcessorListener* newListener) override {
             addedListener = newListener;
             TestUtils::TestPluginInstance::addListener(newListener);
         }

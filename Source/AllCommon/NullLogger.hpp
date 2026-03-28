@@ -8,5 +8,5 @@ public:
     virtual ~NullLogger() = default;
 
 private:
-    virtual void logMessage(const juce::String& message) override { }
+    virtual void logMessage(const juce::String& /*message*/) override { }
 };

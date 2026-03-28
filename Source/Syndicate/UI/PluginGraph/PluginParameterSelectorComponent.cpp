@@ -1,5 +1,7 @@
 #include "PluginParameterSelectorComponent.h"
 
+#include "PluginParameterSelectorState.h"
+
 PluginParameterSelectorComponent::PluginParameterSelectorComponent(
         PluginParameterSelectorListParameters selectorListParameters,
         std::function<void()> onCloseCallback)

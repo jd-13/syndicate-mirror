@@ -36,8 +36,6 @@ public:
     CrossoverState* clone() const {
         auto newState = new CrossoverState();
 
-        const int numFilterChannels {canDoStereoSplitTypes(config.layout) ? 2 : 1};
-
         for (auto& filter : lowpassFilters) {
             newState->lowpassFilters.emplace_back(filter->clone());
         }

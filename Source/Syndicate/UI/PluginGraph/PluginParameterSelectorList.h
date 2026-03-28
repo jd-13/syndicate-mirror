@@ -2,8 +2,8 @@
 
 #include <JuceHeader.h>
 
-#include "PluginParameterSelectorListParameters.h"
-#include "PluginParameterSelectorState.h"
+struct PluginParameterSelectorState;
+struct PluginParameterSelectorListParameters;
 
 class PluginParameterListSorter {
 public:

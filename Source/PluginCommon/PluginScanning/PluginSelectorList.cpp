@@ -109,11 +109,11 @@ int PluginSelectorTableListBoxModel::getNumRows() {
     return _pluginList.size();
 }
 
-void PluginSelectorTableListBoxModel::paintRowBackground(juce::Graphics& g, int rowNumber, int width, int height, bool rowIsSelected) {
+void PluginSelectorTableListBoxModel::paintRowBackground(juce::Graphics& g, int /*rowNumber*/, int /*width*/, int /*height*/, bool /*rowIsSelected*/) {
     g.fillAll(_rowBackgroundColour);
 }
 
-void PluginSelectorTableListBoxModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool rowIsSelected) {
+void PluginSelectorTableListBoxModel::paintCell(juce::Graphics& g, int rowNumber, int columnId, int width, int height, bool /*rowIsSelected*/) {
     if (rowNumber < _pluginList.size()) {
         const juce::PluginDescription& thisPlugin = _pluginList[rowNumber];
 
@@ -142,8 +142,8 @@ void PluginSelectorTableListBoxModel::paintCell(juce::Graphics& g, int rowNumber
 }
 
 void PluginSelectorTableListBoxModel::cellDoubleClicked(int rowNumber,
-                                                        int columnId,
-                                                        const juce::MouseEvent& event) {
+                                                        int /*columnId*/,
+                                                        const juce::MouseEvent& /*event*/) {
 
     juce::Logger::writeToLog("PluginSelectorTableListBoxModel: Row " + juce::String(rowNumber) + " clicked, attempting to load plugin: " + _pluginList[rowNumber].name);
     const bool shouldCloseWindow {!juce::ModifierKeys::currentModifiers.isCommandDown() || _isReplacingParameter};

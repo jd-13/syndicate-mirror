@@ -31,6 +31,7 @@ public:
         WIDE_BUTTON_WIDTH + SPACER_WIDTH +
         WIDE_BUTTON_WIDTH + SPACER_WIDTH +
         WIDE_BUTTON_WIDTH + SPACER_WIDTH +
+        NARROW_BUTTON_WIDTH + SPACER_WIDTH +
         NARROW_BUTTON_WIDTH + SPACER_WIDTH
     };
 
@@ -44,6 +45,8 @@ private:
     std::unique_ptr<juce::TextButton> rescanCrashedBtn;
     std::unique_ptr<juce::TextButton> viewCrashedBtn;
     std::unique_ptr<juce::TextButton> configureBtn;
+    std::unique_ptr<juce::TextButton> scanFileBtn;
+    std::unique_ptr<juce::FileChooser> _fileChooser;
     std::unique_ptr<ConfigurePopover> configurePopover;
     std::unique_ptr<UIUtils::PopoverComponent> crashedPluginsPopover;
     PluginScanClient& _pluginScanClient;

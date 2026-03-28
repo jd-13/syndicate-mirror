@@ -120,7 +120,6 @@ void ModulationTargetSourceSliders::paint(juce::Graphics& g) {
             diameter);
 
         // Draw the outline
-        const float dashLengths[] = {4.0f, 4.0f};
         g.setColour(UIUtils::neutralColour.withAlpha(0.5f));
         g.strokePath(p, juce::PathStrokeType(1.0f));
     }

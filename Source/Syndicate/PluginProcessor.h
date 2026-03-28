@@ -66,7 +66,7 @@ public:
     void releaseResources() override;
     void reset() override;
 
-    bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
+    bool isBusesLayoutSupported (const BusesLayout& layout) const override;
 
     void processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 

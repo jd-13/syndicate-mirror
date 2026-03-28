@@ -20,7 +20,8 @@ namespace {
             paramValue += valueForThisSource;
         }
 
-        // Assign the value to the parameter
+        // Clamp to valid range - plugins may crash with out-of-range values
+        paramValue = juce::jlimit(0.0f, 1.0f, paramValue);
         targetParameter->setValue(paramValue);
     }
 }

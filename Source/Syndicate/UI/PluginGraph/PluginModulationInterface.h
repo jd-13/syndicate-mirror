@@ -1,9 +1,11 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginProcessor.h"
 #include "PluginParameterSelectorWindow.h"
 
+class SyndicateAudioProcessor;
+struct PluginModulationConfig;
+class ModulationSourceDefinition;
 class GraphViewComponent;
 
 /**

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MONSTRFilters/MONSTRParameters.h"
-#include "UIUtils.h"
+#include "UIUtilsConstants.h"
 
 namespace UIUtils::Crossover {
     constexpr int SLIDER_THUMB_RADIUS {6};

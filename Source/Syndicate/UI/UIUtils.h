@@ -7,35 +7,11 @@
 #include "CoreJUCEPlugin/LookAndFeelMixins/LinearSliderV2.h"
 #include "CoreJUCEPlugin/LookAndFeelMixins/MidAnchoredRotarySlider.h"
 #include "CoreJUCEPlugin/LookAndFeelMixins/RotarySliderV2.h"
-#include "ModulationSourceDefinition.hpp"
+#include "UIUtilsConstants.h"
+
+enum class MODULATION_TYPE;
 
 namespace UIUtils {
-    // Chains/plugin slots
-    constexpr int CHAIN_WIDTH {200};
-    constexpr int PLUGIN_SLOT_HEIGHT {30};
-    constexpr int PLUGIN_SLOT_CORNER_RADIUS {PLUGIN_SLOT_HEIGHT / 2};
-    constexpr int SLOT_DRAG_HANDLE_WIDTH {PLUGIN_SLOT_HEIGHT};
-
-    // Modulation tray
-    constexpr int PLUGIN_SLOT_MOD_TRAY_HEIGHT {PLUGIN_SLOT_HEIGHT * 3};
-    constexpr int PLUGIN_MOD_TARGET_SLIDER_HEIGHT {static_cast<int>(UIUtils::PLUGIN_SLOT_MOD_TRAY_HEIGHT * 0.25)};
-    constexpr int PLUGIN_MOD_TARGET_SLIDER_WIDTH {PLUGIN_MOD_TARGET_SLIDER_HEIGHT};
-
-    int getChainXPos(int chainIndex, int numChains, int graphViewWidth);
-
-    // Macros
-    constexpr int NUM_MACROS {4};
-    constexpr int MACRO_WIDTH {64};
-    constexpr int MACRO_HEIGHT {104};
-    constexpr int MACRO_YPAD {10};
-
-    // Modulation sources
-    constexpr int MODULATION_BAR_WIDTH {572};
-    constexpr int MODULATION_BAR_HEIGHT {130};
-    constexpr int MODULATION_LIST_WIDTH {160};
-    constexpr int MODULATION_LIST_COLUMN_WIDTH {MODULATION_LIST_WIDTH / 2};
-    constexpr int MODULATION_LIST_BUTTON_HEIGHT {24};
-
     // LookAndFeel
     typedef WECore::LookAndFeelMixins::LinearSliderV2<WECore::LookAndFeelMixins::RotarySliderV2<WECore::JUCEPlugin::CoreLookAndFeel>> StandardSliderLookAndFeel;
     typedef WECore::LookAndFeelMixins::MidAnchoredRotarySlider<WECore::JUCEPlugin::CoreLookAndFeel> MidAnchoredSliderLookAndFeel;
@@ -187,8 +163,8 @@ namespace UIUtils {
     const juce::Colour deactivatedColour = neutralColour.withBrightness(0.5);
 
     const juce::Colour backgroundColour = juce::Colour(0xff272727);
-    const juce::Colour slotBackgroundColour = juce::Colour(0xff272727).withMultipliedLightness(1.2);
-    const juce::Colour modulationTrayBackgroundColour = slotBackgroundColour.withMultipliedLightness(1.2);
+    const juce::Colour slotBackgroundColour = juce::Colour(0xff272727).withMultipliedLightness(1.2f);
+    const juce::Colour modulationTrayBackgroundColour = slotBackgroundColour.withMultipliedLightness(1.2f);
 
     const juce::Colour PLUGIN_SLOT_MODULATION_ON_COLOUR(161, 102, 221);
 

@@ -2,10 +2,11 @@
 
 #include <JuceHeader.h>
 #include "BaseSlotComponent.h"
-#include "PluginSelectionInterface.h"
 #include "UIUtils.h"
 #include "General/CoreMath.h"
 #include "CoreJUCEPlugin/LabelReadoutSlider.h"
+
+class PluginSelectionInterface;
 
 /**
  * Displays the output amplitude of this gain stage.

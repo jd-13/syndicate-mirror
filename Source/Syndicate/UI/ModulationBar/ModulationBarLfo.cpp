@@ -232,7 +232,6 @@ void ModulationBarLfo::resized() {
     const int excessWidth {std::max(freqArea.getWidth() - MAX_FREQ_AREA_WIDTH, 0)};
     freqArea = freqArea.reduced(excessWidth / 2.0, 0);
 
-    const int freqSliderSize {freqArea.getHeight() / 2 - BUTTON_HEIGHT};
     tempoSyncButton->setBounds(freqArea.removeFromTop(BUTTON_HEIGHT));
 
     // Copy this now, we'll need it later

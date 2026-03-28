@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include "WEFilters/StereoWidthProcessorParameters.h"
+#include "UIUtils.h"
 #include "UIUtilsCrossover.h"
 #include "General/CoreMath.h"
 

@@ -1,5 +1,5 @@
 #include "MacrosComponent.h"
-#include "UIUtils.h"
+#include "UIUtilsConstants.h"
 
 MacrosComponent::MacrosComponent(juce::DragAndDropContainer* dragContainer,
                                  std::array<juce::AudioParameterFloat*, NUM_MACROS>& macroParams,

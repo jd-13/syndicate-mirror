@@ -52,6 +52,11 @@ public:
      */
     void rescanCrashedPlugins();
 
+    /**
+     * Called when the user wants to scan a specific plugin file.
+     */
+    void scanFile(juce::File file);
+
     void addListener(juce::MessageListener* listener);
 
     void removeListener(juce::MessageListener* listener);
@@ -72,16 +77,16 @@ private:
     // True if an attempt has been made to restore from previous scan (whether successful or not)
     bool _hasAttemptedRestore;
 
-    // True if the scan process should be restarted in the event that it exits
-    bool _shouldRestart;
-
     std::atomic<bool> _shouldExit;
 
     ScanState _state;
 
     juce::String _errorMessage;
+    juce::String _currentPluginName;
 
     bool _isClearOnlyScan;
+
+    juce::File _fileToScan;
 
     void _notifyAllListeners();
 

@@ -1,8 +1,12 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginSelectorComponent.h"
-#include "PluginSelectorListParameters.h"
+
+#include "SelectorComponentStyle.h"
+
+struct PluginSelectorListParameters;
+class PluginSelectorComponent;
+struct PluginSelectorState;
 
 class PluginSelectorWindow : public juce::DocumentWindow {
 public:

@@ -2,6 +2,7 @@
 #include "PluginChain.hpp"
 #include "PluginParameterSelectorState.h"
 #include "UIUtils.h"
+#include "PluginParameterSelectorListParameters.h"
 
 PluginParameterListSorter::PluginParameterListSorter(
         PluginParameterSelectorState& newState,

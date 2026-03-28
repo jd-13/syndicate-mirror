@@ -1,6 +1,8 @@
 #include "PluginSelectionInterface.h"
 #include "UIUtils.h"
 #include "PluginUtils.h"
+#include "PluginProcessor.h"
+#include "PluginSelectorListParameters.h"
 
 PluginSelectionInterface::PluginSelectionInterface(SyndicateAudioProcessor& processor)
     : _processor(processor),

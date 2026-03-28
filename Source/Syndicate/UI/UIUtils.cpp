@@ -1,5 +1,7 @@
 #include "UIUtils.h"
 
+#include "ModulationSourceDefinition.hpp"
+
 namespace UIUtils {
 
     int getChainXPos(int chainIndex, int numChains, int graphViewWidth) {
@@ -294,10 +296,10 @@ namespace UIUtils {
                                                        bool isMouseDown,
                                                        int columnFlags) {
         // Hover/click highlight
-        const juce::Colour highlightColour = header.findColour(juce::TableHeaderComponent::highlightColourId);
+        const juce::Colour headerHighlightColour = header.findColour(juce::TableHeaderComponent::highlightColourId);
 
         if (isMouseOver) {
-            g.fillAll(highlightColour.withMultipliedAlpha(0.1f));
+            g.fillAll(headerHighlightColour.withMultipliedAlpha(0.1f));
         }
 
         // Sort arrow

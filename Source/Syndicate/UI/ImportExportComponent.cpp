@@ -106,7 +106,6 @@ void ImportExportComponent::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
     availableArea.reduce(4, 2);
 
-    constexpr int BUTTON_HEIGHT {24};
     constexpr int BUTTON_WIDTH {56}; // Match sidebar buttons
     constexpr int SPACER_WIDTH {8};
 
@@ -123,6 +122,12 @@ void ImportExportComponent::resized() {
 
 void ImportExportComponent::paint(juce::Graphics& g) {
     g.fillAll(UIUtils::modulationTrayBackgroundColour);
+}
+
+void ImportExportComponent::parentSizeChanged() {
+    if (_metadataEditPopover != nullptr) {
+        _metadataEditPopover->setBounds(getParentComponent()->getLocalBounds());
+    }
 }
 
 void ImportExportComponent::refresh() {

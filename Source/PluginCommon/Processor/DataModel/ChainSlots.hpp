@@ -106,6 +106,8 @@ struct PluginModulationConfig {
 
     PluginModulationConfig() : isActive(false) {}
 
+    PluginModulationConfig(const PluginModulationConfig&) = default;
+
     PluginModulationConfig& operator=(const PluginModulationConfig& other) {
         isActive = other.isActive;
         parameterConfigs = other.parameterConfigs;
