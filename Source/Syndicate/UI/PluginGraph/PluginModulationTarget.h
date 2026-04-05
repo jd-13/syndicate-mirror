@@ -4,6 +4,7 @@
 #include "PluginModulationInterface.h"
 #include "ModulationTargetSlider.hpp"
 #include "ModulationTargetSourceSlider.hpp"
+#include "UIUtils.h"
 
 class ModulationSourceDefinition;
 namespace UIUtils {
@@ -14,15 +15,20 @@ namespace UIUtils {
 
 class PluginModulationTargetButton : public juce::TextButton {
 public:
-    PluginModulationTargetButton(std::function<void()> onRemoveCallback) : _onRemoveCallback(onRemoveCallback), _isRightClick(false) {}
+    PluginModulationTargetButton(std::function<void()> onRemoveCallback);
 
     void mouseDown(const juce::MouseEvent& event) override;
-
     void mouseUp(const juce::MouseEvent& event) override;
+#if JUCE_IOS
+    void mouseDrag(const juce::MouseEvent& event) override;
+#endif
 
 private:
     std::function<void()> _onRemoveCallback;
     bool _isRightClick;
+#if JUCE_IOS
+    std::unique_ptr<UIUtils::LongPressHandler> _longPressHandler;
+#endif
 };
 
 /**

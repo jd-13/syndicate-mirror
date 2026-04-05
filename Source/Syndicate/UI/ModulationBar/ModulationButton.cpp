@@ -29,8 +29,13 @@ ModulationButton::ModulationButton(ModulationSourceDefinition newDefinition,
     _buttonLookAndFeel.reset(new ButtonLookAndFeel());
 
     const juce::String buttonName = definitionToButtonName(definition);
+#if JUCE_IOS
+    const juce::String tooltipString(
+        buttonName + " - Drag the handle to a plugin modulation tray or long press to remove");
+#else
     const juce::String tooltipString(
         buttonName + " - Drag the handle to a plugin modulation tray or right click to remove");
+#endif
 
     // Set up the select button
     selectButton.reset(new ModulationSelectButton(onRemoveCallback));
@@ -149,18 +154,41 @@ void ModulationButton::ButtonLookAndFeel::drawButtonBackground(juce::Graphics& g
 
 }
 
+ModulationButton::ModulationSelectButton::ModulationSelectButton(std::function<void()> onRemoveCallback)
+        : _onRemoveCallback(onRemoveCallback), _isRightClick(false) {
+#if JUCE_IOS
+    _longPressHandler = std::make_unique<UIUtils::LongPressHandler>([this]() {
+        juce::PopupMenu menu;
+        menu.addItem(1, TRANS("Remove source"));
+        menu.showMenuAsync(juce::PopupMenu::Options(), [this](int result) {
+            if (result == 1) {
+                _onRemoveCallback();
+            }
+        });
+    });
+#endif
+}
+
 void ModulationButton::ModulationSelectButton::mouseDown(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    _longPressHandler->mouseDown();
+#else
     // If this is a right click, we need to remove the target on mouseUp
     if (event.mods.isRightButtonDown()) {
         _isRightClick = true;
     } else {
         _isRightClick = false;
     }
-
+#endif
     juce::Button::mouseDown(event);
 }
 
 void ModulationButton::ModulationSelectButton::mouseUp(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    if (!_longPressHandler->mouseUp()) {
+        juce::Button::mouseUp(event);
+    }
+#else
     // If it's a right click make sure the mouse is still over the button
     if (_isRightClick && isDown() && isOver()) {
         // Don't send an event, just call the callback
@@ -168,4 +196,12 @@ void ModulationButton::ModulationSelectButton::mouseUp(const juce::MouseEvent& e
     } else {
         juce::Button::mouseUp(event);
     }
+#endif
 }
+
+#if JUCE_IOS
+void ModulationButton::ModulationSelectButton::mouseDrag(const juce::MouseEvent& event) {
+    _longPressHandler->mouseDrag();
+    juce::Button::mouseDrag(event);
+}
+#endif

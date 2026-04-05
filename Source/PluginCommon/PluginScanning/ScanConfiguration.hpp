@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#if !JUCE_IOS
+
 class ScanConfiguration {
 public:
 #ifdef __APPLE__
@@ -27,3 +29,5 @@ public:
     void restoreFromXml();
     void writeToXml() const;
 };
+
+#endif // !JUCE_IOS

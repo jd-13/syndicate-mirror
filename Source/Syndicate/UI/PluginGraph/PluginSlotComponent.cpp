@@ -79,6 +79,26 @@ PluginSlotComponent::PluginSlotComponent(PluginSelectionInterface& pluginSelecti
     _replaceButton->setVisible(false);
     _deleteButton->setVisible(false);
     _descriptionLabel->setVisible(true);
+
+#if JUCE_IOS
+    _longPressHandler = std::make_unique<UIUtils::LongPressHandler>([this]() {
+        juce::PopupMenu menu;
+        menu.addItem(1, TRANS("Open editor"));
+        menu.addItem(2, TRANS("Replace plugin"));
+        menu.addItem(3, TRANS("Copy slot"));
+        menu.addItem(4, TRANS("Remove slot"));
+
+        menu.showMenuAsync(juce::PopupMenu::Options(), [this](int result) {
+            switch (result) {
+                case 1: _pluginSelectionInterface.openPluginEditor(_chainNumber, _slotNumber); break;
+                case 2: _pluginSelectionInterface.selectNewPlugin(_chainNumber, _slotNumber); break;
+                case 3: _pluginSelectionInterface.copySlot(_chainNumber, _slotNumber, _chainNumber, _slotNumber + 1); break;
+                case 4: _pluginSelectionInterface.removePlugin(_chainNumber, _slotNumber); break;
+                default: break;
+            }
+        });
+    });
+#endif
 }
 
 PluginSlotComponent::~PluginSlotComponent() {
@@ -116,7 +136,7 @@ void PluginSlotComponent::resized() {
 }
 
 void PluginSlotComponent::mouseMove(const juce::MouseEvent& event) {
-
+#if !JUCE_IOS
     const juce::Point<int> mousePoint {event.getEventRelativeTo(this).position.toInt()};
 
     // Show the buttons if the mouse is over anywhere other than the drag handle
@@ -135,16 +155,37 @@ void PluginSlotComponent::mouseMove(const juce::MouseEvent& event) {
 
         _isHover = false;
     }
+#endif
 }
 
 void PluginSlotComponent::mouseExit(const juce::MouseEvent& /*event*/) {
+#if !JUCE_IOS
     _openButton->setVisible(false);
     _replaceButton->setVisible(false);
     _deleteButton->setVisible(false);
     _descriptionLabel->setVisible(true);
 
     _isHover = false;
+#endif
 }
+
+#if JUCE_IOS
+void PluginSlotComponent::mouseDown(const juce::MouseEvent& event) {
+    _longPressHandler->mouseDown();
+    BaseSlotComponent::mouseDown(event);
+}
+
+void PluginSlotComponent::mouseUp(const juce::MouseEvent& event) {
+    _longPressHandler->mouseUp();
+    BaseSlotComponent::mouseUp(event);
+}
+
+void PluginSlotComponent::mouseDrag(const juce::MouseEvent& event) {
+    _longPressHandler->mouseDrag();
+    BaseSlotComponent::mouseDrag(event);
+}
+
+#endif
 
 void PluginSlotComponent::buttonClicked(juce::Button* buttonThatWasClicked) {
     if (buttonThatWasClicked == _bypassButton.get()) {

@@ -1,6 +1,8 @@
 #include "ScanConfiguration.hpp"
 #include "AllUtils.h"
 
+#if !JUCE_IOS
+
 namespace {
     const char* XML_SCAN_VST_DEFAULT_PATHS_STR {"vstDefaultPaths"};
     const char* XML_CUSTOM_VST_PATHS_STR {"vstCustomPaths"};
@@ -105,3 +107,5 @@ void ScanConfiguration::writeToXml() const {
 
     element->writeTo(configFile);
 }
+
+#endif // !JUCE_IOS

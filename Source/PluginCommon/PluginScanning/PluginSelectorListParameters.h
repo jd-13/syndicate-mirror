@@ -12,11 +12,11 @@
 
 #include <JuceHeader.h>
 
-#include "PluginScanClient.h"
+#include "PluginScannerInterface.h"
 #include "PluginSelectorState.h"
 
 struct PluginSelectorListParameters {
-    PluginScanClient& scanner;
+    PluginScannerInterface& scanner;
     PluginSelectorState& state;
     juce::AudioPluginFormatManager& formatManager;
     std::function<void(std::unique_ptr<juce::AudioPluginInstance>, const juce::String&, bool)> pluginCreationCallback;

@@ -11,7 +11,7 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginScanClient.h"
+#include "PluginScannerInterface.h"
 #include "PluginSelectorListParameters.h"
 #include "PluginSelectorState.h"
 #include "SelectorComponentStyle.h"
@@ -52,12 +52,16 @@ public:
 
     void cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& event) override;
 
+#if JUCE_IOS
+    void cellClicked(int rowNumber, int columnId, const juce::MouseEvent& event) override;
+#endif
+
     void sortOrderChanged(int newSortColumnId, bool isForwards) override;
 
     void onPluginScanUpdate();
 
 private:
-    PluginScanClient& _scanner;
+    PluginScannerInterface& _scanner;
     PluginListSorter _pluginListSorter;
     juce::Array<juce::PluginDescription> _pluginList;
     std::function<void(std::unique_ptr<juce::AudioPluginInstance>, const juce::String&, bool)> _pluginCreationCallback;
@@ -82,6 +86,6 @@ public:
 
 private:
     PluginSelectorTableListBoxModel _pluginTableListBoxModel;
-    PluginScanClient& _scanner;
+    PluginScannerInterface& _scanner;
 };
 

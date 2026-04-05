@@ -92,6 +92,14 @@ void PluginParameterSelectorTableListBoxModel::cellDoubleClicked(int rowNumber,
     _parameterSelectedCallback(_parameterList[rowNumber], shouldCloseWindow);
 }
 
+#if JUCE_IOS
+void PluginParameterSelectorTableListBoxModel::cellClicked(int rowNumber,
+                                                           int /*columnId*/,
+                                                           const juce::MouseEvent& /*event*/) {
+    _parameterSelectedCallback(_parameterList[rowNumber], true);
+}
+#endif
+
 PluginParameterSelectorTableListBox::PluginParameterSelectorTableListBox(
         PluginParameterSelectorListParameters selectorListParameters)
             : _parameterTableListBoxModel(selectorListParameters) {

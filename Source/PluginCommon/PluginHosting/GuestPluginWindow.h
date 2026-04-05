@@ -1,6 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+
+#if !JUCE_IOS
+
 #include "ChainSlots.hpp"
 
 class GuestPluginWindow  : public juce::DocumentWindow
@@ -19,3 +22,5 @@ private:
     std::function<void()> _onCloseCallback;
     std::shared_ptr<PluginEditorBounds> _editorBounds;
 };
+
+#endif // !JUCE_IOS

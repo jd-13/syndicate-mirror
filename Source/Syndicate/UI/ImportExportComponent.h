@@ -37,6 +37,10 @@ private:
 
     void _onExportToFile(juce::File file);
     void _onImportFromFile(juce::File file);
+#if JUCE_IOS
+    void _onExportToURL(juce::URL url);
+    void _onImportFromURL(juce::URL url);
+#endif
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ImportExportComponent)
 };

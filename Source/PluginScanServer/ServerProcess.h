@@ -81,6 +81,11 @@ private:
 
         juce::OwnedArray<juce::PluginDescription> results;
         matchingFormat->findAllTypesForFile(results, identifier);
+
+        if (results.size() == 0) {
+            juce::Logger::writeToLog("findAllTypesForFile returned 0 results for: " + identifier);
+        }
+
         sendPluginDescriptions(results);
         return true;
     }

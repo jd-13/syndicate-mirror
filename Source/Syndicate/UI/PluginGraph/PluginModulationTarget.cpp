@@ -1,18 +1,41 @@
 #include "PluginModulationTarget.h"
 #include "UIUtils.h"
 
+PluginModulationTargetButton::PluginModulationTargetButton(std::function<void()> onRemoveCallback)
+        : _onRemoveCallback(onRemoveCallback), _isRightClick(false) {
+#if JUCE_IOS
+    _longPressHandler = std::make_unique<UIUtils::LongPressHandler>([this]() {
+        juce::PopupMenu menu;
+        menu.addItem(1, TRANS("Remove target"));
+        menu.showMenuAsync(juce::PopupMenu::Options(), [this](int result) {
+            if (result == 1) {
+                _onRemoveCallback();
+            }
+        });
+    });
+#endif
+}
+
 void PluginModulationTargetButton::mouseDown(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    _longPressHandler->mouseDown();
+#else
     // If this is a right click, we need to remove the target on mouseUp
     if (event.mods.isRightButtonDown()) {
         _isRightClick = true;
     } else {
         _isRightClick = false;
     }
-
+#endif
     juce::Button::mouseDown(event);
 }
 
 void PluginModulationTargetButton::mouseUp(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    if (!_longPressHandler->mouseUp()) {
+        juce::Button::mouseUp(event);
+    }
+#else
     // If it's a right click make sure the mouse is still over the button
     if (_isRightClick && isDown() && isOver()) {
         // Don't send an event, just call the callback
@@ -20,7 +43,15 @@ void PluginModulationTargetButton::mouseUp(const juce::MouseEvent& event) {
     } else {
         juce::Button::mouseUp(event);
     }
+#endif
 }
+
+#if JUCE_IOS
+void PluginModulationTargetButton::mouseDrag(const juce::MouseEvent& event) {
+    _longPressHandler->mouseDrag();
+    juce::Button::mouseDrag(event);
+}
+#endif
 
 PluginModulationTarget::PluginModulationTarget(PluginModulationInterface& pluginModulationInterface,
                                                int chainNumber,
@@ -76,9 +107,12 @@ PluginModulationTarget::PluginModulationTarget(PluginModulationInterface& plugin
     addAndMakeVisible(_sourceSliders.get());
 
     _reloadState();
+
+    _targetSlider->start(_targetSelectButton.get(), _targetSelectButton->getButtonText());
 }
 
 PluginModulationTarget::~PluginModulationTarget() {
+    _targetSlider->stop();
     _targetSlider->setLookAndFeel(nullptr);
     _targetSelectButton->setLookAndFeel(nullptr);
     _targetAddButton->setLookAndFeel(nullptr);
@@ -190,7 +224,11 @@ void PluginModulationTarget::_reloadState() {
 
         // Restoring button text
         _targetSelectButton->setButtonText(thisParameterConfig->targetParameterName);
+#if JUCE_IOS
+        _targetSelectButton->setTooltip(thisParameterConfig->targetParameterName + " - Tap to select a different plugin parameter, long press to remove");
+#else
         _targetSelectButton->setTooltip(thisParameterConfig->targetParameterName + " - Click to select a different plugin parameter, right click to remove");
+#endif
     } else {
         _targetSlider->setEnabled(false);
         _targetSlider->setVisible(false);

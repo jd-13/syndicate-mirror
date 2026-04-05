@@ -40,6 +40,10 @@ public:
 
     void cellDoubleClicked(int rowNumber, int columnId, const juce::MouseEvent& event) override;
 
+#if JUCE_IOS
+    void cellClicked(int rowNumber, int columnId, const juce::MouseEvent& event) override;
+#endif
+
 private:
     PluginParameterListSorter _parameterListSorter;
     juce::Array<juce::AudioProcessorParameter*> _parameterList;

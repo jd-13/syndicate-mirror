@@ -48,7 +48,13 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::warnAboutOverwriting};
         _fileChooser.reset(new juce::FileChooser("Export Syndicate Preset", juce::File(), "*.syn"));
         _fileChooser->launchAsync(flags, [&](const juce::FileChooser& chooser) {
+#if JUCE_IOS
+            auto urls = chooser.getURLResults();
+            if (urls.size() > 0)
+                _onExportToURL(urls[0]);
+#else
             _onExportToFile(chooser.getResult());
+#endif
         });
     };
 
@@ -61,7 +67,13 @@ ImportExportComponent::ImportExportComponent(SyndicateAudioProcessor& processor,
         const int flags {juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode};
         _fileChooser.reset(new juce::FileChooser("Import Syndicate Preset", juce::File(), "*.syn"));
         _fileChooser->launchAsync(flags, [&](const juce::FileChooser& chooser) {
+#if JUCE_IOS
+            auto urls = chooser.getURLResults();
+            if (urls.size() > 0)
+                _onImportFromURL(urls[0]);
+#else
             _onImportFromFile(chooser.getResult());
+#endif
         });
     };
 
@@ -161,3 +173,42 @@ void ImportExportComponent::_onImportFromFile(juce::File file) {
         }
     }
 }
+
+#if JUCE_IOS
+void ImportExportComponent::_onExportToURL(juce::URL url) {
+    const juce::File file = url.getLocalFile();
+
+    PresetMetadata newMetadata = _processor.presetMetadata;
+    newMetadata.name = file.getFileNameWithoutExtension();
+    newMetadata.fullPath = file.getFullPathName();
+    _processor.setPresetMetadata(newMetadata);
+
+    std::unique_ptr<juce::XmlElement> element = _processor.writeToXml();
+    redactXml(element.get());
+
+    // Use URL output stream so JUCE handles security-scoped resource access
+    if (auto stream = url.createOutputStream()) {
+        element->writeTo(*stream);
+    } else {
+        juce::Logger::writeToLog("ImportExportComponent::_onExportToURL: failed to open output stream");
+    }
+}
+
+void ImportExportComponent::_onImportFromURL(juce::URL url) {
+    // readEntireXmlStream handles security-scoped resource access via bookmark data
+    std::unique_ptr<juce::XmlElement> element = url.readEntireXmlStream();
+
+    if (element != nullptr) {
+        _processor.restoreFromXml(std::move(element));
+
+        const juce::File file = url.getLocalFile();
+        PresetMetadata newMetadata = _processor.presetMetadata;
+        newMetadata.name = file.getFileNameWithoutExtension();
+        newMetadata.fullPath = file.getFullPathName();
+        _processor.setPresetMetadata(newMetadata);
+
+        _editor.closeGuestPluginWindows();
+        _editor.needsToRefreshAll();
+    }
+}
+#endif

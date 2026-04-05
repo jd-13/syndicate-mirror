@@ -1,4 +1,89 @@
 #include "PluginScanClient.h"
+#include "IOSPluginScanner.h"
+#include "PluginScanStatusMessage.h"
+
+#if JUCE_IOS
+
+IOSPluginScanner::IOSPluginScanner() : juce::Thread("iOS Plugin Scanner") {}
+
+IOSPluginScanner::~IOSPluginScanner() {
+    stopThread(5000);
+}
+
+juce::Array<juce::PluginDescription> IOSPluginScanner::getPluginTypes() const {
+    return _knownPluginList.getTypes();
+}
+
+void IOSPluginScanner::restore() {
+    startScan();
+}
+
+void IOSPluginScanner::startScan() {
+    if (_isScanning.exchange(true)) return;
+    startThread();
+}
+
+void IOSPluginScanner::stopScan() {
+    signalThreadShouldExit();
+}
+
+void IOSPluginScanner::clearMissingPlugins() {}
+
+void IOSPluginScanner::rescanAllPlugins() {
+    startScan();
+}
+
+void IOSPluginScanner::rescanCrashedPlugins() {
+    startScan();
+}
+
+void IOSPluginScanner::scanFile(juce::File /*file*/) {}
+
+void IOSPluginScanner::addListener(juce::MessageListener* listener) {
+    if (listener == nullptr) return;
+    std::scoped_lock lock(_listenersMutex);
+    if (std::find(_listeners.begin(), _listeners.end(), listener) == _listeners.end()) {
+        _listeners.push_back(listener);
+    }
+    _notifyListener(listener, _isScanning.load());
+}
+
+void IOSPluginScanner::removeListener(juce::MessageListener* listener) {
+    if (listener == nullptr) return;
+    std::scoped_lock lock(_listenersMutex);
+    _listeners.erase(std::remove(_listeners.begin(), _listeners.end(), listener), _listeners.end());
+}
+
+void IOSPluginScanner::run() {
+    _notifyAllListeners(true);
+
+    _knownPluginList.clear();
+
+    juce::FileSearchPath searchPaths = _auFormat.getDefaultLocationsToSearch();
+    juce::File deadMansFile; // invalid File - not needed for iOS AUv3
+    juce::PluginDirectoryScanner scanner(_knownPluginList, _auFormat, searchPaths, true, deadMansFile, false);
+
+    juce::String pluginName;
+    while (!threadShouldExit() && scanner.scanNextFile(true, pluginName)) {}
+
+    _isScanning = false;
+    _notifyAllListeners(false);
+}
+
+void IOSPluginScanner::_notifyAllListeners(bool isRunning) {
+    std::scoped_lock lock(_listenersMutex);
+    for (juce::MessageListener* listener : _listeners) {
+        _notifyListener(listener, isRunning);
+    }
+}
+
+void IOSPluginScanner::_notifyListener(juce::MessageListener* listener, bool isRunning) {
+    listener->postMessage(new PluginScanStatusMessage(
+        _knownPluginList.getNumTypes(), isRunning, "", ""));
+}
+
+#else // !JUCE_IOS
+
 #include "CustomScanner.hpp"
 
 PluginScanClient::PluginScanClient() : juce::Thread("Scan Client"),
@@ -312,18 +397,15 @@ void PluginScanClient::changeListenerCallback(juce::ChangeBroadcaster* changed) 
         std::unique_ptr<juce::XmlElement> pluginsXml = std::unique_ptr<juce::XmlElement>(_pluginList->createXml());
 
         if (pluginsXml.get() != nullptr) {
-            // Write to a temporary file first, then move it into place so that
-            // a crash mid-write doesn't corrupt the existing data
-            juce::File tempFile = _scannedPluginsFile.getSiblingFile(_scannedPluginsFile.getFileName() + ".tmp");
-            tempFile.deleteFile();
+            // Delete and recreate the file so that it's empty
+            _scannedPluginsFile.deleteFile();
+            _scannedPluginsFile.create();
 
-            juce::FileOutputStream output(tempFile);
+            // Write the Xml to the file
+            juce::FileOutputStream output(_scannedPluginsFile);
 
             if (output.openedOk()) {
                 pluginsXml->writeTo(output);
-                output.flush();
-
-                tempFile.moveFileTo(_scannedPluginsFile);
             }
         }
 
@@ -342,3 +424,5 @@ void PluginScanClient::_notifyListener(juce::MessageListener* listener) {
     listener->postMessage(new PluginScanStatusMessage(
         _pluginList->getNumTypes(), _state == ScanState::RUNNING, _errorMessage, _currentPluginName));
 }
+
+#endif // !JUCE_IOS

@@ -1,8 +1,13 @@
 #pragma once
 
 #include <JuceHeader.h>
+#if JUCE_IOS
+#include "IOSPluginSelectorOverlay.h"
+#include "GuestPluginOverlay.h"
+#else
 #include "PluginSelectorWindow.h"
 #include "GuestPluginWindow.h"
+#endif
 #include "UIUtils.h"
 
 class SyndicateAudioProcessor;
@@ -40,8 +45,13 @@ public:
 
 private:
     SyndicateAudioProcessor& _processor;
+#if JUCE_IOS
+    std::unique_ptr<IOSPluginSelectorOverlay> _pluginSelectorOverlay;
+    std::unique_ptr<GuestPluginOverlay> _guestPluginOverlay;
+#else
     std::unique_ptr<PluginSelectorWindow> _pluginSelectorWindow;
     std::vector<std::unique_ptr<GuestPluginWindow>> _guestPluginWindows;
+#endif
     std::unique_ptr<UIUtils::PopoverComponent> _errorPopover;
 
     int _chainNumber;

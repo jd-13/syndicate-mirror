@@ -15,6 +15,7 @@
 #include "MainLogger.h"
 #include "NullLogger.hpp"
 #include "PluginScanClient.h"
+#include "IOSPluginScanner.h"
 #include "PluginSelectorState.h"
 #include "PluginParameterSelectorState.h"
 #include "ParameterData.h"
@@ -45,7 +46,11 @@ struct MainWindowState {
 class SyndicateAudioProcessor : public WECore::JUCEPlugin::CoreAudioProcessor
 {
 public:
+#if JUCE_IOS
+    IOSPluginScanner pluginScanClient;
+#else
     PluginScanClient pluginScanClient;
+#endif
     PluginSelectorState pluginSelectorState; // TODO convert this to a custom parameter
     PluginParameterSelectorState pluginParameterSelectorState;
     ModelInterface::StateManager manager;

@@ -1,5 +1,7 @@
 #include "ConfigurePopover.hpp"
 
+#if !JUCE_IOS
+
 namespace {
     constexpr int TEXT_HEIGHT {16};
 
@@ -244,3 +246,5 @@ void ConfigurePopover::mouseExit(const juce::MouseEvent& /*event*/) {
         _tooltipLabel->setText("", juce::dontSendNotification);
     }
 }
+
+#endif // !JUCE_IOS

@@ -333,4 +333,33 @@ namespace UIUtils {
     juce::String getCopyKeyName();
     juce::String getCmdKeyName();
     juce::String presetNameOrPlaceholder(const juce::String& value);
+
+#if JUCE_IOS
+    /**
+     * Manages long-press detection for iOS touch events. Pass the action to fire on long press
+     * to the constructor, then forward mouseDown/mouseUp/mouseDrag from the owning component.
+     *
+     * mouseUp() returns true if the long press already fired, so the caller can suppress the
+     * normal click action.
+     */
+    class LongPressHandler {
+    public:
+        explicit LongPressHandler(std::function<void()> callback, int durationMs = 400);
+
+        void mouseDown();
+        bool mouseUp();
+        void mouseDrag();
+
+    private:
+        bool _fired {false};
+        int _durationMs;
+        std::function<void()> _callback;
+
+        struct Timer : juce::Timer {
+            LongPressHandler& owner;
+            explicit Timer(LongPressHandler& o) : owner(o) {}
+            void timerCallback() override;
+        } _timer;
+    };
+#endif
 }

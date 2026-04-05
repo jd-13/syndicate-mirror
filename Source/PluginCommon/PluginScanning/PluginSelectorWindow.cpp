@@ -1,7 +1,69 @@
-#include "PluginSelectorWindow.h"
-
+#include "IOSPluginSelectorOverlay.h"
 #include "PluginSelectorComponent.h"
 #include "PluginSelectorListParameters.h"
+
+#if JUCE_IOS
+
+#include "UIUtils.h"
+
+namespace {
+    constexpr int TITLE_BAR_HEIGHT {44};
+    constexpr int CLOSE_BUTTON_WIDTH {80};
+    constexpr int OVERLAY_MARGIN {10};
+}
+
+IOSPluginSelectorOverlay::IOSPluginSelectorOverlay(
+        std::function<void()> onCloseCallback,
+        PluginSelectorListParameters selectorListParameters,
+        std::unique_ptr<SelectorComponentStyle> style,
+        juce::String title)
+        : _onCloseCallback(onCloseCallback),
+          _style(std::move(style)) {
+
+    _titleLabel = std::make_unique<juce::Label>("Title", title);
+    _titleLabel->setColour(juce::Label::textColourId, _style->highlightColour);
+    _titleLabel->setFont(juce::Font(18.0f, juce::Font::bold));
+    _titleLabel->setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(_titleLabel.get());
+
+    _closeButton = std::make_unique<juce::TextButton>("Close Button");
+    _closeButton->setButtonText("Close");
+    _closeButton->setLookAndFeel(_style->scanButtonLookAndFeel.get());
+    _closeButton->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, _style->buttonBackgroundColour);
+    _closeButton->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, _style->highlightColour);
+    _closeButton->onClick = _onCloseCallback;
+    addAndMakeVisible(_closeButton.get());
+
+    _selectorComponent = std::make_unique<PluginSelectorComponent>(
+        selectorListParameters, onCloseCallback, *(_style.get()));
+    addAndMakeVisible(_selectorComponent.get());
+
+    selectorListParameters.scanner.clearMissingPlugins();
+}
+
+IOSPluginSelectorOverlay::~IOSPluginSelectorOverlay() {
+    _closeButton->setLookAndFeel(nullptr);
+    _titleLabel = nullptr;
+    _closeButton = nullptr;
+    _selectorComponent = nullptr;
+}
+
+void IOSPluginSelectorOverlay::resized() {
+    auto area = getLocalBounds().reduced(OVERLAY_MARGIN);
+    auto titleBar = area.removeFromTop(TITLE_BAR_HEIGHT);
+    _closeButton->setBounds(titleBar.removeFromRight(CLOSE_BUTTON_WIDTH));
+    _titleLabel->setBounds(titleBar);
+    _selectorComponent->setBounds(area);
+    _selectorComponent->restoreScrollPosition();
+}
+
+void IOSPluginSelectorOverlay::paint(juce::Graphics& g) {
+    g.fillAll(_style->backgroundColour);
+}
+
+#else // !JUCE_IOS
+
+#include "PluginSelectorWindow.h"
 
 namespace {
     const juce::Colour BACKGROUND_COLOUR(0, 0, 0);
@@ -60,3 +122,5 @@ void PluginSelectorWindow::takeFocus() {
         _content->grabKeyboardFocus();
     }
 }
+
+#endif // !JUCE_IOS

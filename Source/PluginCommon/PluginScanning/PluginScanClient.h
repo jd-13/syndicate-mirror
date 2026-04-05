@@ -3,7 +3,7 @@
 #include <JuceHeader.h>
 #include "AllUtils.h"
 #include "PluginScanStatusMessage.h"
-#include "ScanConfiguration.hpp"
+#include "PluginScannerInterface.h"
 
 enum class ScanState {
     STOPPED,
@@ -12,54 +12,59 @@ enum class ScanState {
     STOPPING
 };
 
-class PluginScanClient : public juce::ChangeListener,
+#if !JUCE_IOS
+
+#include "ScanConfiguration.hpp"
+
+class PluginScanClient : public PluginScannerInterface,
+                         public juce::ChangeListener,
                          public juce::Thread {
 public:
     ScanConfiguration config;
 
     PluginScanClient();
 
-    juce::Array<juce::PluginDescription> getPluginTypes() const;
+    juce::Array<juce::PluginDescription> getPluginTypes() const override;
 
     /**
      * Called to update the internal list of plugins to match what is on disk. Public so that a
      * restore can be done without needing to start a scan.
      */
-    void restore();
+    void restore() override;
 
     /**
      * Called when the user starts a scan.
      */
-    void startScan();
+    void startScan() override;
 
     /**
      * Called when the user has initiated the stop.
      */
-    void stopScan();
+    void stopScan() override;
 
     /**
      * Called to clear plugins that may be uninstalled or missing.
      */
-    void clearMissingPlugins();
+    void clearMissingPlugins() override;
 
     /**
      * Called when the user has requested a full rescan.
      */
-    void rescanAllPlugins();
+    void rescanAllPlugins() override;
 
     /**
      * Called when the user has requested a rescan of crashed plugins
      */
-    void rescanCrashedPlugins();
+    void rescanCrashedPlugins() override;
 
     /**
      * Called when the user wants to scan a specific plugin file.
      */
-    void scanFile(juce::File file);
+    void scanFile(juce::File file) override;
 
-    void addListener(juce::MessageListener* listener);
+    void addListener(juce::MessageListener* listener) override;
 
-    void removeListener(juce::MessageListener* listener);
+    void removeListener(juce::MessageListener* listener) override;
 
     /**
      * Performs actions as needed - don't call this manually
@@ -98,3 +103,5 @@ private:
 
     void _scanForFormat(juce::AudioPluginFormat& format, juce::FileSearchPath searchPaths);
 };
+
+#endif // !JUCE_IOS

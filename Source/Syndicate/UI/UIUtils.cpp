@@ -760,4 +760,26 @@ namespace UIUtils {
         }
         return value;
     }
+
+#if JUCE_IOS
+    LongPressHandler::LongPressHandler(std::function<void()> callback, int durationMs)
+        : _callback(std::move(callback)), _durationMs(durationMs), _timer(*this) {}
+
+    void LongPressHandler::mouseDown() { _fired = false; _timer.startTimer(_durationMs); }
+
+    bool LongPressHandler::mouseUp() {
+        _timer.stopTimer();
+        bool f = _fired;
+        _fired = false;
+        return f;
+    }
+
+    void LongPressHandler::mouseDrag() { _timer.stopTimer(); }
+
+    void LongPressHandler::Timer::timerCallback() {
+        stopTimer();
+        owner._fired = true;
+        owner._callback();
+    }
+#endif
 }

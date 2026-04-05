@@ -154,6 +154,18 @@ void PluginSelectorTableListBoxModel::cellDoubleClicked(int rowNumber,
 };
 
 
+#if JUCE_IOS
+void PluginSelectorTableListBoxModel::cellClicked(int rowNumber,
+                                                   int /*columnId*/,
+                                                   const juce::MouseEvent& /*event*/) {
+    juce::Logger::writeToLog("PluginSelectorTableListBoxModel: Row " + juce::String(rowNumber) + " tapped, attempting to load plugin: " + _pluginList[rowNumber].name);
+    _formatManager.createPluginInstanceAsync(_pluginList[rowNumber],
+                                             _getSampleRateCallback(),
+                                             _getBlockSizeCallback(),
+                                             [&](std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error) { _pluginCreationCallback(std::move(plugin), error, true); });
+}
+#endif
+
 void PluginSelectorTableListBoxModel::sortOrderChanged(int newSortColumnId, bool isForwards) {
     _pluginListSorter.state.sortColumnId = newSortColumnId;
     _pluginListSorter.state.sortForwards = isForwards;

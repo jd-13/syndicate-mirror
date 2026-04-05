@@ -10,11 +10,14 @@ namespace Utils {
     inline const char* SCAN_CONFIGURATION_FILE_NAME = "ScanConfiguration.txt";
     inline const char* CONFIG_FILE_NAME = "Config.json";
 
-#ifdef __APPLE__
+#if JUCE_IOS
+    const juce::File DataDirectory(juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("WhiteElephantAudio/Syndicate"));
+    const juce::File PluginLogDirectory(DataDirectory.getChildFile("Logs"));
+#elif defined(__APPLE__)
     const juce::File DataDirectory(juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("WhiteElephantAudio/Syndicate"));
     const juce::File PluginLogDirectory(juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("Library/Logs/WhiteElephantAudio/Syndicate/Syndicate"));
     const juce::File PluginScanServerLogDirectory(juce::File::getSpecialLocation(juce::File::userHomeDirectory).getChildFile("Library/Logs/WhiteElephantAudio/Syndicate/PluginScanServer"));
-    const juce::File PluginScanServerBinary(juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory().getSiblingFile("Resources").getChildFile("PluginScanServer"));
+    const juce::File PluginScanServerBinary(juce::File::getSpecialLocation(juce::File::currentExecutableFile).getParentDirectory().getSiblingFile("Resources").getChildFile("launch_scan_server.sh"));
 #elif _WIN32
     const juce::File ApplicationDirectory(juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("WhiteElephantAudio/Syndicate"));
     const juce::File DataDirectory(ApplicationDirectory.getChildFile("Data"));

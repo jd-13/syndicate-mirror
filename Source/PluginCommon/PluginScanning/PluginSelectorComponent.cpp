@@ -40,9 +40,11 @@ PluginSelectorComponent::PluginSelectorComponent(PluginSelectorListParameters se
 
     // Recall UI from state
     searchEdt->setText(_state.filterString, false);
+#if !JUCE_IOS
     vstBtn->setToggleState(_state.includeVST, juce::dontSendNotification);
     vst3Btn->setToggleState(_state.includeVST3, juce::dontSendNotification);
     auBtn->setToggleState(_state.includeAU, juce::dontSendNotification);
+#endif
 }
 
 PluginSelectorComponent::~PluginSelectorComponent() {
@@ -50,15 +52,19 @@ PluginSelectorComponent::~PluginSelectorComponent() {
     _state.scrollPosition = pluginTableListBox->getVerticalPosition();
 
     searchEdt->setLookAndFeel(nullptr);
+#if !JUCE_IOS
     vstBtn->setLookAndFeel(nullptr);
     vst3Btn->setLookAndFeel(nullptr);
     auBtn->setLookAndFeel(nullptr);
+#endif
     pluginTableListBox->getHeader().setLookAndFeel(nullptr);
 
     searchEdt = nullptr;
+#if !JUCE_IOS
     vstBtn = nullptr;
     vst3Btn = nullptr;
     auBtn = nullptr;
+#endif
     pluginTableListBox = nullptr;
     statusBar = nullptr;
 }
@@ -69,6 +75,7 @@ void PluginSelectorComponent::resized() {
     // Header
     juce::Rectangle<int> headerArea = availableArea.removeFromTop(ROW_HEIGHT);
 
+#if !JUCE_IOS
     juce::FlexBox flexBox;
     flexBox.flexDirection = juce::FlexBox::Direction::row;
     flexBox.flexWrap = juce::FlexBox::Wrap::wrap;
@@ -89,6 +96,7 @@ void PluginSelectorComponent::resized() {
     flexBox.performLayout(headerArea.removeFromRight(buttonsTotalWidth).toFloat());
 
     headerArea.removeFromRight(MARGIN_SIZE);
+#endif
 
     searchEdt->setBounds(headerArea);
 
@@ -146,6 +154,7 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     searchEdt->setColour(juce::TextEditor::highlightedTextColourId, style.neutralColour);
     searchEdt->setColour(juce::CaretComponent::caretColourId, style.highlightColour);
 
+#if !JUCE_IOS
     vstBtn.reset(new juce::TextButton("VST Button"));
     addAndMakeVisible(vstBtn.get());
     vstBtn->setButtonText(TRANS("VST"));
@@ -184,6 +193,7 @@ void PluginSelectorComponent::_setupHeaderRow(const SelectorComponentStyle& styl
     auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
     auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::highlightColour, style.highlightColour);
     auBtn->setColour(UIUtils::ToggleButtonLookAndFeel::disabledColour, style.disabledColour);
+#endif // !JUCE_IOS
 }
 
 void PluginSelectorComponent::restoreScrollPosition() {

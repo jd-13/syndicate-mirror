@@ -31,9 +31,11 @@ private:
     const juce::Colour _backgroundColour;
 
     std::unique_ptr<juce::TextEditor> searchEdt;
+#if !JUCE_IOS
     std::unique_ptr<juce::TextButton> vstBtn;
     std::unique_ptr<juce::TextButton> vst3Btn;
     std::unique_ptr<juce::TextButton> auBtn;
+#endif
     std::unique_ptr<PluginSelectorTableListBox> pluginTableListBox;
     std::unique_ptr<PluginScanStatusBar> statusBar;
 

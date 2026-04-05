@@ -4,6 +4,8 @@
 #include "UIUtils.h"
 #include "ScanConfiguration.hpp"
 
+#if !JUCE_IOS
+
 class CustomPathsList : public juce::Component {
 public:
     CustomPathsList(juce::FileSearchPath& customPaths);
@@ -68,3 +70,13 @@ private:
     std::unique_ptr<juce::TextButton> _okButton;
     std::unique_ptr<juce::Label> _tooltipLabel;
 };
+
+#else // JUCE_IOS
+
+// Stub: scan path configuration is not used on iOS
+class ConfigurePopover : public juce::Component {
+public:
+    ConfigurePopover(std::function<void()>) {}
+};
+
+#endif // !JUCE_IOS

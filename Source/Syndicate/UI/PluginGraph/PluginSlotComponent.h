@@ -19,12 +19,20 @@ public:
     void mouseExit(const juce::MouseEvent& event) override;
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
     void paint(juce::Graphics& g) override;
+#if JUCE_IOS
+    void mouseDown(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
+#endif
 
 private:
     PluginSelectionInterface& _pluginSelectionInterface;
     PluginModulationInterface& _pluginModulationInterface;
     bool _isHover;
     std::unique_ptr<PluginSlotModulationTray> _modulationTray;
+#if JUCE_IOS
+    std::unique_ptr<UIUtils::LongPressHandler> _longPressHandler;
+#endif
 
     std::unique_ptr<UIUtils::BypassButton> _bypassButton;
     std::unique_ptr<UIUtils::PluginOpenButton> _openButton;

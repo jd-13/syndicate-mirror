@@ -1,16 +1,42 @@
 #pragma once
 
 #include <JuceHeader.h>
-#include "PluginScanClient.h"
+#include "PluginScannerInterface.h"
 #include "SelectorComponentStyle.h"
 #include "UIUtils.h"
 #include "ConfigurePopover.hpp"
+
+#if JUCE_IOS
+
+class PluginScanStatusBar : public juce::Component, public juce::MessageListener {
+public:
+    static constexpr int ROW_HEIGHT {24};
+    static constexpr int MIN_STATUS_WIDTH {140};
+    static constexpr int REFRESH_BUTTON_WIDTH {80};
+    static constexpr int SPACER_WIDTH {10};
+    static constexpr int MAX_BUTTONS_WIDTH {REFRESH_BUTTON_WIDTH + SPACER_WIDTH};
+
+    PluginScanStatusBar(PluginScannerInterface& pluginScanClient,
+                        const SelectorComponentStyle& style);
+    ~PluginScanStatusBar() override;
+
+    void resized() override;
+
+    void handleMessage(const juce::Message& message) override;
+
+private:
+    PluginScannerInterface& _pluginScanClient;
+    std::unique_ptr<juce::Label> statusLbl;
+    std::unique_ptr<juce::TextButton> refreshBtn;
+};
+
+#else // !JUCE_IOS
 
 class PluginScanStatusBar : public juce::Component,
                             public juce::MessageListener,
                             public juce::Button::Listener {
 public:
-    PluginScanStatusBar(PluginScanClient& pluginScanClient,
+    PluginScanStatusBar(PluginScannerInterface& pluginScanClient,
                         const SelectorComponentStyle& style);
     ~PluginScanStatusBar() override;
 
@@ -49,10 +75,12 @@ private:
     std::unique_ptr<juce::FileChooser> _fileChooser;
     std::unique_ptr<ConfigurePopover> configurePopover;
     std::unique_ptr<UIUtils::PopoverComponent> crashedPluginsPopover;
-    PluginScanClient& _pluginScanClient;
+    PluginScannerInterface& _pluginScanClient;
 
     void _updateButtonState(bool isScanRunning);
 
     void _createCrashedPluginsDialogue();
     void _createConfigureDialogue();
 };
+
+#endif // JUCE_IOS

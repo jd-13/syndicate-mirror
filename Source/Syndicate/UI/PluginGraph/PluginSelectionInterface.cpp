@@ -43,6 +43,20 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
         ? "Replacing plugin " + getPluginName(chainNumber, pluginNumber)
         : "New plugin for chain " + juce::String(chainNumber + 1);
 
+#if JUCE_IOS
+    juce::AudioProcessorEditor* editor = _processor.getActiveEditor();
+    if (editor == nullptr) return;
+
+    _pluginSelectorOverlay = std::make_unique<IOSPluginSelectorOverlay>(
+        [&]() { _errorPopover.reset(); _pluginSelectorOverlay.reset(); },
+        parameters,
+        std::move(style),
+        title
+    );
+
+    editor->addAndMakeVisible(_pluginSelectorOverlay.get());
+    _pluginSelectorOverlay->setBounds(editor->getLocalBounds());
+#else
     _pluginSelectorWindow = std::make_unique<PluginSelectorWindow>(
         [&]() { _errorPopover.reset(); _pluginSelectorWindow.reset(); },
         parameters,
@@ -51,6 +65,7 @@ void PluginSelectionInterface::selectNewPlugin(int chainNumber, int pluginNumber
     );
 
     _pluginSelectorWindow->takeFocus();
+#endif
 }
 
 juce::String PluginSelectionInterface::getPluginName(int chainNumber, int pluginNumber) {
@@ -67,6 +82,21 @@ juce::String PluginSelectionInterface::getPluginName(int chainNumber, int plugin
 }
 
 void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumber) {
+#if JUCE_IOS
+    std::shared_ptr<juce::AudioPluginInstance> plugin =
+        ModelInterface::getPlugin(_processor.manager, chainNumber, pluginNumber);
+
+    if (plugin != nullptr) {
+        juce::AudioProcessorEditor* editor = _processor.getActiveEditor();
+        if (editor == nullptr) return;
+
+        _guestPluginOverlay.reset(new GuestPluginOverlay(
+            [&, plugin]() { _onPluginWindowClose(plugin); }, plugin));
+
+        editor->addAndMakeVisible(_guestPluginOverlay.get());
+        _guestPluginOverlay->setBounds(editor->getLocalBounds());
+    }
+#else
     std::shared_ptr<juce::AudioPluginInstance> plugin =
         ModelInterface::getPlugin(_processor.manager, chainNumber, pluginNumber);
 
@@ -85,6 +115,7 @@ void PluginSelectionInterface::openPluginEditor(int chainNumber, int pluginNumbe
             _guestPluginWindows.emplace_back(new GuestPluginWindow([&, plugin]() { _onPluginWindowClose(plugin); }, plugin, editorBounds));
         }
     }
+#endif
 }
 
 void PluginSelectionInterface::removePlugin(int chainNumber, int pluginNumber) {
@@ -92,13 +123,19 @@ void PluginSelectionInterface::removePlugin(int chainNumber, int pluginNumber) {
         ModelInterface::getPlugin(_processor.manager, chainNumber, pluginNumber);
 
     if (plugin != nullptr) {
-        // Check if the plugin owns an open editor window and close it
+        // Check if the plugin owns an open editor and close it
+#if JUCE_IOS
+        if (_guestPluginOverlay != nullptr && _guestPluginOverlay->plugin == plugin) {
+            _guestPluginOverlay.reset();
+        }
+#else
         for (int index {0}; index < _guestPluginWindows.size(); index++) {
             if (_guestPluginWindows[index]->plugin == plugin) {
                 _guestPluginWindows.erase(_guestPluginWindows.begin() + index);
                 break;
             }
         }
+#endif
     }
 
     // Actually remove the plugin
@@ -130,6 +167,14 @@ void PluginSelectionInterface::moveSlot(int fromChainNumber, int fromSlotNumber,
 
 void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPluginInstance> plugin, const juce::String& error, bool shouldClose) {
     auto createErrorPopover = [&](juce::String errorText) {
+#if JUCE_IOS
+        if (_pluginSelectorOverlay != nullptr) {
+            _errorPopover.reset(new UIUtils::PopoverComponent(
+                "Failed to load plugin", errorText, [&]() {_errorPopover.reset(); }));
+            _pluginSelectorOverlay->addAndMakeVisible(_errorPopover.get());
+            _errorPopover->setBounds(_pluginSelectorOverlay->getLocalBounds());
+        }
+#else
         if (_pluginSelectorWindow != nullptr) {
             _errorPopover.reset(new UIUtils::PopoverComponent(
                 "Failed to load plugin", errorText, [&]() {_errorPopover.reset(); }));
@@ -140,6 +185,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
                 _errorPopover->setBounds(targetComponent->getLocalBounds());
             }
         }
+#endif
     };
 
     if (plugin != nullptr) {
@@ -148,24 +194,37 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
         // Create the shared pointer here as we need it for the window
         std::shared_ptr<juce::AudioPluginInstance> sharedPlugin = std::move(plugin);
 
-        // If we are replacing a previous plugin, we need to check if it had a window open and close
-        // it
+        // If we are replacing a previous plugin, we need to check if it had an editor open and close it
         const std::shared_ptr<juce::AudioPluginInstance> previousPlugin =
             ModelInterface::getPlugin(_processor.manager, _chainNumber, _pluginNumber);
 
         if (previousPlugin != nullptr) {
+#if JUCE_IOS
+            if (_guestPluginOverlay != nullptr && _guestPluginOverlay->plugin == previousPlugin) {
+                _guestPluginOverlay.reset();
+            }
+#else
             for (int index {0}; index < _guestPluginWindows.size(); index++) {
                 if (_guestPluginWindows[index]->plugin == previousPlugin) {
                     _guestPluginWindows.erase(_guestPluginWindows.begin() + index);
                     break;
                 }
             }
+#endif
         }
 
         // Pass the plugin to the processor
         if (_processor.onPluginSelectedByUser(sharedPlugin, _chainNumber, _pluginNumber)) {
             juce::Logger::writeToLog("PluginSelectionInterface::_onPluginSelected: Loaded successfully");
 
+#if JUCE_IOS
+            _pluginSelectorOverlay.reset();
+            openPluginEditor(_chainNumber, _pluginNumber);
+
+            if (!shouldClose) {
+                selectNewPlugin(_chainNumber, _pluginNumber + 1);
+            }
+#else
             // Create the new plugin window
             std::shared_ptr<PluginEditorBounds> editorBounds =
                 ModelInterface::getPluginEditorBounds(_processor.manager, _chainNumber, _pluginNumber);
@@ -182,6 +241,7 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
             if (!shouldClose) {
                 selectNewPlugin(_chainNumber, _pluginNumber + 1);
             }
+#endif
         } else {
             juce::Logger::writeToLog("PluginSelectionInterface::_onPluginSelected: Failed to load " + sharedPlugin->getPluginDescription().name);
 
@@ -196,6 +256,11 @@ void PluginSelectionInterface::_onPluginSelected(std::unique_ptr<juce::AudioPlug
 }
 
 void PluginSelectionInterface::_onPluginWindowClose(std::shared_ptr<juce::AudioPluginInstance> plugin) {
+#if JUCE_IOS
+    if (_guestPluginOverlay != nullptr && _guestPluginOverlay->plugin == plugin) {
+        _guestPluginOverlay.reset();
+    }
+#else
     // Close/delete the window
     for (int index {0}; index < _guestPluginWindows.size(); index++) {
         if (_guestPluginWindows[index]->plugin == plugin) {
@@ -203,6 +268,7 @@ void PluginSelectionInterface::_onPluginWindowClose(std::shared_ptr<juce::AudioP
             break;
         }
     }
+#endif
 }
 
 bool PluginSelectionInterface::isPluginSlot(int chainNumber, int slotNumber) {
@@ -234,5 +300,9 @@ float PluginSelectionInterface::getGainStageOutputAmplitude(int chainNumber, int
 }
 
 void PluginSelectionInterface::closeGuestPluginWindows() {
+#if JUCE_IOS
+    _guestPluginOverlay.reset();
+#else
     _guestPluginWindows.clear();
+#endif
 }

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <JuceHeader.h>
+
+#if !JUCE_IOS
+
 #include "PluginParameterSelectorComponent.h"
 #include "PluginParameterSelectorListParameters.h"
 
@@ -22,3 +25,5 @@ private:
     // We need to keep a reference to state to update the bounds on resize
     PluginParameterSelectorState& _state;
 };
+
+#endif // !JUCE_IOS

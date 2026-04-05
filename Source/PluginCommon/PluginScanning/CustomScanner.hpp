@@ -3,6 +3,8 @@
 #include <JuceHeader.h>
 #include "AllUtils.h"
 
+#if !JUCE_IOS
+
 class Superprocess : private juce::ChildProcessCoordinator {
 public:
     Superprocess() {
@@ -143,3 +145,5 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CustomPluginScanner)
 };
+
+#endif // !JUCE_IOS

@@ -1,8 +1,71 @@
 #include "PluginScanStatusMessage.h"
+#include "PluginScanClient.h"
 
 #include "PluginScanStatusBar.h"
 
-PluginScanStatusBar::PluginScanStatusBar(PluginScanClient& pluginScanClient,
+#if JUCE_IOS
+
+PluginScanStatusBar::PluginScanStatusBar(PluginScannerInterface& pluginScanClient,
+                                         const SelectorComponentStyle& style) :
+        _pluginScanClient(pluginScanClient) {
+
+    statusLbl = std::make_unique<juce::Label>("Status Label", juce::String());
+    addAndMakeVisible(statusLbl.get());
+    statusLbl->setFont(juce::Font(15.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+    statusLbl->setJustificationType(juce::Justification::centredLeft);
+    statusLbl->setEditable(false, false, false);
+    statusLbl->setColour(juce::Label::textColourId, style.highlightColour);
+
+    refreshBtn = std::make_unique<juce::TextButton>("Refresh Button");
+    addAndMakeVisible(refreshBtn.get());
+    refreshBtn->setButtonText(TRANS("Refresh"));
+    refreshBtn->setLookAndFeel(style.scanButtonLookAndFeel.get());
+    refreshBtn->setColour(UIUtils::StaticButtonLookAndFeel::backgroundColour, style.buttonBackgroundColour);
+    refreshBtn->setColour(UIUtils::StaticButtonLookAndFeel::highlightColour, style.highlightColour);
+    refreshBtn->onClick = [this] { _pluginScanClient.startScan(); };
+
+    _pluginScanClient.addListener(this);
+}
+
+PluginScanStatusBar::~PluginScanStatusBar() {
+    _pluginScanClient.removeListener(this);
+    refreshBtn->setLookAndFeel(nullptr);
+    statusLbl = nullptr;
+    refreshBtn = nullptr;
+}
+
+void PluginScanStatusBar::resized() {
+    auto area = getLocalBounds();
+    refreshBtn->setBounds(area.removeFromRight(REFRESH_BUTTON_WIDTH));
+    area.removeFromRight(SPACER_WIDTH);
+    statusLbl->setBounds(area);
+}
+
+void PluginScanStatusBar::handleMessage(const juce::Message& message) {
+    const PluginScanStatusMessage* statusMessage {
+        dynamic_cast<const PluginScanStatusMessage*>(&message)
+    };
+
+    if (statusMessage != nullptr) {
+        const juce::String numPlugins(statusMessage->numPluginsScanned);
+        juce::String statusString;
+
+        if (statusMessage->isScanRunning) {
+            statusString = "Scanning...";
+        } else if (statusMessage->numPluginsScanned == 0) {
+            statusString = "No plugins found - tap Refresh";
+        } else {
+            statusString = "Found " + numPlugins + " plugins";
+        }
+
+        refreshBtn->setEnabled(!statusMessage->isScanRunning);
+        statusLbl->setText(statusString, juce::dontSendNotification);
+    }
+}
+
+#else // !JUCE_IOS
+
+PluginScanStatusBar::PluginScanStatusBar(PluginScannerInterface& pluginScanClient,
                                          const SelectorComponentStyle& style) :
         _pluginScanClient(pluginScanClient) {
 
@@ -214,13 +277,17 @@ void PluginScanStatusBar::_createCrashedPluginsDialogue() {
 
 void PluginScanStatusBar::_createConfigureDialogue() {
     // Restore before opening the component
-    _pluginScanClient.config.restoreFromXml();
+    // config is a PluginScanClient-specific member; this code only runs on non-iOS
+    auto& client = static_cast<PluginScanClient&>(_pluginScanClient);
+    client.config.restoreFromXml();
 
-    configurePopover.reset(new ConfigurePopover(_pluginScanClient.config, [&]() {
-        _pluginScanClient.config.writeToXml();
+    configurePopover.reset(new ConfigurePopover(client.config, [&]() {
+        static_cast<PluginScanClient&>(_pluginScanClient).config.writeToXml();
         configurePopover.reset();
     }));
 
     getParentComponent()->addAndMakeVisible(configurePopover.get());
     configurePopover->setBounds(getParentComponent()->getLocalBounds());
 }
+
+#endif // !JUCE_IOS

@@ -89,10 +89,16 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
     //[/UserPreSize]
 
     //[Constructor] You can add your own custom stuff here..
+    // On iOS the AUv3 host controls the editor size — don't override it or add a resize handle
+#if !JUCE_IOS
     setResizable(true, true);
+#endif
 
     _processor.setEditor(this);
+
+#if !JUCE_IOS
     setBounds(_processor.mainWindowState.bounds);
+#endif
 
     _setSliderRanges();
 
@@ -118,7 +124,10 @@ SyndicateAudioProcessorEditor::SyndicateAudioProcessorEditor (SyndicateAudioProc
 SyndicateAudioProcessorEditor::~SyndicateAudioProcessorEditor()
 {
     //[Destructor_pre]. You can add your own custom destruction code here..
+    // On iOS the host owns the editor bounds, so there's nothing to persist
+#if !JUCE_IOS
     _processor.mainWindowState.bounds = getBounds();
+#endif
     _processor.setEditor(nullptr);
     _tooltipLabelUpdater.stop();
 

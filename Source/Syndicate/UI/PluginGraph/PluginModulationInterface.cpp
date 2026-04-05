@@ -85,10 +85,21 @@ void PluginModulationInterface::selectModulationTarget(int chainNumber, int plug
             ? "Replacing parameter " + config.parameterConfigs[targetNumber]->targetParameterName
             : "New parameter for plugin " + plugin->getPluginDescription().name;
 
+#if JUCE_IOS
+        juce::AudioProcessorEditor* editor = _processor.getActiveEditor();
+        if (editor == nullptr) return;
+
+        _parameterSelectorOverlay.reset(new PluginParameterSelectorOverlay(
+            [&]() { _parameterSelectorOverlay.reset(); }, parameters, title));
+
+        editor->addAndMakeVisible(_parameterSelectorOverlay.get());
+        _parameterSelectorOverlay->setBounds(editor->getLocalBounds());
+#else
         _parameterSelectorWindow.reset(new PluginParameterSelectorWindow(
             [&]() { _parameterSelectorWindow.reset(); }, parameters, title));
 
         _parameterSelectorWindow->takeFocus();
+#endif
     }
 }
 
@@ -122,7 +133,11 @@ juce::AudioProcessorParameter* PluginModulationInterface::getPluginParameterForT
 
 void PluginModulationInterface::_onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber, bool shouldClose) {
     _processor.setModulationTarget(chainNumber, pluginNumber, targetNumber, parameter->getName(PluginParameterModulationConfig::PLUGIN_PARAMETER_NAME_LENGTH_LIMIT));
+#if JUCE_IOS
+    _parameterSelectorOverlay.reset();
+#else
     _parameterSelectorWindow.reset();
+#endif
 
     if (!shouldClose) {
         selectModulationTarget(chainNumber, pluginNumber, targetNumber + 1);

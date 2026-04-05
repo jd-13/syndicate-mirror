@@ -1,7 +1,11 @@
 #pragma once
 
 #include <JuceHeader.h>
+#if JUCE_IOS
+#include "PluginParameterSelectorOverlay.h"
+#else
 #include "PluginParameterSelectorWindow.h"
+#endif
 
 class SyndicateAudioProcessor;
 struct PluginModulationConfig;
@@ -28,7 +32,11 @@ public:
 
 private:
     SyndicateAudioProcessor& _processor;
+#if JUCE_IOS
+    std::unique_ptr<PluginParameterSelectorOverlay> _parameterSelectorOverlay;
+#else
     std::unique_ptr<PluginParameterSelectorWindow> _parameterSelectorWindow;
+#endif
 
     void _onPluginParameterSelected(juce::AudioProcessorParameter* parameter, int chainNumber, int pluginNumber, int targetNumber, bool shouldClose);
 };

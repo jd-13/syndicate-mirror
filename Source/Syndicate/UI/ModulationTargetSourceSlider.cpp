@@ -1,10 +1,34 @@
 #include "ModulationTargetSourceSlider.hpp"
 #include "UIUtils.h"
 
+void ModulationTargetSourceSlider::RoundedPopupLabel::setText(const juce::String& text) {
+    _text = text;
+    repaint();
+}
+
+void ModulationTargetSourceSlider::RoundedPopupLabel::paint(juce::Graphics& g) {
+    g.setColour(UIUtils::backgroundColour);
+    g.fillRoundedRectangle(getLocalBounds().toFloat(), 5.0f);
+    g.setColour(UIUtils::neutralColour);
+    g.setFont(juce::Font(15.0f));
+    g.drawText(_text, getLocalBounds(), juce::Justification::centred);
+}
+
 ModulationTargetSourceSlider::ModulationTargetSourceSlider(
         ModulationSourceDefinition definition,
         std::function<void(ModulationSourceDefinition)> onRemoveCallback)
             : _definition(definition), _onRemoveCallback(onRemoveCallback), _isRightClick(false) {
+#if JUCE_IOS
+    _longPressHandler = std::make_unique<UIUtils::LongPressHandler>([this]() {
+        juce::PopupMenu menu;
+        menu.addItem(1, TRANS("Remove source"));
+        menu.showMenuAsync(juce::PopupMenu::Options(), [this](int result) {
+            if (result == 1) {
+                _onRemoveCallback(_definition);
+            }
+        });
+    });
+#endif
     setRange(-1, 1, 0);
     setDoubleClickReturnValue(true, 0);
 
@@ -65,6 +89,10 @@ void ModulationTargetSourceSlider::paint(juce::Graphics& g) {
 }
 
 void ModulationTargetSourceSlider::mouseDown(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    _longPressHandler->mouseDown();
+    juce::Slider::mouseDown(event);
+#else
     // If this is a right click, we need to remove the source on mouseUp
     if (event.mods.isRightButtonDown()) {
         _isRightClick = true;
@@ -74,9 +102,15 @@ void ModulationTargetSourceSlider::mouseDown(const juce::MouseEvent& event) {
         // If it's not a right click, pass the event through so the slider can be moved
         juce::Slider::mouseDown(event);
     }
+#endif
 }
 
 void ModulationTargetSourceSlider::mouseUp(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    if (!_longPressHandler->mouseUp()) {
+        juce::Slider::mouseUp(event);
+    }
+#else
     if (_isRightClick) {
         // If it's a right click make sure the mouse is still over the slider
         if (contains(event.getPosition())) {
@@ -87,6 +121,51 @@ void ModulationTargetSourceSlider::mouseUp(const juce::MouseEvent& event) {
         // Not a right click, pass the event through as normal
         juce::Slider::mouseUp(event);
     }
+#endif
+}
+
+void ModulationTargetSourceSlider::mouseEnter(const juce::MouseEvent& event) {
+    _showValuePopup();
+    juce::Slider::mouseEnter(event);
+}
+
+void ModulationTargetSourceSlider::mouseExit(const juce::MouseEvent& event) {
+    _hideValuePopup();
+    juce::Slider::mouseExit(event);
+}
+
+void ModulationTargetSourceSlider::mouseDrag(const juce::MouseEvent& event) {
+#if JUCE_IOS
+    _longPressHandler->mouseDrag();
+#endif
+    if (_valueBubble != nullptr) {
+        _valueBubble->setText(juce::String(getValue(), 2));
+    }
+
+    juce::Slider::mouseDrag(event);
+}
+
+void ModulationTargetSourceSlider::_showValuePopup() {
+    if (_valueBubble == nullptr) {
+        auto bubble = std::make_unique<RoundedPopupLabel>();
+        bubble->setInterceptsMouseClicks(false, false);
+        getTopLevelComponent()->addAndMakeVisible(bubble.get());
+        _valueBubble = std::move(bubble);
+    }
+
+    constexpr int popupWidth {50};
+    constexpr int popupHeight {20};
+    const juce::Point<int> bottomCentre {getTopLevelComponent()->getLocalPoint(
+        this, juce::Point<int>(getWidth() / 2, getHeight()))};
+    _valueBubble->setBounds(bottomCentre.x - popupWidth / 2,
+                            bottomCentre.y + 2,
+                            popupWidth,
+                            popupHeight);
+    _valueBubble->setText(juce::String(getValue(), 2));
+}
+
+void ModulationTargetSourceSlider::_hideValuePopup() {
+    _valueBubble.reset();
 }
 
 ModulationTargetSourceSliders::ModulationTargetSourceSliders(
@@ -141,7 +220,11 @@ void ModulationTargetSourceSliders::addSource(ModulationSourceDefinition definit
     newModulationSlot->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     newModulationSlot->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     newModulationSlot->addListener(this);
+#if JUCE_IOS
+    newModulationSlot->setTooltip("Drag up or down to add positive or negative modulation, long press to remove");
+#else
     newModulationSlot->setTooltip("Drag up or down to add positive or negative modulation, right click to remove");
+#endif
     _sliders.push_back(std::move(newModulationSlot));
     _refreshSlotPositions();
 }
