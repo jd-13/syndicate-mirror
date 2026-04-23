@@ -241,5 +241,61 @@ namespace XmlWriter {
                 }
             }
         }
+
+        // Step Sequencers
+        juce::XmlElement* stepSeqsElement = element->createNewChildElement(XML_STEP_SEQUENCERS_STR);
+        for (int index {0}; index < state.stepSequencers.size(); index++) {
+            juce::XmlElement* thisSeqElement = stepSeqsElement->createNewChildElement(getStepSequencerXMLName(index));
+            std::shared_ptr<WECore::StepSeq::StepSequencer> thisSeq = state.stepSequencers[index];
+
+            thisSeqElement->setAttribute(XML_STEP_SEQ_TEMPO_SYNC_STR, thisSeq->getTempoSyncSwitch());
+            thisSeqElement->setAttribute(XML_STEP_SEQ_TEMPO_NUMER_STR, thisSeq->getTempoNumer());
+            thisSeqElement->setAttribute(XML_STEP_SEQ_TEMPO_DENOM_STR, thisSeq->getTempoDenom());
+            thisSeqElement->setAttribute(XML_STEP_SEQ_FREQ_STR, thisSeq->getFreq());
+            thisSeqElement->setAttribute(XML_STEP_SEQ_DEPTH_STR, thisSeq->getDepth());
+
+            // Freq modulation sources
+            juce::XmlElement* freqModSourcesElement = thisSeqElement->createNewChildElement(XML_STEP_SEQ_FREQ_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> freqModSources = thisSeq->getFreqModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < freqModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = freqModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(freqModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, freqModSources[sourceIndex].amount);
+                }
+            }
+
+            // Depth modulation sources
+            juce::XmlElement* depthModSourcesElement = thisSeqElement->createNewChildElement(XML_STEP_SEQ_DEPTH_MODULATION_SOURCES_STR);
+            const std::vector<WECore::ModulationSourceWrapper<double>> depthModSources = thisSeq->getDepthModulationSources();
+
+            for (int sourceIndex {0}; sourceIndex < depthModSources.size(); sourceIndex++) {
+                juce::XmlElement* thisSourceElement = depthModSourcesElement->createNewChildElement(getParameterModulationSourceXmlName(sourceIndex));
+
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(depthModSources[sourceIndex].source);
+                if (thisSource != nullptr) {
+                    thisSource->definition.writeToXml(thisSourceElement);
+                    thisSourceElement->setAttribute(XML_MODULATION_SOURCE_AMOUNT, depthModSources[sourceIndex].amount);
+                }
+            }
+
+            // Just support one pattern for now
+            for (int patternIndex {0}; patternIndex < thisSeq->getNumPatterns(); patternIndex++) {
+                juce::XmlElement* patternElement = thisSeqElement->createNewChildElement(getStepSeqPatternXMLName(patternIndex));
+                const WECore::StepSeq::Pattern& pattern = thisSeq->getPattern(patternIndex);
+
+                for (int stepIndex {0}; stepIndex < pattern.steps.size(); stepIndex++) {
+                    juce::XmlElement* stepElement = patternElement->createNewChildElement(getStepSeqStepXMLName(stepIndex));
+                    stepElement->setAttribute(XML_STEP_SEQ_STEP_VALUE_STR, pattern.steps[stepIndex].value);
+                    stepElement->setAttribute(XML_STEP_SEQ_STEP_SHAPE_STR, static_cast<int>(pattern.steps[stepIndex].shape));
+                    stepElement->setAttribute(XML_STEP_SEQ_STEP_REVERSE_STR, pattern.steps[stepIndex].reverse);
+                    stepElement->setAttribute(XML_STEP_SEQ_STEP_REPEAT_STR, pattern.steps[stepIndex].repeat);
+                    stepElement->setAttribute(XML_STEP_SEQ_STEP_LENGTH_MULTIPLIER_STR, pattern.steps[stepIndex].lengthMultiplier);
+                }
+            }
+        }
     }
 }

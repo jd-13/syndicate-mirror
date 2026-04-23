@@ -22,30 +22,12 @@ public:
     void buttonClicked(juce::Button* buttonThatWasClicked) override;
 
 private:
-    class TempoSliderLookAndFeel : public UIUtils::StandardSliderLookAndFeel {
-    public:
-        void drawButtonBackground(juce::Graphics& g,
-                                  juce::Button& button,
-                                  const juce::Colour& backgroundColour,
-                                  bool isMouseOverButton,
-                                  bool isButtonDown) override;
-
-        void drawButtonText(juce::Graphics& g,
-                            juce::TextButton& textButton,
-                            bool isMouseOverButton,
-                            bool isButtonDown) override;
-
-        juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override;
-
-        juce::Label* createSliderTextBox(juce::Slider& slider) override;
-    };
-
     SyndicateAudioProcessor& _processor;
     int _lfoIndex;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     UIUtils::ToggleButtonLookAndFeel _buttonLookAndFeel;
     UIUtils::StandardComboBoxLookAndFeel _comboBoxLookAndFeel;
-    TempoSliderLookAndFeel _tempoSliderLookAndFeel;
+    UIUtils::TempoSliderLookAndFeel _tempoSliderLookAndFeel;
 
     void _updateWaveView();
     void _updateTempoToggles();

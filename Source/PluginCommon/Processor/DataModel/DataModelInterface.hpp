@@ -7,6 +7,7 @@
 #include "SplitterProcessors.hpp"
 #include "CloneableSources.hpp"
 #include "WEFilters/PerlinSource.hpp"
+#include "WEFilters/StepSequencer.h"
 
 namespace ModelInterface {
     struct SplitterState {
@@ -59,6 +60,7 @@ namespace ModelInterface {
         std::vector<std::shared_ptr<CloneableLFO>> lfos;
         std::vector<std::shared_ptr<EnvelopeWrapper>> envelopes;
         std::vector<std::shared_ptr<WECore::Perlin::PerlinSource>> randomSources;
+        std::vector<std::shared_ptr<WECore::StepSeq::StepSequencer>> stepSequencers;
 
         // Needed for the envelope followers to figure out which buffers to read from
         HostConfiguration hostConfig;
@@ -84,6 +86,10 @@ namespace ModelInterface {
 
             for (std::shared_ptr<WECore::Perlin::PerlinSource> source : other.randomSources) {
                 randomSources.emplace_back(source->clone());
+            }
+
+            for (std::shared_ptr<WECore::StepSeq::StepSequencer> seq : other.stepSequencers) {
+                stepSequencers.emplace_back(seq->clone());
             }
         }
     };

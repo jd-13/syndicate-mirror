@@ -33,6 +33,11 @@ namespace {
     const char* XML_CHAIN_VIEW_POSITIONS_STR {"ChainViewScrollPositions"};
     const char* XML_LFO_BUTTONS_POSITION_STR {"LfoButtonsScrollPosition"};
     const char* XML_ENV_BUTTONS_POSITION_STR {"EnvButtonsScrollPosition"};
+    const char* XML_RND_BUTTONS_POSITION_STR {"RndButtonsScrollPosition"};
+    const char* XML_SEQ_BUTTONS_POSITION_STR {"SeqButtonsScrollPosition"};
+    const char* XML_SOURCES_POSITION_STR {"SourcesScrollPosition"};
+    const char* XML_SEQ_STATE_STR {"StepSeqState"};
+    const char* XML_SEQ_SHOWING_VIEW_STR {"IsShowingSequencerView"};
     const char* XML_SELECTED_SOURCE_STR {"SelectedSource"};
 
     juce::String getMacroNameXMLName(int macroNumber) {
@@ -44,6 +49,12 @@ namespace {
     juce::String getChainPositionXMLName(int chainNumber) {
         juce::String retVal("Chain_");
         retVal += juce::String(chainNumber);
+        return retVal;
+    }
+
+    juce::String getSeqStateXMLName(int seqNumber) {
+        juce::String retVal("StepSeq_");
+        retVal += juce::String(seqNumber);
         return retVal;
     }
 
@@ -443,6 +454,110 @@ void SyndicateAudioProcessor::setRandomDepth(int randomIndex, double val) {
     }
 }
 
+void SyndicateAudioProcessor::addStepSequencer() {
+    ModelInterface::addStepSequencer(manager);
+
+    if (_editor != nullptr) {
+        _editor->needsModulationBarRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqTempoSyncSwitch(int seqIndex, bool val) {
+    ModelInterface::setStepSeqTempoSyncSwitch(manager, seqIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqTempoNumer(int seqIndex, int val) {
+    ModelInterface::setStepSeqTempoNumer(manager, seqIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqTempoDenom(int seqIndex, int val) {
+    ModelInterface::setStepSeqTempoDenom(manager, seqIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqFreq(int seqIndex, double val) {
+    ModelInterface::setStepSeqFreq(manager, seqIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqDepth(int seqIndex, double val) {
+    ModelInterface::setStepSeqDepth(manager, seqIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addStepSeqStep(int seqIndex, int patternIndex) {
+    ModelInterface::addStepSeqStep(manager, seqIndex, patternIndex);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::removeStepSeqStep(int seqIndex, int patternIndex) {
+    ModelInterface::removeStepSeqStep(manager, seqIndex, patternIndex);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqStepValue(int seqIndex, int patternIndex, int stepIndex, double val) {
+    ModelInterface::setStepSeqStepValue(manager, seqIndex, patternIndex, stepIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqStepShape(int seqIndex, int patternIndex, int stepIndex, int shape) {
+    ModelInterface::setStepSeqStepShape(manager, seqIndex, patternIndex, stepIndex, shape);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqStepReverse(int seqIndex, int patternIndex, int stepIndex, bool val) {
+    ModelInterface::setStepSeqStepReverse(manager, seqIndex, patternIndex, stepIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqStepRepeat(int seqIndex, int patternIndex, int stepIndex, int val) {
+    ModelInterface::setStepSeqStepRepeat(manager, seqIndex, patternIndex, stepIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqStepLengthMultiplier(int seqIndex, int patternIndex, int stepIndex, double val) {
+    ModelInterface::setStepSeqStepLengthMultiplier(manager, seqIndex, patternIndex, stepIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
 float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TYPE type) {
     // TODO This method may be called multiple times for each buffer, could be optimised
     if (type == MODULATION_TYPE::MACRO) {
@@ -456,6 +571,8 @@ float SyndicateAudioProcessor::getModulationValueForSource(int id, MODULATION_TY
         return ModelInterface::getEnvelopeModulationValue(manager, id);
     } else if (type == MODULATION_TYPE::RANDOM) {
         return ModelInterface::getRandomModulationValue(manager, id);
+    } else if (type == MODULATION_TYPE::STEP_SEQUENCER) {
+        return ModelInterface::getStepSeqModulationValue(manager, id);
     }
 
     return 0.0f;
@@ -707,6 +824,54 @@ void SyndicateAudioProcessor::removeSourceFromRandomDepth(int randomIndex, Modul
 
 void SyndicateAudioProcessor::setRandomDepthModulationAmount(int randomIndex, int sourceIndex, double val) {
     ModelInterface::setRandomDepthModulationAmount(manager, randomIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToStepSeqFreq(int seqIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToStepSeqFreq(manager, seqIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromStepSeqFreq(int seqIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromStepSeqFreq(manager, seqIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqFreqModulationAmount(int seqIndex, int sourceIndex, double val) {
+    ModelInterface::setStepSeqFreqModulationAmount(manager, seqIndex, sourceIndex, val);
+
+    if (_editor != nullptr) {
+        _editor->needsUndoRedoRefresh();
+    }
+}
+
+void SyndicateAudioProcessor::addSourceToStepSeqDepth(int seqIndex, ModulationSourceDefinition source) {
+    ModelInterface::addSourceToStepSeqDepth(manager, seqIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::removeSourceFromStepSeqDepth(int seqIndex, ModulationSourceDefinition source) {
+    ModelInterface::removeSourceFromStepSeqDepth(manager, seqIndex, source);
+
+    if (_editor != nullptr) {
+        _editor->needsSelectedModulationSourceRebuild();
+    }
+}
+
+void SyndicateAudioProcessor::setStepSeqDepthModulationAmount(int seqIndex, int sourceIndex, double val) {
+    ModelInterface::setStepSeqDepthModulationAmount(manager, seqIndex, sourceIndex, val);
 
     if (_editor != nullptr) {
         _editor->needsUndoRedoRefresh();
@@ -1114,6 +1279,43 @@ void SyndicateAudioProcessor::SplitterParameters::_restoreMainWindowStateFromXml
         juce::Logger::writeToLog("Missing attribute " + juce::String(XML_ENV_BUTTONS_POSITION_STR));
     }
 
+    if (element->hasAttribute(XML_RND_BUTTONS_POSITION_STR)) {
+        _processor->mainWindowState.rndButtonsScrollPosition = element->getIntAttribute(XML_RND_BUTTONS_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_RND_BUTTONS_POSITION_STR));
+    }
+
+    if (element->hasAttribute(XML_SEQ_BUTTONS_POSITION_STR)) {
+        _processor->mainWindowState.seqButtonsScrollPosition = element->getIntAttribute(XML_SEQ_BUTTONS_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_SEQ_BUTTONS_POSITION_STR));
+    }
+
+    if (element->hasAttribute(XML_SOURCES_POSITION_STR)) {
+        _processor->mainWindowState.sourcesScrollPosition = element->getIntAttribute(XML_SOURCES_POSITION_STR);
+    } else {
+        juce::Logger::writeToLog("Missing attribute " + juce::String(XML_SOURCES_POSITION_STR));
+    }
+
+    juce::XmlElement* seqStateElement = element->getChildByName(XML_SEQ_STATE_STR);
+    if (seqStateElement != nullptr) {
+        const int numSeqs {seqStateElement->getNumChildElements()};
+        std::vector<bool> seqShowingSequencerView(numSeqs, false);
+
+        for (int index {0}; index < numSeqs; index++) {
+            juce::XmlElement* seqElement = seqStateElement->getChildElement(index);
+            if (seqElement == nullptr) {
+                continue;
+            }
+
+            if (seqElement->hasAttribute(XML_SEQ_SHOWING_VIEW_STR)) {
+                seqShowingSequencerView[index] = static_cast<bool>(seqElement->getIntAttribute(XML_SEQ_SHOWING_VIEW_STR));
+            }
+        }
+
+        _processor->mainWindowState.seqShowingSequencerView = seqShowingSequencerView;
+    }
+
     juce::XmlElement* selectedSourceElement = element->getChildByName(XML_SELECTED_SOURCE_STR);
     if (selectedSourceElement != nullptr) {
         _processor->mainWindowState.selectedModulationSource = ModulationSourceDefinition(1, MODULATION_TYPE::LFO);
@@ -1160,6 +1362,15 @@ void SyndicateAudioProcessor::SplitterParameters::_writeMainWindowStateToXml(juc
 
     element->setAttribute(XML_LFO_BUTTONS_POSITION_STR, _processor->mainWindowState.lfoButtonsScrollPosition);
     element->setAttribute(XML_ENV_BUTTONS_POSITION_STR, _processor->mainWindowState.envButtonsScrollPosition);
+    element->setAttribute(XML_RND_BUTTONS_POSITION_STR, _processor->mainWindowState.rndButtonsScrollPosition);
+    element->setAttribute(XML_SEQ_BUTTONS_POSITION_STR, _processor->mainWindowState.seqButtonsScrollPosition);
+    element->setAttribute(XML_SOURCES_POSITION_STR, _processor->mainWindowState.sourcesScrollPosition);
+
+    juce::XmlElement* seqStateElement = element->createNewChildElement(XML_SEQ_STATE_STR);
+    for (int index {0}; index < _processor->mainWindowState.seqShowingSequencerView.size(); index++) {
+        juce::XmlElement* seqElement = seqStateElement->createNewChildElement(getSeqStateXMLName(index));
+        seqElement->setAttribute(XML_SEQ_SHOWING_VIEW_STR, static_cast<int>(_processor->mainWindowState.seqShowingSequencerView[index]));
+    }
 
     if (_processor->mainWindowState.selectedModulationSource.has_value()) {
         juce::XmlElement* selectedSourceElement = element->createNewChildElement(XML_SELECTED_SOURCE_STR);

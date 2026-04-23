@@ -86,11 +86,13 @@ namespace ModelInterface {
     void addLfo(StateManager& manager);
     void addEnvelope(StateManager& manager);
     void addRandom(StateManager& manager);
+    void addStepSequencer(StateManager& manager);
     void removeModulationSource(StateManager& manager, ModulationSourceDefinition definition);
 
     void forEachLfo(StateManager& manager, std::function<void(int)> callback);
     void forEachEnvelope(StateManager& manager, std::function<void(int)> callback);
     void forEachRandom(StateManager& manager, std::function<void(int)> callback);
+    void forEachStepSequencer(StateManager& manager, std::function<void(int)> callback);
 
     // LFOs
     void setLfoTempoSyncSwitch(StateManager& manager, int lfoIndex, bool val);
@@ -164,6 +166,47 @@ namespace ModelInterface {
     double getRandomDepth(StateManager& manager, int randomIndex);
     double getRandomModulatedDepthValue(StateManager& manager, int randomIndex);
     double getRandomLastOutput(StateManager& manager, int randomIndex);
+
+    // Step Sequencers
+    void setStepSeqTempoSyncSwitch(StateManager& manager, int seqIndex, bool val);
+    void setStepSeqTempoNumer(StateManager& manager, int seqIndex, int val);
+    void setStepSeqTempoDenom(StateManager& manager, int seqIndex, int val);
+    void setStepSeqFreq(StateManager& manager, int seqIndex, double val);
+    void setStepSeqDepth(StateManager& manager, int seqIndex, double val);
+
+    void addStepSeqStep(StateManager& manager, int seqIndex, int patternIndex);
+    void removeStepSeqStep(StateManager& manager, int seqIndex, int patternIndex);
+    int getStepSeqNumSteps(StateManager& manager, int seqIndex, int patternIndex);
+
+    void setStepSeqStepValue(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, double val);
+    void setStepSeqStepShape(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, int shape);
+    void setStepSeqStepReverse(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, bool val);
+    void setStepSeqStepRepeat(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, int val);
+    void setStepSeqStepLengthMultiplier(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, double val);
+
+    void addSourceToStepSeqFreq(StateManager& manager, int seqIndex, ModulationSourceDefinition source);
+    void removeSourceFromStepSeqFreq(StateManager& manager, int seqIndex, ModulationSourceDefinition source);
+    void setStepSeqFreqModulationAmount(StateManager& manager, int seqIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqFreqModulationSources(StateManager& manager, int seqIndex);
+    void addSourceToStepSeqDepth(StateManager& manager, int seqIndex, ModulationSourceDefinition source);
+    void removeSourceFromStepSeqDepth(StateManager& manager, int seqIndex, ModulationSourceDefinition source);
+    void setStepSeqDepthModulationAmount(StateManager& manager, int seqIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqDepthModulationSources(StateManager& manager, int seqIndex);
+
+    bool getStepSeqTempoSyncSwitch(StateManager& manager, int seqIndex);
+    int getStepSeqTempoNumer(StateManager& manager, int seqIndex);
+    int getStepSeqTempoDenom(StateManager& manager, int seqIndex);
+    double getStepSeqFreq(StateManager& manager, int seqIndex);
+    double getStepSeqDepth(StateManager& manager, int seqIndex);
+    double getStepSeqStepValue(StateManager& manager, int seqIndex, int patternIndex, int stepIndex);
+    int getStepSeqStepShape(StateManager& manager, int seqIndex, int patternIndex, int stepIndex);
+    bool getStepSeqStepReverse(StateManager& manager, int seqIndex, int patternIndex, int stepIndex);
+    int getStepSeqStepRepeat(StateManager& manager, int seqIndex, int patternIndex, int stepIndex);
+    double getStepSeqStepLengthMultiplier(StateManager& manager, int seqIndex, int patternIndex, int stepIndex);
+    double getStepSeqModulatedFreqValue(StateManager& manager, int seqIndex);
+    double getStepSeqModulatedDepthValue(StateManager& manager, int seqIndex);
+    double getStepSeqLastOutput(StateManager& manager, int seqIndex);
+    int getStepSeqCurrentStep(StateManager& manager, int seqIndex);
 
     void resetAllState(StateManager& manager,
                        HostConfiguration config,

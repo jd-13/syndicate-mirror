@@ -12,4 +12,5 @@ namespace ModelInterface {
     double getLfoModulationValue(StateManager& manager, int lfoNumber);
     double getEnvelopeModulationValue(StateManager& manager, int envelopeNumber);
     double getRandomModulationValue(StateManager& manager, int randomNumber);
+    double getStepSeqModulationValue(StateManager& manager, int stepSeqNumber);
 }

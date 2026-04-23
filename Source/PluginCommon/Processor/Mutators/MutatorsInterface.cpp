@@ -973,6 +973,7 @@ namespace ModelInterface {
         ModulationMutators::addLfo(manager.getSourcesStateUnsafe());
         ModulationMutators::addEnvelope(manager.getSourcesStateUnsafe());
         ModulationMutators::addRandom(manager.getSourcesStateUnsafe());
+        ModulationMutators::addStepSequencer(manager.getSourcesStateUnsafe());
     }
 
     void addLfo(StateManager& manager) {
@@ -1010,6 +1011,19 @@ namespace ModelInterface {
         ModulationMutators::addRandom(sources);
         pushSources(manager, sources, "add RND");
     }
+
+    void addStepSequencer(StateManager& manager) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        ModulationMutators::addStepSequencer(sources);
+        pushSources(manager, sources, "add SEQ");
+    }
+
 
     void removeModulationSource(StateManager& manager, ModulationSourceDefinition definition) {
         std::scoped_lock lock(manager.mutatorsMutex);
@@ -1068,6 +1082,15 @@ namespace ModelInterface {
 
         for (int rndIndex {0}; rndIndex < state.randomSources.size(); rndIndex++) {
             callback(rndIndex + 1);
+        }
+    }
+
+    void forEachStepSequencer(StateManager& manager, std::function<void(int)> callback) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        ModulationSourcesState& state = *manager.getSourcesStateUnsafe();
+
+        for (int seqIndex {0}; seqIndex < state.stepSequencers.size(); seqIndex++) {
+            callback(seqIndex + 1);
         }
     }
 
@@ -1685,6 +1708,343 @@ namespace ModelInterface {
     double getRandomLastOutput(StateManager& manager, int randomIndex) {
         std::scoped_lock lock(manager.mutatorsMutex);
         return ModulationMutators::getRandomLastOutput(manager.getSourcesStateUnsafe(), randomIndex);
+    }
+
+    void addSourceToStepSeqFreq(StateManager& manager, int seqIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToStepSeqFreq(sources, seqIndex, source)) {
+            pushSources(manager, sources, "add modulation source to SEQ " + juce::String(seqIndex + 1) + " frequency");
+        }
+    }
+
+    void removeSourceFromStepSeqFreq(StateManager& manager, int seqIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromStepSeqFreq(sources, seqIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from SEQ " + juce::String(seqIndex + 1) + " frequency");
+        }
+    }
+
+    void setStepSeqFreqModulationAmount(StateManager& manager, int seqIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " frequency modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqFreqModulationAmount(sources, seqIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqFreqModulationSources(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqFreqModulationSources(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    void addSourceToStepSeqDepth(StateManager& manager, int seqIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addSourceToStepSeqDepth(sources, seqIndex, source)) {
+            pushSources(manager, sources, "add modulation source to SEQ " + juce::String(seqIndex + 1) + " depth");
+        }
+    }
+
+    void removeSourceFromStepSeqDepth(StateManager& manager, int seqIndex, ModulationSourceDefinition source) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeSourceFromStepSeqDepth(sources, seqIndex, source)) {
+            pushSources(manager, sources, "remove modulation source from SEQ " + juce::String(seqIndex + 1) + " depth");
+        }
+    }
+
+    void setStepSeqDepthModulationAmount(StateManager& manager, int seqIndex, int sourceIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " depth modulation amount";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqDepthModulationAmount(sources, seqIndex, sourceIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqDepthModulationSources(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqDepthModulationSources(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    void setStepSeqTempoSyncSwitch(StateManager& manager, int seqIndex, bool val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqTempoSyncSwitch(sources, seqIndex, val)) {
+            pushSources(manager, sources, "set SEQ " + juce::String(seqIndex + 1) + " tempo sync");
+        }
+    }
+
+    void setStepSeqTempoNumer(StateManager& manager, int seqIndex, int val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " tempo numerator";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqTempoNumer(sources, seqIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setStepSeqTempoDenom(StateManager& manager, int seqIndex, int val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " tempo denominator";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqTempoDenom(sources, seqIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setStepSeqFreq(StateManager& manager, int seqIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " frequency";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqFreq(sources, seqIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setStepSeqDepth(StateManager& manager, int seqIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " depth";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqDepth(sources, seqIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void addStepSeqStep(StateManager& manager, int seqIndex, int patternIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::addStepSeqStep(sources, seqIndex, patternIndex)) {
+            pushSources(manager, sources, "add SEQ " + juce::String(seqIndex + 1) + " step");
+        }
+    }
+
+    void removeStepSeqStep(StateManager& manager, int seqIndex, int patternIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::removeStepSeqStep(sources, seqIndex, patternIndex)) {
+            pushSources(manager, sources, "remove SEQ " + juce::String(seqIndex + 1) + " step");
+        }
+    }
+
+    int getStepSeqNumSteps(StateManager& manager, int seqIndex, int patternIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqNumSteps(manager.getSourcesStateUnsafe(), seqIndex, patternIndex);
+    }
+
+    void setStepSeqStepValue(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " step " + juce::String(stepIndex) + " value";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqStepValue(sources, seqIndex, patternIndex, stepIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setStepSeqStepShape(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, int shape) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqStepShape(sources, seqIndex, patternIndex, stepIndex, shape)) {
+            pushSources(manager, sources, "set SEQ " + juce::String(seqIndex + 1) + " step " + juce::String(stepIndex) + " shape");
+        }
+    }
+
+    void setStepSeqStepReverse(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, bool val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesState(manager);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqStepReverse(sources, seqIndex, patternIndex, stepIndex, val)) {
+            pushSources(manager, sources, "set SEQ " + juce::String(seqIndex + 1) + " step " + juce::String(stepIndex) + " reverse");
+        }
+    }
+
+    void setStepSeqStepRepeat(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, int val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " step " + juce::String(stepIndex) + " repeat";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqStepRepeat(sources, seqIndex, patternIndex, stepIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    void setStepSeqStepLengthMultiplier(StateManager& manager, int seqIndex, int patternIndex, int stepIndex, double val) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+
+        const juce::String operation = "set SEQ " + juce::String(seqIndex + 1) + " step " + juce::String(stepIndex) + " length multiplier";
+        std::shared_ptr<ModulationSourcesState> sources = cloneSourcesStateIfNeeded(manager, operation);
+
+        if (sources == nullptr) {
+            return;
+        }
+
+        if (ModulationMutators::setStepSeqStepLengthMultiplier(sources, seqIndex, patternIndex, stepIndex, val)) {
+            pushSources(manager, sources, operation);
+        }
+    }
+
+    bool getStepSeqTempoSyncSwitch(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqTempoSyncSwitch(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    int getStepSeqTempoNumer(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqTempoNumer(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    int getStepSeqTempoDenom(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqTempoDenom(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    double getStepSeqFreq(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqFreq(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    double getStepSeqModulatedFreqValue(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqModulatedFreqValue(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    double getStepSeqDepth(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqDepth(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    double getStepSeqModulatedDepthValue(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqModulatedDepthValue(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    double getStepSeqStepValue(StateManager& manager, int seqIndex, int patternIndex, int stepIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqStepValue(manager.getSourcesStateUnsafe(), seqIndex, patternIndex, stepIndex);
+    }
+
+    int getStepSeqStepShape(StateManager& manager, int seqIndex, int patternIndex, int stepIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqStepShape(manager.getSourcesStateUnsafe(), seqIndex, patternIndex, stepIndex);
+    }
+
+    bool getStepSeqStepReverse(StateManager& manager, int seqIndex, int patternIndex, int stepIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqStepReverse(manager.getSourcesStateUnsafe(), seqIndex, patternIndex, stepIndex);
+    }
+
+    int getStepSeqStepRepeat(StateManager& manager, int seqIndex, int patternIndex, int stepIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqStepRepeat(manager.getSourcesStateUnsafe(), seqIndex, patternIndex, stepIndex);
+    }
+
+    double getStepSeqStepLengthMultiplier(StateManager& manager, int seqIndex, int patternIndex, int stepIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqStepLengthMultiplier(manager.getSourcesStateUnsafe(), seqIndex, patternIndex, stepIndex);
+    }
+
+    double getStepSeqLastOutput(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqLastOutput(manager.getSourcesStateUnsafe(), seqIndex);
+    }
+
+    int getStepSeqCurrentStep(StateManager& manager, int seqIndex) {
+        std::scoped_lock lock(manager.mutatorsMutex);
+        return ModulationMutators::getStepSeqCurrentStep(manager.getSourcesStateUnsafe(), seqIndex);
     }
 
     void resetAllState(StateManager& manager,

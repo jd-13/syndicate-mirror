@@ -679,6 +679,312 @@ namespace ModulationMutators {
         return 0;
     }
 
+    //
+    // Step Sequencers
+    //
+    void addStepSequencer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources) {
+        std::shared_ptr<WECore::StepSeq::StepSequencer> newSeq {new WECore::StepSeq::StepSequencer()};
+        newSeq->setSampleRate(sources->hostConfig.sampleRate);
+        sources->stepSequencers.push_back(newSeq);
+    }
+
+    bool addSourceToStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source) {
+        if (sources->stepSequencers.size() <= seqIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->stepSequencers[seqIndex]->addFreqModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source) {
+        if (sources->stepSequencers.size() <= seqIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->stepSequencers[seqIndex]->getFreqModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->stepSequencers[seqIndex]->removeFreqModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setStepSeqFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int sourceIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->setFreqModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->stepSequencers.size() > seqIndex) {
+            for (const auto& source : sources->stepSequencers[seqIndex]->getFreqModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    bool addSourceToStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source) {
+        if (sources->stepSequencers.size() <= seqIndex) {
+            return false;
+        }
+
+        auto sourceProvider = std::make_shared<ModulationSourceProvider>(source, sources->getModulationValueCallback);
+        return sources->stepSequencers[seqIndex]->addDepthModulationSource(std::dynamic_pointer_cast<WECore::ModulationSource<double>>(sourceProvider));
+    }
+
+    bool removeSourceFromStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source) {
+        if (sources->stepSequencers.size() <= seqIndex) {
+            return false;
+        }
+
+        std::vector<WECore::ModulationSourceWrapper<double>> existingSources = sources->stepSequencers[seqIndex]->getDepthModulationSources();
+        for (const auto& existingSource : existingSources) {
+            auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(existingSource.source);
+            if (thisSource != nullptr && thisSource->definition == source) {
+                return sources->stepSequencers[seqIndex]->removeDepthModulationSource(existingSource.source);
+            }
+        }
+
+        return false;
+    }
+
+    bool setStepSeqDepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int sourceIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->setDepthModulationAmount(sourceIndex, val);
+        }
+
+        return false;
+    }
+
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqDepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        // Use std::shared_ptr to be consistent with usage in PluginParameterModulationConfig
+        std::vector<std::shared_ptr<PluginParameterModulationSource>> retVal;
+
+        if (sources->stepSequencers.size() > seqIndex) {
+            for (const auto& source : sources->stepSequencers[seqIndex]->getDepthModulationSources()) {
+                auto thisSource = std::dynamic_pointer_cast<ModulationSourceProvider>(source.source);
+                retVal.emplace_back(new PluginParameterModulationSource(thisSource->definition, source.amount));
+            }
+        }
+
+        return retVal;
+    }
+
+    bool setStepSeqTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, bool val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setTempoSyncSwitch(val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setTempoNumer(val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setTempoDenom(val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setFreq(val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setDepth(val);
+            return true;
+        }
+        return false;
+    }
+
+    bool addStepSeqStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->addStep(patternIndex);
+            return true;
+        }
+        return false;
+    }
+
+    bool removeStepSeqStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->removeStep(patternIndex);
+            return true;
+        }
+        return false;
+    }
+
+    int getStepSeqNumSteps(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getNumSteps(patternIndex);
+        }
+        return 0;
+    }
+
+    bool setStepSeqStepValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setStepValue(patternIndex, stepIndex, val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqStepShape(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, int shape) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setStepShape(patternIndex, stepIndex, static_cast<WECore::StepSeq::StepShape>(shape));
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqStepReverse(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, bool val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setStepReverse(patternIndex, stepIndex, val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqStepRepeat(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, int val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setStepRepeat(patternIndex, stepIndex, val);
+            return true;
+        }
+        return false;
+    }
+
+    bool setStepSeqStepLengthMultiplier(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, double val) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            sources->stepSequencers[seqIndex]->setStepLengthMultiplier(patternIndex, stepIndex, val);
+            return true;
+        }
+        return false;
+    }
+
+    bool getStepSeqTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getTempoSyncSwitch();
+        }
+        return false;
+    }
+
+    int getStepSeqTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getTempoNumer();
+        }
+        return 0;
+    }
+
+    int getStepSeqTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getTempoDenom();
+        }
+        return 0;
+    }
+
+    double getStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getFreq();
+        }
+        return 0;
+    }
+
+    double getStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getDepth();
+        }
+        return 0;
+    }
+
+    double getStepSeqStepValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getStepValue(patternIndex, stepIndex);
+        }
+        return 0;
+    }
+
+    int getStepSeqStepShape(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return static_cast<int>(sources->stepSequencers[seqIndex]->getStepShape(patternIndex, stepIndex));
+        }
+        return 0;
+    }
+
+    bool getStepSeqStepReverse(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getStepReverse(patternIndex, stepIndex);
+        }
+        return false;
+    }
+
+    int getStepSeqStepRepeat(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getStepRepeat(patternIndex, stepIndex);
+        }
+        return 1;
+    }
+
+    double getStepSeqStepLengthMultiplier(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getStepLengthMultiplier(patternIndex, stepIndex);
+        }
+        return 1.0;
+    }
+
+    double getStepSeqModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getModulatedFreqValue();
+        }
+
+        return 0;
+    }
+
+    double getStepSeqModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getModulatedDepthValue();
+        }
+
+        return 0;
+    }
+
+    double getStepSeqLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getLastOutput();
+        }
+        return 0;
+    }
+
+    int getStepSeqCurrentStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex) {
+        if (sources->stepSequencers.size() > seqIndex) {
+            return sources->stepSequencers[seqIndex]->getCurrentStep();
+        }
+        return -1;
+    }
+
     bool removeModulationSource(ModelInterface::ModulationSourcesState& state, ModulationSourceDefinition definition) {
         // First remove/renumber any modulation sources that reference this one
         for (std::shared_ptr<ModelInterface::CloneableLFO> lfo : state.lfos) {
@@ -710,6 +1016,18 @@ namespace ModulationMutators {
             random->setDepthModulationSources(randomDepthSources);
         }
 
+        for (std::shared_ptr<WECore::StepSeq::StepSequencer> seq : state.stepSequencers) {
+            // Freq
+            std::vector<WECore::ModulationSourceWrapper<double>> seqFreqSources = seq->getFreqModulationSources();
+            seqFreqSources = deleteSourceFromTargetSources(seqFreqSources, definition, state.getModulationValueCallback);
+            seq->setFreqModulationSources(seqFreqSources);
+
+            // Depth
+            std::vector<WECore::ModulationSourceWrapper<double>> seqDepthSources = seq->getDepthModulationSources();
+            seqDepthSources = deleteSourceFromTargetSources(seqDepthSources, definition, state.getModulationValueCallback);
+            seq->setDepthModulationSources(seqDepthSources);
+        }
+
         const int index {definition.id - 1};
         if (definition.type == MODULATION_TYPE::LFO) {
             if (state.lfos.size() > index) {
@@ -724,6 +1042,11 @@ namespace ModulationMutators {
         } else if (definition.type == MODULATION_TYPE::RANDOM) {
             if (state.randomSources.size() > index) {
                 state.randomSources.erase(state.randomSources.begin() + index);
+                return true;
+            }
+        } else if (definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+            if (state.stepSequencers.size() > index) {
+                state.stepSequencers.erase(state.stepSequencers.begin() + index);
                 return true;
             }
         }

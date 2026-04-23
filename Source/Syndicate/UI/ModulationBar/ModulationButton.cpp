@@ -12,6 +12,8 @@ namespace {
             name = "ENV ";
         } else if (definition.type == MODULATION_TYPE::RANDOM) {
             name = "RND ";
+        } else if (definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+            name = "SEQ ";
         }
 
         return name + juce::String(definition.id);

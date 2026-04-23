@@ -61,6 +61,12 @@ void IOSPluginSelectorOverlay::paint(juce::Graphics& g) {
     g.fillAll(_style->backgroundColour);
 }
 
+void IOSPluginSelectorOverlay::parentSizeChanged() {
+    if (auto* parent = getParentComponent()) {
+        setBounds(parent->getLocalBounds());
+    }
+}
+
 #else // !JUCE_IOS
 
 #include "PluginSelectorWindow.h"

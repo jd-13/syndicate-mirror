@@ -21,6 +21,29 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
     setUpButtonsView(_lfoButtonsView);
     setUpButtonsView(_envelopeButtonsView);
     setUpButtonsView(_rndButtonsView);
+    setUpButtonsView(_seqButtonsView);
+    setUpButtonsView(_sourcesView);
+
+    _addSourceDropdownLookAndFeel.setColour(juce::ComboBox::textColourId, UIUtils::neutralColour);
+    _addSourceDropdownLookAndFeel.setColour(juce::PopupMenu::backgroundColourId, UIUtils::slotBackgroundColour);
+    _addSourceDropdownLookAndFeel.setColour(juce::PopupMenu::textColourId, UIUtils::neutralColour);
+    _addSourceDropdownLookAndFeel.setColour(juce::PopupMenu::highlightedBackgroundColourId, UIUtils::neutralColour);
+    _addSourceDropdownLookAndFeel.setColour(juce::PopupMenu::highlightedTextColourId, UIUtils::slotBackgroundColour);
+
+    _addSourceDropdownButton.reset(new juce::ComboBox("Add Source"));
+    _addSourceDropdownButton->setEditableText(false);
+    _addSourceDropdownButton->setJustificationType(juce::Justification::centred);
+    _addSourceDropdownButton->setTextWhenNothingSelected("Add");
+    _addSourceDropdownButton->addItem("LFO", 1);
+    _addSourceDropdownButton->addItem("ENV", 2);
+    _addSourceDropdownButton->addItem("RND", 3);
+    _addSourceDropdownButton->addItem("SEQ", 4);
+    _addSourceDropdownButton->setTooltip("Add a new modulation source");
+    _addSourceDropdownButton->setLookAndFeel(&_addSourceDropdownLookAndFeel);
+    _addSourceDropdownButton->setColour(juce::ComboBox::textColourId, UIUtils::neutralColour);
+    _addSourceDropdownButton->setColour(juce::ComboBox::arrowColourId, UIUtils::neutralColour);
+    _addSourceDropdownButton->addListener(this);
+    addAndMakeVisible(_addSourceDropdownButton.get());
 
     needsRebuild();
 
@@ -40,6 +63,10 @@ ModulationBar::ModulationBar(SyndicateAudioProcessor& processor,
             if (definition.id <= _rndButtons.size()) {
                 _selectModulationSource(_rndButtons[definition.id - 1].get());
             }
+        } else if (definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+            if (definition.id <= _seqButtons.size()) {
+                _selectModulationSource(_seqButtons[definition.id - 1].get());
+            }
         }
     }
 }
@@ -48,6 +75,8 @@ ModulationBar::~ModulationBar() {
     _processor.mainWindowState.lfoButtonsScrollPosition = _lfoButtonsView->getViewPositionY();
     _processor.mainWindowState.envButtonsScrollPosition = _envelopeButtonsView->getViewPositionY();
     _processor.mainWindowState.rndButtonsScrollPosition = _rndButtonsView->getViewPositionY();
+    _processor.mainWindowState.seqButtonsScrollPosition = _seqButtonsView->getViewPositionY();
+    _processor.mainWindowState.sourcesScrollPosition = _sourcesView->getViewPositionY();
 
     // Reset stored state since it might now be invalid
     _processor.mainWindowState.selectedModulationSource.reset();
@@ -71,59 +100,131 @@ ModulationBar::~ModulationBar() {
         }
     }
 
+    for (int buttonIndex {0}; buttonIndex < _seqButtons.size() && !_processor.mainWindowState.selectedModulationSource.has_value(); buttonIndex++) {
+        if (_seqButtons[buttonIndex]->getIsSelected()) {
+            _processor.mainWindowState.selectedModulationSource = _seqButtons[buttonIndex]->definition;
+        }
+    }
+
     // Usual clean up
     _addLfoButton->setLookAndFeel(nullptr);
     _addEnvelopeButton->setLookAndFeel(nullptr);
     _addRndButton->setLookAndFeel(nullptr);
+    _addSeqButton->setLookAndFeel(nullptr);
+    _addSourceDropdownButton->setLookAndFeel(nullptr);
 
     _addButtonLookAndFeel = nullptr;
 
     _lfoButtonsView = nullptr;
     _envelopeButtonsView = nullptr;
     _rndButtonsView = nullptr;
+    _seqButtonsView = nullptr;
+    _sourcesView = nullptr;
+    _addSourceDropdownButton = nullptr;
 }
 
 void ModulationBar::resized() {
     juce::Rectangle<int> availableArea = getLocalBounds();
+    _useCompactLayout = getWidth() < UIUtils::MODULATION_COMPACT_THRESHOLD;
 
-    auto arrangeColumn = [&availableArea](std::vector<std::unique_ptr<ModulationButton>>& buttons,
-                                          std::unique_ptr<juce::TextButton>& addButton,
-                                          std::unique_ptr<juce::Viewport>& buttonsView) {
+    if (_useCompactLayout) {
+        // Hide per-type viewports and individual add buttons
+        _lfoButtonsView->setVisible(false);
+        _envelopeButtonsView->setVisible(false);
+        _rndButtonsView->setVisible(false);
+        _seqButtonsView->setVisible(false);
+        _sourcesView->setVisible(true);
+        _addSourceDropdownButton->setVisible(true);
 
-        const int columnHeight {static_cast<int>(UIUtils::MODULATION_LIST_BUTTON_HEIGHT * (buttons.size() + 1))};
+        // Single column
+        juce::Rectangle<int> column = availableArea.removeFromLeft(UIUtils::MODULATION_LIST_COLUMN_WIDTH);
 
-        const juce::Rectangle<int> visibleButtonsArea =
-            availableArea.removeFromLeft(UIUtils::MODULATION_LIST_COLUMN_WIDTH);
-        buttonsView->setBounds(visibleButtonsArea);
+        // Dropdown add button at the top
+        _addSourceDropdownButton->setBounds(
+            column.removeFromTop(UIUtils::MODULATION_COMPACT_ADD_BUTTON_HEIGHT));
 
-        const int scrollPosition {buttonsView->getViewPositionY()};
-        juce::Rectangle<int> scrollablebuttonsArea = visibleButtonsArea.withHeight(columnHeight);
-        buttonsView->getViewedComponent()->setBounds(scrollablebuttonsArea);
-        buttonsView->setViewPosition(0, scrollPosition);
+        // Small margin
+        column.removeFromTop(UIUtils::MODULATION_COMPACT_ADD_MARGIN);
 
-        // Set the origin to 0 since we're now using it to position buttons relative to the inner
-        // component
-        scrollablebuttonsArea.setPosition(0, 0);
+        // Scrollable source list fills the rest
+        _sourcesView->setBounds(column);
 
-        const int scrollbarWidth {buttonsView->getScrollBarThickness()};
+        const int totalButtons = static_cast<int>(
+            _lfoButtons.size() + _envelopeButtons.size() +
+            _rndButtons.size() + _seqButtons.size());
+        const int innerHeight = totalButtons * UIUtils::MODULATION_LIST_BUTTON_HEIGHT;
 
-        for (std::unique_ptr<ModulationButton>& button : buttons) {
-            button->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
-        }
+        const int scrollPosition {_sourcesView->getViewPositionY()};
+        _sourcesView->getViewedComponent()->setBounds(0, 0, column.getWidth(), innerHeight);
+        _sourcesView->setViewPosition(0, scrollPosition);
 
-        if (addButton != nullptr) {
-            addButton->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
-        }
-    };
+        const int scrollbarWidth {_sourcesView->getScrollBarThickness()};
+        int btnY = 0;
 
-    // LFO buttons
-    arrangeColumn(_lfoButtons, _addLfoButton, _lfoButtonsView);
+        auto positionSourceButtons = [&](std::vector<std::unique_ptr<ModulationButton>>& buttons) {
+            for (auto& btn : buttons) {
+                _sourcesView->getViewedComponent()->addAndMakeVisible(btn.get());
+                btn->setBounds(0, btnY,
+                               column.getWidth() - scrollbarWidth,
+                               UIUtils::MODULATION_LIST_BUTTON_HEIGHT);
+                btnY += UIUtils::MODULATION_LIST_BUTTON_HEIGHT;
+            }
+        };
 
-    // Envelope buttons
-    arrangeColumn(_envelopeButtons, _addEnvelopeButton, _envelopeButtonsView);
+        positionSourceButtons(_lfoButtons);
+        positionSourceButtons(_envelopeButtons);
+        positionSourceButtons(_rndButtons);
+        positionSourceButtons(_seqButtons);
+    } else {
+        // Wide layout: per-type columns
+        _sourcesView->setVisible(false);
+        _addSourceDropdownButton->setVisible(false);
+        _lfoButtonsView->setVisible(true);
+        _envelopeButtonsView->setVisible(true);
+        _rndButtonsView->setVisible(true);
+        _seqButtonsView->setVisible(true);
 
-    // Random buttons
-    arrangeColumn(_rndButtons, _addRndButton, _rndButtonsView);
+        auto arrangeColumn = [&availableArea](std::vector<std::unique_ptr<ModulationButton>>& buttons,
+                                              std::unique_ptr<juce::TextButton>& addButton,
+                                              std::unique_ptr<juce::Viewport>& buttonsView) {
+
+            // Reparent buttons back to per-type viewport
+            for (auto& btn : buttons) {
+                buttonsView->getViewedComponent()->addAndMakeVisible(btn.get());
+            }
+            if (addButton != nullptr) {
+                buttonsView->getViewedComponent()->addAndMakeVisible(addButton.get());
+            }
+
+            const int columnHeight {static_cast<int>(UIUtils::MODULATION_LIST_BUTTON_HEIGHT * (buttons.size() + 1))};
+
+            const juce::Rectangle<int> visibleButtonsArea =
+                availableArea.removeFromLeft(UIUtils::MODULATION_LIST_COLUMN_WIDTH);
+            buttonsView->setBounds(visibleButtonsArea);
+
+            const int scrollPosition {buttonsView->getViewPositionY()};
+            juce::Rectangle<int> scrollablebuttonsArea = visibleButtonsArea.withHeight(columnHeight);
+            buttonsView->getViewedComponent()->setBounds(scrollablebuttonsArea);
+            buttonsView->setViewPosition(0, scrollPosition);
+
+            scrollablebuttonsArea.setPosition(0, 0);
+
+            const int scrollbarWidth {buttonsView->getScrollBarThickness()};
+
+            for (std::unique_ptr<ModulationButton>& button : buttons) {
+                button->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
+            }
+
+            if (addButton != nullptr) {
+                addButton->setBounds(scrollablebuttonsArea.removeFromTop(UIUtils::MODULATION_LIST_BUTTON_HEIGHT).withTrimmedRight(scrollbarWidth));
+            }
+        };
+
+        arrangeColumn(_lfoButtons, _addLfoButton, _lfoButtonsView);
+        arrangeColumn(_envelopeButtons, _addEnvelopeButton, _envelopeButtonsView);
+        arrangeColumn(_rndButtons, _addRndButton, _rndButtonsView);
+        arrangeColumn(_seqButtons, _addSeqButton, _seqButtonsView);
+    }
 
     _selectedSourceComponentArea = availableArea;
 
@@ -132,7 +233,42 @@ void ModulationBar::resized() {
     }
 }
 
+void ModulationBar::comboBoxChanged(juce::ComboBox* comboBoxThatHasChanged) {
+    if (comboBoxThatHasChanged == _addSourceDropdownButton.get()) {
+        const int result = _addSourceDropdownButton->getSelectedId();
+        _addSourceDropdownButton->setSelectedId(0, juce::dontSendNotification);
+
+        if (result == 0) {
+            return;
+        }
+
+        // Suppress the re-selection that happens inside needsRebuild() triggered by
+        // the processor add methods — we'll select the new source ourselves afterwards
+        _suppressReselection = true;
+
+        if (result == 1) {
+            _processor.addLfo();
+            _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
+        } else if (result == 2) {
+            _processor.addEnvelope();
+            _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
+        } else if (result == 3) {
+            _processor.addRandomSource();
+            _selectModulationSource(_rndButtons[_rndButtons.size() - 1].get());
+        } else if (result == 4) {
+            _processor.addStepSequencer();
+            _selectModulationSource(_seqButtons[_seqButtons.size() - 1].get());
+        }
+
+        _suppressReselection = false;
+    }
+}
+
 void ModulationBar::buttonClicked(juce::Button* buttonThatWasClicked) {
+    // Suppress the re-selection that happens inside needsRebuild() triggered by
+    // the processor add methods — we'll select the new source ourselves afterwards
+    _suppressReselection = true;
+
     if (buttonThatWasClicked == _addLfoButton.get()) {
         _processor.addLfo();
         _selectModulationSource(_lfoButtons[_lfoButtons.size() - 1].get());
@@ -141,7 +277,13 @@ void ModulationBar::buttonClicked(juce::Button* buttonThatWasClicked) {
         _selectModulationSource(_envelopeButtons[_envelopeButtons.size() - 1].get());
     } else if (buttonThatWasClicked == _addRndButton.get()) {
         _processor.addRandomSource();
+        _selectModulationSource(_rndButtons[_rndButtons.size() - 1].get());
+    } else if (buttonThatWasClicked == _addSeqButton.get()) {
+        _processor.addStepSequencer();
+        _selectModulationSource(_seqButtons[_seqButtons.size() - 1].get());
     }
+
+    _suppressReselection = false;
 }
 
 void ModulationBar::needsRebuild() {
@@ -149,6 +291,12 @@ void ModulationBar::needsRebuild() {
     std::optional<ModulationSourceDefinition> selectedDefinition = _getSelectedDefinition();
 
     _resetButtons();
+
+    // When adding a new source, buttonClicked handles the selection itself to avoid
+    // creating the source component twice (once here, once in buttonClicked)
+    if (_suppressReselection) {
+        return;
+    }
 
     // Re-select the already selected source from before the rebuild (if it still exists)
     if (selectedDefinition.has_value()) {
@@ -159,6 +307,8 @@ void ModulationBar::needsRebuild() {
         _selectModulationSource(_envelopeButtons[0].get());
     } else if (_rndButtons.size() > 0) {
         _selectModulationSource(_rndButtons[0].get());
+    } else if (_seqButtons.size() > 0) {
+        _selectModulationSource(_seqButtons[0].get());
     }
 }
 
@@ -179,6 +329,13 @@ void ModulationBar::needsSelectedSourceRebuild() {
     }
 
     for (std::unique_ptr<ModulationButton>& button : _rndButtons) {
+        if (button->getIsSelected()) {
+            _selectModulationSource(button.get());
+            return;
+        }
+    }
+
+    for (std::unique_ptr<ModulationButton>& button : _seqButtons) {
         if (button->getIsSelected()) {
             _selectModulationSource(button.get());
             return;
@@ -248,6 +405,22 @@ void ModulationBar::_resetButtons() {
     _addRndButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::RANDOM));
     _addRndButton->setLookAndFeel(_addButtonLookAndFeel.get());
 
+    // Add the step sequencer buttons
+    _seqButtons.clear();
+    ModelInterface::forEachStepSequencer(_processor.manager, [&](int seqNumber) {
+        _createModulationSourceButton(ModulationSourceDefinition(seqNumber, MODULATION_TYPE::STEP_SEQUENCER));
+    });
+
+    // Add the add button
+    _addSeqButton.reset(new juce::TextButton("Add Step Sequencer Button"));
+    _seqButtonsView->getViewedComponent()->addAndMakeVisible(_addSeqButton.get());
+    _addSeqButton->setButtonText("+ SEQ");
+    _addSeqButton->addListener(this);
+    _addSeqButton->setTooltip("Create a new step sequencer");
+    _addSeqButton->setColour(juce::TextButton::buttonColourId, UIUtils::slotBackgroundColour);
+    _addSeqButton->setColour(juce::TextButton::textColourOffId, UIUtils::getColourForModulationType(MODULATION_TYPE::STEP_SEQUENCER));
+    _addSeqButton->setLookAndFeel(_addButtonLookAndFeel.get());
+
     resized();
 
     // We need to run this only once after the graph view has been constructed to restore the scroll
@@ -258,6 +431,8 @@ void ModulationBar::_resetButtons() {
         _lfoButtonsView->setViewPosition(0, _processor.mainWindowState.lfoButtonsScrollPosition);
         _envelopeButtonsView->setViewPosition(0, _processor.mainWindowState.envButtonsScrollPosition);
         _rndButtonsView->setViewPosition(0, _processor.mainWindowState.rndButtonsScrollPosition);
+        _seqButtonsView->setViewPosition(0, _processor.mainWindowState.seqButtonsScrollPosition);
+        _sourcesView->setViewPosition(0, _processor.mainWindowState.sourcesScrollPosition);
     }
 }
 
@@ -278,6 +453,9 @@ void ModulationBar::_createModulationSourceButton(ModulationSourceDefinition def
     } else if (definition.type == MODULATION_TYPE::RANDOM) {
         _rndButtonsView->getViewedComponent()->addAndMakeVisible(newButton.get());
         _rndButtons.push_back(std::move(newButton));
+    } else if (definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+        _seqButtonsView->getViewedComponent()->addAndMakeVisible(newButton.get());
+        _seqButtons.push_back(std::move(newButton));
     }
 }
 
@@ -295,6 +473,10 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
         button->setIsSelected(false);
     }
 
+    for (std::unique_ptr<ModulationButton>& button : _seqButtons) {
+        button->setIsSelected(false);
+    }
+
     // Activate just the one that's selected
     selectedButton->setIsSelected(true);
 
@@ -305,6 +487,8 @@ void ModulationBar::_selectModulationSource(ModulationButton* selectedButton) {
         _selectedSourceComponent.reset(new ModulationBarEnvelope(_processor, selectedButton->definition.id - 1));
     } else if (selectedButton->definition.type == MODULATION_TYPE::RANDOM) {
         _selectedSourceComponent.reset(new ModulationBarRandom(_processor, selectedButton->definition.id - 1));
+    } else if (selectedButton->definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+        _selectedSourceComponent.reset(new ModulationBarStepSequencer(_processor, selectedButton->definition.id - 1));
     }
 
     addAndMakeVisible(_selectedSourceComponent.get());
@@ -355,6 +539,12 @@ std::optional<ModulationSourceDefinition> ModulationBar::_getSelectedDefinition(
         }
     }
 
+    for (int buttonIndex {0}; buttonIndex < _seqButtons.size(); buttonIndex++) {
+        if (_seqButtons[buttonIndex]->getIsSelected()) {
+            return _seqButtons[buttonIndex]->definition;
+        }
+    }
+
     return {};
 }
 
@@ -372,6 +562,9 @@ void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition defi
         } else if (_rndButtons.size() > 0) {
             // We deleted all the LFOs and envelope followers, so select a random source
             _selectModulationSource(_rndButtons[0].get());
+        } else if (_seqButtons.size() > 0) {
+            // We deleted all the LFOs, envelope followers, and random sources, so select a step sequencer
+            _selectModulationSource(_seqButtons[0].get());
         } else {
             // We deleted everything, select nothing
             _selectedSourceComponent.reset();
@@ -389,6 +582,9 @@ void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition defi
         } else if (_rndButtons.size() > 0) {
             // We deleted all the envelope followers and LFOs, so select a random source
             _selectModulationSource(_rndButtons[0].get());
+        } else if (_seqButtons.size() > 0) {
+            // We deleted all the envelope followers, LFOs, and random sources, so select a step sequencer
+            _selectModulationSource(_seqButtons[0].get());
         } else {
             // We deleted everything, select nothing
             _selectedSourceComponent.reset();
@@ -406,6 +602,29 @@ void ModulationBar::_attemptToSelectByDefinition(ModulationSourceDefinition defi
         } else if (_envelopeButtons.size() > 0) {
             // We deleted all the random sources and LFOs, so select an envelope follower
             _selectModulationSource(_envelopeButtons[0].get());
+        } else if (_seqButtons.size() > 0) {
+            // We deleted all the random sources, LFOs, and envelope followers, so select a step sequencer
+            _selectModulationSource(_seqButtons[0].get());
+        } else {
+            // We deleted everything, select nothing
+            _selectedSourceComponent.reset();
+        }
+    } else if (definition.type == MODULATION_TYPE::STEP_SEQUENCER) {
+        if (_seqButtons.size() > definition.id - 1) {
+            // Restore the previously selected definition
+            _selectModulationSource(_seqButtons[definition.id - 1].get());
+        } else if (_seqButtons.size() > 0) {
+            // We deleted the last definition, so select the current last one
+            _selectModulationSource(_seqButtons[_seqButtons.size() - 1].get());
+        } else if (_lfoButtons.size() > 0) {
+            // We deleted all the step sequencers, so select an LFO
+            _selectModulationSource(_lfoButtons[0].get());
+        } else if (_envelopeButtons.size() > 0) {
+            // We deleted all the step sequencers and LFOs, so select an envelope follower
+            _selectModulationSource(_envelopeButtons[0].get());
+        } else if (_rndButtons.size() > 0) {
+            // We deleted all the step sequencers, LFOs, and envelope followers, so select a random source
+            _selectModulationSource(_rndButtons[0].get());
         } else {
             // We deleted everything, select nothing
             _selectedSourceComponent.reset();

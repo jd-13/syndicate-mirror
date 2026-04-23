@@ -20,6 +20,7 @@ MacroComponent::MacroComponent(int macroNumber,
     macroSld->setSliderStyle(juce::Slider::RotaryVerticalDrag);
     macroSld->setTextBoxStyle(juce::Slider::NoTextBox, false, 80, 20);
     macroSld->addListener(this);
+    macroSld->addMouseListener(this, false);
     macroSld->setTooltip(tooltipString);
 
     nameLbl.reset(new juce::Label("Name Label", TRANS("Macro")));
@@ -30,7 +31,10 @@ MacroComponent::MacroComponent(int macroNumber,
     nameLbl->setColour(juce::Label::textColourId, UIUtils::neutralColour);
     nameLbl->setColour(juce::Label::outlineWhenEditingColourId, juce::Colours::transparentBlack);
     nameLbl->setColour(juce::TextEditor::textColourId, juce::Colours::black);
+    nameLbl->setColour(juce::TextEditor::highlightedTextColourId, UIUtils::neutralColour);
+    nameLbl->setColour(juce::TextEditor::highlightColourId, UIUtils::neutralColourWithAlpha);
     nameLbl->setColour(juce::TextEditor::backgroundColourId, juce::Colour(0x00000000));
+    nameLbl->setColour(juce::CaretComponent::caretColourId, UIUtils::neutralColour);
     nameLbl->addListener(this);
     nameLbl->setTooltip(tooltipString);
 
@@ -72,6 +76,10 @@ void MacroComponent::sliderValueChanged(juce::Slider* sliderThatWasMoved) {
     if (sliderThatWasMoved == macroSld.get()) {
         // TODO call ourProcessor->setParameterValueInternal here instead
         _macroParam->setValueNotifyingHost(macroSld->getValue());
+
+        if (_isShowingValue) {
+            nameLbl->setText(juce::String(macroSld->getValue(), 2), juce::dontSendNotification);
+        }
     }
 }
 
@@ -88,13 +96,27 @@ void MacroComponent::sliderDragEnded(juce::Slider* slider) {
 }
 
 void MacroComponent::labelTextChanged(juce::Label* labelThatHasChanged) {
-    if (labelThatHasChanged == nameLbl.get()) {
+    if (labelThatHasChanged == nameLbl.get() && !_isShowingValue) {
         _macroName = nameLbl->getText();
     }
 }
 
 void MacroComponent::mouseDrag(const juce::MouseEvent& e) {
     _dragContainer->startDragging(_modulationSourceDefinition.toVariant(), dragHandle.get());
+}
+
+void MacroComponent::mouseEnter(const juce::MouseEvent& e) {
+    if (e.eventComponent == macroSld.get()) {
+        _isShowingValue = true;
+        nameLbl->setText(juce::String(macroSld->getValue(), 2), juce::dontSendNotification);
+    }
+}
+
+void MacroComponent::mouseExit(const juce::MouseEvent& e) {
+    if (e.eventComponent == macroSld.get()) {
+        _isShowingValue = false;
+        nameLbl->setText(_macroName, juce::dontSendNotification);
+    }
 }
 
 void MacroComponent::onParameterUpdate() {

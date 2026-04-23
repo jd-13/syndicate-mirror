@@ -57,6 +57,12 @@ void GuestPluginOverlay::paint(juce::Graphics& g) {
     g.fillAll(juce::Colours::black);
 }
 
+void GuestPluginOverlay::parentSizeChanged() {
+    if (auto* parent = getParentComponent()) {
+        setBounds(parent->getLocalBounds());
+    }
+}
+
 #else // !JUCE_IOS
 
 namespace {

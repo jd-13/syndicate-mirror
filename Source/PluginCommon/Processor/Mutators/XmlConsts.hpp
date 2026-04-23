@@ -73,6 +73,22 @@ inline const char* XML_RANDOM_DEPTH_STR {"randomDepth"};
 inline const char* XML_RANDOM_FREQ_MODULATION_SOURCES_STR {"randomFreqModulationSources"};
 inline const char* XML_RANDOM_DEPTH_MODULATION_SOURCES_STR {"randomDepthModulationSources"};
 
+inline const char* XML_STEP_SEQUENCERS_STR {"StepSequencers"};
+inline const char* XML_STEP_SEQ_TEMPO_SYNC_STR {"stepSeqTempoSync"};
+inline const char* XML_STEP_SEQ_TEMPO_NUMER_STR {"stepSeqTempoNumer"};
+inline const char* XML_STEP_SEQ_TEMPO_DENOM_STR {"stepSeqTempoDenom"};
+inline const char* XML_STEP_SEQ_FREQ_STR {"stepSeqFreq"};
+inline const char* XML_STEP_SEQ_DEPTH_STR {"stepSeqDepth"};
+inline const char* XML_STEP_SEQ_PATTERN_STR {"stepSeqPattern"};
+inline const char* XML_STEP_SEQ_STEP_STR {"stepSeqStep"};
+inline const char* XML_STEP_SEQ_STEP_VALUE_STR {"stepSeqStepvalue"};
+inline const char* XML_STEP_SEQ_STEP_SHAPE_STR {"stepSeqStepshape"};
+inline const char* XML_STEP_SEQ_STEP_REVERSE_STR {"stepSeqStepReverse"};
+inline const char* XML_STEP_SEQ_STEP_REPEAT_STR {"stepSeqStepRepeat"};
+inline const char* XML_STEP_SEQ_STEP_LENGTH_MULTIPLIER_STR {"stepSeqStepLengthMultiplier"};
+inline const char* XML_STEP_SEQ_FREQ_MODULATION_SOURCES_STR {"stepSeqFreqModulationSources"};
+inline const char* XML_STEP_SEQ_DEPTH_MODULATION_SOURCES_STR {"stepSeqDepthModulationSources"};
+
 inline std::string getParameterModulationConfigXmlName(int configNumber) {
     std::string retVal("ParamConfig_");
     retVal += std::to_string(configNumber);
@@ -155,5 +171,23 @@ inline std::string getEnvelopeXMLName(int envelopeNumber) {
 inline std::string getRandomXMLName(int randomNumber) {
     std::string retVal("Random_");
     retVal += std::to_string(randomNumber);
+    return retVal;
+}
+
+inline std::string getStepSequencerXMLName(int seqNumber) {
+    std::string retVal("StepSequencer_");
+    retVal += std::to_string(seqNumber);
+    return retVal;
+}
+
+inline std::string getStepSeqPatternXMLName(int patternIndex) {
+    std::string retVal("StepSeqPattern_");
+    retVal += std::to_string(patternIndex);
+    return retVal;
+}
+
+inline std::string getStepSeqStepXMLName(int stepIndex) {
+    std::string retVal("StepSeqStep_");
+    retVal += std::to_string(stepIndex);
     return retVal;
 }

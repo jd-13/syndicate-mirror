@@ -1,6 +1,7 @@
 #include "ModulationProcessors.hpp"
 
 #include "WEFilters/PerlinSource.hpp"
+#include "WEFilters/StepSequencer.h"
 
 namespace Mi = ModelInterface;
 
@@ -21,6 +22,10 @@ namespace ModulationProcessors {
         for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
             random->setSampleRate(sampleRate);
         }
+
+        for (std::shared_ptr<WECore::StepSeq::StepSequencer>& seq : state.stepSequencers) {
+            seq->setSampleRate(sampleRate);
+        }
     }
 
     void reset(Mi::ModulationSourcesState& state) {
@@ -35,6 +40,10 @@ namespace ModulationProcessors {
         for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
             random->reset();
         }
+
+        for (std::shared_ptr<WECore::StepSeq::StepSequencer>& seq : state.stepSequencers) {
+            seq->reset();
+        }
     }
 
     void processBlock(Mi::ModulationSourcesState& state, juce::AudioBuffer<float>& buffer, juce::AudioPlayHead::CurrentPositionInfo tempoInfo) {
@@ -42,6 +51,10 @@ namespace ModulationProcessors {
 
         for (std::shared_ptr<Mi::CloneableLFO>& lfo : state.lfos) {
             lfo->prepareForNextBuffer(tempoInfo.bpm, tempoInfo.timeInSeconds);
+        }
+
+        for (std::shared_ptr<WECore::StepSeq::StepSequencer>& seq : state.stepSequencers) {
+            seq->prepareForNextBuffer(tempoInfo.bpm, tempoInfo.timeInSeconds);
         }
 
         // TODO this could be faster
@@ -81,6 +94,11 @@ namespace ModulationProcessors {
             for (std::shared_ptr<WECore::Perlin::PerlinSource>& random : state.randomSources) {
                 random->getNextOutput(0);
             }
+
+            // Step Sequencers
+            for (std::shared_ptr<WECore::StepSeq::StepSequencer>& seq : state.stepSequencers) {
+                seq->getNextOutput(0);
+            }
         }
     }
 
@@ -106,6 +124,15 @@ namespace ModulationProcessors {
         const int index {randomNumber - 1};
         if (state.randomSources.size() > index) {
             return state.randomSources[index]->getLastOutput();
+        }
+
+        return 0;
+    }
+
+    double getStepSeqModulationValue(ModelInterface::ModulationSourcesState& state, int stepSeqNumber) {
+        const int index {stepSeqNumber - 1};
+        if (state.stepSequencers.size() > index) {
+            return state.stepSequencers[index]->getLastOutput();
         }
 
         return 0;

@@ -59,6 +59,12 @@ void PluginParameterSelectorOverlay::paint(juce::Graphics& g) {
     g.fillAll(UIUtils::backgroundColour);
 }
 
+void PluginParameterSelectorOverlay::parentSizeChanged() {
+    if (auto* parent = getParentComponent()) {
+        setBounds(parent->getLocalBounds());
+    }
+}
+
 #else // !JUCE_IOS
 
 #include "PluginParameterSelectorWindow.h"

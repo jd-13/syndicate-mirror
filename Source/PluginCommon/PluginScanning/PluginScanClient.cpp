@@ -61,7 +61,7 @@ void IOSPluginScanner::run() {
 
     juce::FileSearchPath searchPaths = _auFormat.getDefaultLocationsToSearch();
     juce::File deadMansFile; // invalid File - not needed for iOS AUv3
-    juce::PluginDirectoryScanner scanner(_knownPluginList, _auFormat, searchPaths, true, deadMansFile, false);
+    juce::PluginDirectoryScanner scanner(_knownPluginList, _auFormat, searchPaths, true, deadMansFile, true);
 
     juce::String pluginName;
     while (!threadShouldExit() && scanner.scanNextFile(true, pluginName)) {}

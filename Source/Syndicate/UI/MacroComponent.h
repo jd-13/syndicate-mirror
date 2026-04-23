@@ -24,6 +24,8 @@ public:
     void sliderDragEnded(juce::Slider* slider) override;
     void labelTextChanged(juce::Label* labelThatHasChanged) override;
     void mouseDrag(const juce::MouseEvent& e) override;
+    void mouseEnter(const juce::MouseEvent& e) override;
+    void mouseExit(const juce::MouseEvent& e) override;
 
 private:
     juce::DragAndDropContainer* _dragContainer;
@@ -31,6 +33,7 @@ private:
     juce::AudioParameterFloat* _macroParam;
     UIUtils::StandardSliderLookAndFeel _sliderLookAndFeel;
     juce::String& _macroName;
+    bool _isShowingValue {false};
 
     std::unique_ptr<juce::Slider> macroSld;
     std::unique_ptr<juce::Label> nameLbl;

@@ -16,6 +16,7 @@ public:
 
     void resized() override;
     void paint(juce::Graphics& g) override;
+    void parentSizeChanged() override;
 
 private:
     std::function<void()> _onCloseCallback;

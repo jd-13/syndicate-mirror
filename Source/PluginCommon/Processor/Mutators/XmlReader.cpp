@@ -501,6 +501,7 @@ namespace XmlReader {
         state.lfos.clear();
         state.envelopes.clear();
         state.randomSources.clear();
+        state.stepSequencers.clear();
 
         // LFOs
         juce::XmlElement* lfosElement = element->getChildByName(XML_LFOS_STR);
@@ -746,6 +747,128 @@ namespace XmlReader {
                 }
 
                 state.randomSources.push_back(newRandom);
+            }
+        }
+
+        // Step Sequencers
+        state.stepSequencers.clear();
+        juce::XmlElement* stepSeqsElement = element->getChildByName(XML_STEP_SEQUENCERS_STR);
+        if (stepSeqsElement != nullptr) {
+            const int numSeqs {stepSeqsElement->getNumChildElements()};
+
+            for (int index {0}; index < numSeqs; index++) {
+                juce::Logger::writeToLog("Restoring step sequencer " + juce::String(index));
+
+                const juce::String seqElementName = getStepSequencerXMLName(index);
+                juce::XmlElement* thisSeqElement = stepSeqsElement->getChildByName(seqElementName);
+
+                if (thisSeqElement == nullptr) {
+                    juce::Logger::writeToLog("Failed to get element " + seqElementName);
+                    continue;
+                }
+
+                std::shared_ptr<WECore::StepSeq::StepSequencer> newSeq {new WECore::StepSeq::StepSequencer()};
+
+                newSeq->setTempoSyncSwitch(thisSeqElement->getBoolAttribute(XML_STEP_SEQ_TEMPO_SYNC_STR));
+                newSeq->setTempoNumer(thisSeqElement->getIntAttribute(XML_STEP_SEQ_TEMPO_NUMER_STR));
+                newSeq->setTempoDenom(thisSeqElement->getIntAttribute(XML_STEP_SEQ_TEMPO_DENOM_STR));
+                newSeq->setFreq(thisSeqElement->getDoubleAttribute(XML_STEP_SEQ_FREQ_STR));
+                newSeq->setDepth(thisSeqElement->getDoubleAttribute(XML_STEP_SEQ_DEPTH_STR));
+                newSeq->setSampleRate(configuration.sampleRate);
+
+                juce::XmlElement* freqModElement = thisSeqElement->getChildByName(XML_STEP_SEQ_FREQ_MODULATION_SOURCES_STR);
+                if (freqModElement != nullptr) {
+                    const int numFreqModSources {freqModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numFreqModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring step seq freq modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = freqModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newSeq->addFreqModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newSeq->setFreqModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                juce::XmlElement* depthModElement = thisSeqElement->getChildByName(XML_STEP_SEQ_DEPTH_MODULATION_SOURCES_STR);
+                if (depthModElement != nullptr) {
+                    const int numDepthModSources {depthModElement->getNumChildElements()};
+
+                    for (int sourceIndex {0}; sourceIndex < numDepthModSources; sourceIndex++) {
+                        juce::Logger::writeToLog("Restoring step seq depth modulation source " + juce::String(sourceIndex));
+
+                        const juce::String sourceElementName = getParameterModulationSourceXmlName(sourceIndex);
+                        juce::XmlElement* thisSourceElement = depthModElement->getChildByName(sourceElementName);
+
+                        if (thisSourceElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get element " + sourceElementName);
+                            continue;
+                        }
+
+                        // TODO error handling restoring definition
+                        ModulationSourceDefinition definition(0, MODULATION_TYPE::MACRO);
+                        definition.restoreFromXml(thisSourceElement);
+
+                        auto newSource = std::make_shared<ModulationSourceProvider>(definition, state.getModulationValueCallback);
+                        newSeq->addDepthModulationSource(newSource);
+
+                        if (thisSourceElement->hasAttribute(XML_MODULATION_SOURCE_AMOUNT)) {
+                            newSeq->setDepthModulationAmount(sourceIndex, thisSourceElement->getDoubleAttribute(XML_MODULATION_SOURCE_AMOUNT));
+                        } else {
+                            juce::Logger::writeToLog("Missing attribute " + juce::String(XML_MODULATION_SOURCE_AMOUNT));
+                        }
+                    }
+                }
+
+                // Restore patterns
+                juce::XmlElement* patternElement = thisSeqElement->getChildByName(getStepSeqPatternXMLName(0));
+                if (patternElement != nullptr) {
+                    const int numSteps {patternElement->getNumChildElements()};
+
+                    // Remove the default steps and rebuild from XML
+                    while (newSeq->getNumSteps(0) > 1) {
+                        newSeq->removeStep(0);
+                    }
+
+                    // Set first step then add remaining
+                    for (int stepIndex {0}; stepIndex < numSteps; stepIndex++) {
+                        if (stepIndex > 0) {
+                            newSeq->addStep(0);
+                        }
+
+                        const juce::String stepElementName = getStepSeqStepXMLName(stepIndex);
+                        juce::XmlElement* stepElement = patternElement->getChildByName(stepElementName);
+
+                        if (stepElement == nullptr) {
+                            juce::Logger::writeToLog("Failed to get step element " + stepElementName);
+                            continue;
+                        }
+
+                        newSeq->setStepValue(0, stepIndex, stepElement->getDoubleAttribute(XML_STEP_SEQ_STEP_VALUE_STR));
+                        newSeq->setStepShape(0, stepIndex, static_cast<WECore::StepSeq::StepShape>(stepElement->getIntAttribute(XML_STEP_SEQ_STEP_SHAPE_STR)));
+                        newSeq->setStepReverse(0, stepIndex, stepElement->getBoolAttribute(XML_STEP_SEQ_STEP_REVERSE_STR));
+                        newSeq->setStepRepeat(0, stepIndex, stepElement->getIntAttribute(XML_STEP_SEQ_STEP_REPEAT_STR, 1));
+                        newSeq->setStepLengthMultiplier(0, stepIndex, stepElement->getDoubleAttribute(XML_STEP_SEQ_STEP_LENGTH_MULTIPLIER_STR, 1.0));
+                    }
+                }
+
+                state.stepSequencers.push_back(newSeq);
             }
         }
     }

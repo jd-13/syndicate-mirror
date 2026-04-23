@@ -79,5 +79,48 @@ namespace ModulationMutators {
     double getRandomModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
     double getRandomLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int randomIndex);
 
+    // Step Sequencers
+    void addStepSequencer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources);
+
+    bool setStepSeqTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, bool val);
+    bool setStepSeqTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int val);
+    bool setStepSeqTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int val);
+    bool setStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, double val);
+    bool setStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, double val);
+
+    bool addStepSeqStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex);
+    bool removeStepSeqStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex);
+    int getStepSeqNumSteps(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex);
+
+    bool setStepSeqStepValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, double val);
+    bool setStepSeqStepShape(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, int shape);
+    bool setStepSeqStepReverse(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, bool val);
+    bool setStepSeqStepRepeat(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, int val);
+    bool setStepSeqStepLengthMultiplier(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex, double val);
+
+    bool addSourceToStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source);
+    bool removeSourceFromStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source);
+    bool setStepSeqFreqModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqFreqModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    bool addSourceToStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source);
+    bool removeSourceFromStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, ModulationSourceDefinition source);
+    bool setStepSeqDepthModulationAmount(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int sourceIndex, double val);
+    std::vector<std::shared_ptr<PluginParameterModulationSource>> getStepSeqDepthModulationSources(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+
+    bool getStepSeqTempoSyncSwitch(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    int getStepSeqTempoNumer(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    int getStepSeqTempoDenom(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    double getStepSeqFreq(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    double getStepSeqDepth(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    double getStepSeqStepValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex);
+    int getStepSeqStepShape(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex);
+    bool getStepSeqStepReverse(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex);
+    int getStepSeqStepRepeat(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex);
+    double getStepSeqStepLengthMultiplier(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex, int patternIndex, int stepIndex);
+    double getStepSeqModulatedFreqValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    double getStepSeqModulatedDepthValue(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    double getStepSeqLastOutput(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+    int getStepSeqCurrentStep(std::shared_ptr<ModelInterface::ModulationSourcesState> sources, int seqIndex);
+
     bool removeModulationSource(ModelInterface::ModulationSourcesState& state, ModulationSourceDefinition definition);
 }

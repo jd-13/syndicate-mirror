@@ -32,12 +32,17 @@ struct MainWindowState {
     int lfoButtonsScrollPosition;
     int envButtonsScrollPosition;
     int rndButtonsScrollPosition;
+    int seqButtonsScrollPosition;
+    int sourcesScrollPosition;
+    std::vector<bool> seqShowingSequencerView;
     std::optional<ModulationSourceDefinition> selectedModulationSource;
 
     MainWindowState() : bounds(0, 0, 860, 620),
                         graphViewScrollPosition(0),
                         lfoButtonsScrollPosition(0),
-                        envButtonsScrollPosition(0) {}
+                        envButtonsScrollPosition(0),
+                        seqButtonsScrollPosition(0),
+                        sourcesScrollPosition(0) {}
 };
 
 //==============================================================================
@@ -127,6 +132,20 @@ public:
     void setRandomFreq(int randomIndex, double val);
     void setRandomDepth(int randomIndex, double val);
 
+    void addStepSequencer();
+    void setStepSeqTempoSyncSwitch(int seqIndex, bool val);
+    void setStepSeqTempoNumer(int seqIndex, int val);
+    void setStepSeqTempoDenom(int seqIndex, int val);
+    void setStepSeqFreq(int seqIndex, double val);
+    void setStepSeqDepth(int seqIndex, double val);
+    void addStepSeqStep(int seqIndex, int patternIndex);
+    void removeStepSeqStep(int seqIndex, int patternIndex);
+    void setStepSeqStepValue(int seqIndex, int patternIndex, int stepIndex, double val);
+    void setStepSeqStepShape(int seqIndex, int patternIndex, int stepIndex, int shape);
+    void setStepSeqStepReverse(int seqIndex, int patternIndex, int stepIndex, bool val);
+    void setStepSeqStepRepeat(int seqIndex, int patternIndex, int stepIndex, int val);
+    void setStepSeqStepLengthMultiplier(int seqIndex, int patternIndex, int stepIndex, double val);
+
     float getModulationValueForSource(int id, MODULATION_TYPE type);
     void removeModulationSource(ModulationSourceDefinition definition);
 
@@ -171,6 +190,14 @@ public:
     void addSourceToRandomDepth(int randomIndex, ModulationSourceDefinition source);
     void removeSourceFromRandomDepth(int randomIndex, ModulationSourceDefinition source);
     void setRandomDepthModulationAmount(int randomIndex, int sourceIndex, double val);
+
+    void addSourceToStepSeqFreq(int seqIndex, ModulationSourceDefinition source);
+    void removeSourceFromStepSeqFreq(int seqIndex, ModulationSourceDefinition source);
+    void setStepSeqFreqModulationAmount(int seqIndex, int sourceIndex, double val);
+
+    void addSourceToStepSeqDepth(int seqIndex, ModulationSourceDefinition source);
+    void removeSourceFromStepSeqDepth(int seqIndex, ModulationSourceDefinition source);
+    void setStepSeqDepthModulationAmount(int seqIndex, int sourceIndex, double val);
 
     // Parallel Split
     void addParallelChain();

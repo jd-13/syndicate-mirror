@@ -2,6 +2,17 @@
 
 #include "ModulationSourceDefinition.hpp"
 
+namespace {
+    juce::Colour getToggleIconColour(juce::TextButton& b) {
+        if (!b.isEnabled()) {
+            return b.findColour(UIUtils::ToggleButtonLookAndFeel::disabledColour);
+        } else if (b.getToggleState()) {
+            return b.findColour(UIUtils::ToggleButtonLookAndFeel::backgroundColour);
+        }
+        return b.findColour(UIUtils::ToggleButtonLookAndFeel::highlightColour);
+    }
+}
+
 namespace UIUtils {
 
     int getChainXPos(int chainIndex, int numChains, int graphViewWidth) {
@@ -71,6 +82,60 @@ namespace UIUtils {
                          0);
     }
 
+
+    void GridIconButtonLookAndFeel::drawButtonText(juce::Graphics& g,
+                                                   juce::TextButton& textButton,
+                                                   bool /*isMouseOverButton*/,
+                                                   bool /*isButtonDown*/) {
+        g.setColour(getToggleIconColour(textButton));
+
+        const float w {static_cast<float>(textButton.getWidth())};
+        const float h {static_cast<float>(textButton.getHeight())};
+        const float size {juce::jmin(w, h) * 0.55f};
+        const float originX {(w - size) * 0.5f};
+        const float originY {(h - size) * 0.5f};
+
+        constexpr int cells {3};
+        const float gap {size * 0.12f};
+        const float cellSize {(size - gap * (cells - 1)) / cells};
+
+        for (int row = 0; row < cells; ++row) {
+            for (int col = 0; col < cells; ++col) {
+                g.fillRect(originX + col * (cellSize + gap),
+                           originY + row * (cellSize + gap),
+                           cellSize,
+                           cellSize);
+            }
+        }
+    }
+
+    void SettingsIconButtonLookAndFeel::drawButtonText(juce::Graphics& g,
+                                                      juce::TextButton& textButton,
+                                                      bool /*isMouseOverButton*/,
+                                                      bool /*isButtonDown*/) {
+        g.setColour(getToggleIconColour(textButton));
+
+        const float w {static_cast<float>(textButton.getWidth())};
+        const float h {static_cast<float>(textButton.getHeight())};
+        const float size {juce::jmin(w, h) * 0.6f};
+        const float originX {(w - size) * 0.5f};
+        const float originY {(h - size) * 0.5f};
+
+        constexpr int numSliders {3};
+        const float lineThickness {juce::jmax(1.0f, size * 0.08f)};
+        const float knobRadius {size * 0.11f};
+        const float rowSpacing {size / numSliders};
+
+        const std::array<float, numSliders> knobPositions {0.7f, 0.3f, 0.55f};
+
+        for (int i = 0; i < numSliders; ++i) {
+            const float y {originY + rowSpacing * (i + 0.5f)};
+            g.fillRect(originX, y - lineThickness * 0.5f, size, lineThickness);
+
+            const float knobX {originX + size * knobPositions[i]};
+            g.fillEllipse(knobX - knobRadius, y - knobRadius, knobRadius * 2, knobRadius * 2);
+        }
+    }
 
     void StaticButtonLookAndFeel::drawButtonBackground(juce::Graphics& g,
                                                        juce::Button& button,
@@ -183,6 +248,7 @@ namespace UIUtils {
         static const juce::Colour lfoColour(252, 116, 147);
         static const juce::Colour envelopeColour(116, 147, 252);
         static const juce::Colour randomColour(247, 147, 252);
+        static const juce::Colour stepSeqColour(252, 210, 116);
 
         switch (type) {
             case MODULATION_TYPE::MACRO:
@@ -193,6 +259,8 @@ namespace UIUtils {
                 return envelopeColour;
             case MODULATION_TYPE::RANDOM:
                 return randomColour;
+            case MODULATION_TYPE::STEP_SEQUENCER:
+                return stepSeqColour;
         }
     }
 
@@ -274,6 +342,165 @@ namespace UIUtils {
 
         g.setFont(font);
         g.drawFittedText(text, availableArea, juce::Justification::centredLeft, 1);
+    }
+
+    void TempoSliderLookAndFeel::drawButtonBackground(
+            juce::Graphics& /*g*/,
+            juce::Button& /*button*/,
+            const juce::Colour& /*backgroundColour*/,
+            bool /*isMouseOverButton*/,
+            bool /*isButtonDown*/) {
+        // do nothing
+    }
+
+    void TempoSliderLookAndFeel::drawButtonText(juce::Graphics& g,
+                                                juce::TextButton& textButton,
+                                                bool /*isMouseOverButton*/,
+                                                bool /*isButtonDown*/) {
+        g.setColour(findColour(juce::TextButton::textColourOnId));
+
+        juce::Rectangle<int> area = textButton.getLocalBounds().reduced(0, textButton.getHeight() / 4);
+
+        // Big carats look weird
+        constexpr int MAX_CARAT_WIDTH {10};
+        const int excessWidth {std::max(area.getWidth() - MAX_CARAT_WIDTH, 0)};
+        area = area.reduced(excessWidth / 2.0, 0);
+
+        // Maintain a fixed aspect ratio in the space we have
+        constexpr float ASPECT_RATIO {2.0f};
+        const int currentAspectRatio = area.getAspectRatio();
+        if (currentAspectRatio > ASPECT_RATIO) {
+            // Too wide, reduce width
+            const int newWidth {static_cast<int>(area.getHeight() * ASPECT_RATIO)};
+            area = area.withSizeKeepingCentre(newWidth, area.getHeight());
+        } else {
+            // Too tall, reduce height
+            const int newHeight {static_cast<int>(area.getWidth() / ASPECT_RATIO)};
+            area = area.withSizeKeepingCentre(area.getWidth(), newHeight);
+        }
+
+        const int horizontalMid {area.getWidth() / 2 + area.getX()};
+        const int centreY {area.getY() + (textButton.getButtonText() == "+" ? 0 : area.getHeight())};
+        const int endY {area.getY() + (textButton.getButtonText() == "+" ? area.getHeight() : 0)};
+        juce::Path p;
+
+        p.startNewSubPath(area.getX(), endY);
+        p.lineTo(horizontalMid, centreY);
+        p.lineTo(area.getX() + area.getWidth(), endY);
+
+        g.strokePath(p, juce::PathStrokeType(1));
+    }
+
+    juce::Slider::SliderLayout TempoSliderLookAndFeel::getSliderLayout(juce::Slider& slider) {
+        juce::Rectangle<int> area = slider.getLocalBounds();
+
+        juce::Slider::SliderLayout retVal;
+        constexpr int HIDE_BUTTONS_BELOW_WIDTH {35};
+        if (area.getWidth() < HIDE_BUTTONS_BELOW_WIDTH) {
+            retVal.sliderBounds = juce::Rectangle<int>(area.getRight(), area.getY(), 0, area.getHeight());
+            retVal.textBoxBounds = area;
+        } else {
+            retVal.sliderBounds = area.removeFromRight(area.getWidth() / 2);
+            retVal.textBoxBounds = area;
+        }
+
+        return retVal;
+    }
+
+    // A Label that supports vertical drag to change the parent slider's value, falling
+    // back to showing the text editor on a plain click.
+    class DraggableValueLabel : public juce::Label {
+    public:
+        DraggableValueLabel() {
+            setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+            setMinimumHorizontalScale(0.1f);
+        }
+
+        void mouseDown(const juce::MouseEvent& e) override {
+            if (auto* slider = dynamic_cast<juce::Slider*>(getParentComponent())) {
+                _dragStartValue = slider->getValue();
+                _dragStartY = e.getScreenY();
+                _isDragging = false;
+            }
+        }
+
+        void mouseDrag(const juce::MouseEvent& e) override {
+            auto* slider = dynamic_cast<juce::Slider*>(getParentComponent());
+            if (slider == nullptr) {
+                return;
+            }
+
+            const int deltaY = e.getScreenY() - _dragStartY;
+
+            if (!_isDragging && std::abs(deltaY) > 5) {
+                _isDragging = true;
+                hideEditor(true);
+            }
+
+            if (_isDragging) {
+                const double range = slider->getMaximum() - slider->getMinimum();
+                const double newValue = _dragStartValue - (deltaY / 250.0) * range;
+                slider->setValue(juce::jlimit(slider->getMinimum(), slider->getMaximum(), newValue));
+            }
+        }
+
+        void mouseUp(const juce::MouseEvent& /*e*/) override {
+            if (!_isDragging) {
+                showEditor();
+            }
+            _isDragging = false;
+        }
+
+        juce::TextEditor* createEditorComponent() override {
+            auto* ed = juce::Label::createEditorComponent();
+            ed->setColour(juce::TextEditor::textColourId, neutralColour);
+            ed->setColour(juce::TextEditor::highlightedTextColourId, neutralColour);
+            ed->setColour(juce::TextEditor::highlightColourId, neutralColourWithAlpha);
+            ed->setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+            ed->setColour(juce::CaretComponent::caretColourId, neutralColour);
+            return ed;
+        }
+
+    private:
+        double _dragStartValue {0.0};
+        int _dragStartY {0};
+        bool _isDragging {false};
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DraggableValueLabel)
+    };
+
+    juce::Button* TempoSliderLookAndFeel::createSliderButton(juce::Slider& /*slider*/, bool isIncrement) {
+        auto* button = new juce::TextButton(isIncrement ? "+" : "-");
+        button->setMouseCursor(juce::MouseCursor::UpDownResizeCursor);
+        return button;
+    }
+
+    juce::MouseCursor TempoSliderLookAndFeel::getMouseCursorFor(juce::Component& component) {
+        if (dynamic_cast<juce::Slider*>(&component) != nullptr) {
+            return juce::MouseCursor::UpDownResizeCursor;
+        }
+
+        return StandardSliderLookAndFeel::getMouseCursorFor(component);
+    }
+
+    juce::Label* TempoSliderLookAndFeel::createSliderTextBox(juce::Slider& slider) {
+        auto* label = new DraggableValueLabel();
+
+
+        // Use a bigger font
+        label->setFont(juce::Font(20.00f, juce::Font::plain).withTypefaceStyle("Regular"));
+        label->setJustificationType(juce::Justification::centred);
+        label->setKeyboardType(juce::TextInputTarget::decimalKeyboard);
+
+        label->setColour(juce::Label::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
+        label->setColour(juce::Label::backgroundColourId, slider.findColour(juce::Slider::textBoxBackgroundColourId));
+        label->setColour(juce::Label::outlineColourId, slider.findColour(juce::Slider::textBoxOutlineColourId));
+        label->setColour(juce::TextEditor::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
+        label->setColour(juce::TextEditor::backgroundColourId, slider.findColour(juce::Slider::textBoxBackgroundColourId));
+        label->setColour(juce::TextEditor::outlineColourId, slider.findColour(juce::Slider::textBoxOutlineColourId));
+        label->setColour(juce::TextEditor::highlightColourId, slider.findColour(juce::Slider::textBoxHighlightColourId));
+
+        return label;
     }
 
     void TableHeaderLookAndFeel::drawTableHeaderBackground(juce::Graphics& g,

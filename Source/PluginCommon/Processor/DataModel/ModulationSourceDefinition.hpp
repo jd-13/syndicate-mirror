@@ -11,7 +11,8 @@ enum class MODULATION_TYPE {
     MACRO,
     LFO,
     ENVELOPE,
-    RANDOM
+    RANDOM,
+    STEP_SEQUENCER
 };
 
 class ModulationSourceDefinition {
@@ -84,6 +85,8 @@ private:
                 return "envelope";
             case MODULATION_TYPE::RANDOM:
                 return "random";
+            case MODULATION_TYPE::STEP_SEQUENCER:
+                return "step_sequencer";
             default:
                 return "";
         }
@@ -96,6 +99,8 @@ private:
             return MODULATION_TYPE::LFO;
         } else if (typeString == "envelope") {
             return MODULATION_TYPE::ENVELOPE;
+        } else if (typeString == "step_sequencer") {
+            return MODULATION_TYPE::STEP_SEQUENCER;
         } else /*(typeString == "random")*/ {
             return MODULATION_TYPE::RANDOM;
         }

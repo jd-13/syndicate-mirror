@@ -76,4 +76,9 @@ namespace ModelInterface {
         // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
         return ModulationProcessors::getRandomModulationValue(*manager.getSourcesStateUnsafe(), randomNumber);
     }
+
+    double getStepSeqModulationValue(StateManager& manager, int stepSeqNumber) {
+        // No locks here - they're called from ChainSlotProcessors::prepareToPlay so will already be locked
+        return ModulationProcessors::getStepSeqModulationValue(*manager.getSourcesStateUnsafe(), stepSeqNumber);
+    }
 }

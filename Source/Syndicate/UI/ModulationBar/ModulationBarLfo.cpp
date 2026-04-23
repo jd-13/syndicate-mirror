@@ -308,59 +308,6 @@ void ModulationBarLfo::buttonClicked(juce::Button* buttonThatWasClicked) {
 }
 
 
-void ModulationBarLfo::TempoSliderLookAndFeel::drawButtonBackground(
-        juce::Graphics& /*g*/,
-        juce::Button& /*button*/,
-        const juce::Colour& /*backgroundColour*/,
-        bool /*isMouseOverButton*/,
-        bool /*isButtonDown*/) {
-    // do nothing
-}
-
-void ModulationBarLfo::TempoSliderLookAndFeel::drawButtonText(juce::Graphics& g,
-                                                              juce::TextButton& textButton,
-                                                              bool /*isMouseOverButton*/,
-                                                              bool /*isButtonDown*/) {
-    g.setColour(findColour(juce::TextButton::textColourOnId));
-
-    juce::Rectangle<int> area = textButton.getLocalBounds().withPosition(0, 0).reduced(8);
-
-    constexpr int MAX_CARAT_WIDTH {10};
-    const int excessWidth {std::max(area.getWidth() - MAX_CARAT_WIDTH, 0)};
-    area = area.reduced(excessWidth / 2.0, 0);
-
-    const int horizontalMid {area.getWidth() / 2 + area.getX()};
-    const int centreY {area.getY() + (textButton.getButtonText() == "+" ? 0 : area.getHeight())};
-    const int endY {area.getY() + (textButton.getButtonText() == "+" ? area.getHeight() : 0)};
-    juce::Path p;
-
-    p.startNewSubPath(area.getX(), endY);
-    p.lineTo(horizontalMid, centreY);
-    p.lineTo(area.getX() + area.getWidth(), endY);
-
-    g.strokePath(p, juce::PathStrokeType(1));
-}
-
-juce::Slider::SliderLayout ModulationBarLfo::TempoSliderLookAndFeel::getSliderLayout(
-            juce::Slider& slider) {
-    juce::Rectangle<int> area = slider.getLocalBounds();
-
-    juce::Slider::SliderLayout retVal;
-    retVal.sliderBounds = area.removeFromRight(area.getWidth() / 2);
-    retVal.textBoxBounds = area;
-
-    return retVal;
-}
-
-juce::Label* ModulationBarLfo::TempoSliderLookAndFeel::createSliderTextBox(juce::Slider& slider) {
-    juce::Label* label = UIUtils::StandardSliderLookAndFeel::createSliderTextBox(slider);
-
-    // Use a bigger font
-    label->setFont(juce::Font(20.00f, juce::Font::plain).withTypefaceStyle("Regular"));
-
-    return label;
-}
-
 void ModulationBarLfo::_updateWaveView() {
     const double* wave {nullptr};
 

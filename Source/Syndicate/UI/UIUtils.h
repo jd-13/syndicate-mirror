@@ -36,6 +36,22 @@ namespace UIUtils {
                             bool isButtonDown) override;
     };
 
+    class GridIconButtonLookAndFeel : public ToggleButtonLookAndFeel {
+    public:
+        void drawButtonText(juce::Graphics& g,
+                            juce::TextButton& textButton,
+                            bool isMouseOverButton,
+                            bool isButtonDown) override;
+    };
+
+    class SettingsIconButtonLookAndFeel : public ToggleButtonLookAndFeel {
+    public:
+        void drawButtonText(juce::Graphics& g,
+                            juce::TextButton& textButton,
+                            bool isMouseOverButton,
+                            bool isButtonDown) override;
+    };
+
     class StaticButtonLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
     public:
         enum ColourIds {
@@ -116,6 +132,28 @@ namespace UIUtils {
                                const juce::Colour* /*textColour*/) override;
     };
 
+    class TempoSliderLookAndFeel : public StandardSliderLookAndFeel {
+    public:
+        void drawButtonBackground(juce::Graphics& g,
+                                  juce::Button& button,
+                                  const juce::Colour& backgroundColour,
+                                  bool isMouseOverButton,
+                                  bool isButtonDown) override;
+
+        void drawButtonText(juce::Graphics& g,
+                            juce::TextButton& textButton,
+                            bool isMouseOverButton,
+                            bool isButtonDown) override;
+
+        juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override;
+
+        juce::Label* createSliderTextBox(juce::Slider& slider) override;
+
+        juce::Button* createSliderButton(juce::Slider& slider, bool isIncrement) override;
+
+        juce::MouseCursor getMouseCursorFor(juce::Component& component) override;
+    };
+
     class TableHeaderLookAndFeel : public WECore::JUCEPlugin::CoreLookAndFeel {
     public:
         virtual void drawTableHeaderBackground(juce::Graphics& g,
@@ -159,6 +197,7 @@ namespace UIUtils {
     const juce::Colour& getColourForModulationType(MODULATION_TYPE type);
 
     const juce::Colour neutralColour = juce::Colour(226, 226, 226);
+    const juce::Colour neutralColourWithAlpha = UIUtils::neutralColour.withAlpha(0.3f);
     const juce::Colour highlightColour = juce::Colour(0xfffc9d74);
     const juce::Colour deactivatedColour = neutralColour.withBrightness(0.5);
 

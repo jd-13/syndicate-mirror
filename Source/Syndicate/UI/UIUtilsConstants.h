@@ -23,7 +23,11 @@ namespace UIUtils {
     // Modulation sources
     constexpr int MODULATION_BAR_WIDTH {572};
     constexpr int MODULATION_BAR_HEIGHT {130};
-    constexpr int MODULATION_LIST_WIDTH {160};
-    constexpr int MODULATION_LIST_COLUMN_WIDTH {MODULATION_LIST_WIDTH / 2};
+    constexpr int MODULATION_LIST_COLUMN_WIDTH {80};
     constexpr int MODULATION_LIST_BUTTON_HEIGHT {24};
+
+    // Compact modulation bar layout (single column: dropdown add button + scrollable source list)
+    constexpr int MODULATION_COMPACT_ADD_BUTTON_HEIGHT {28};
+    constexpr int MODULATION_COMPACT_ADD_MARGIN {4};
+    constexpr int MODULATION_COMPACT_THRESHOLD {680};
 }
